@@ -1,0 +1,190 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Agency (Tenant) ────────────────────────────────────────────────────────
+model Agency {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  email       String   @unique
+  phone       String?
+  address     String?
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users               User[]
+  workers             Worker[]
+  documentTypes       DocumentType[]
+  complianceDocuments ComplianceDocument[]
+  expiryAlerts        ExpiryAlert[]
+  auditLogs           AuditLog[]
+
+  @@map("agencies")
+}
+
+// ─── User (Staff/Admin of an Agency) ────────────────────────────────────────
+model User {
+  id         String   @id @default(cuid())
+  clerkId    String   @unique               // Clerk Auth user ID
+  agencyId   String
+  email      String
+  firstName  String
+  lastName   String
+  role       UserRole @default(STAFF)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  agency    Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
+
+  @@unique([agencyId, email])
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+// ─── Worker (Healthcare Staff managed by an Agency) ─────────────────────────
+model Worker {
+  id             String       @id @default(cuid())
+  agencyId       String
+  firstName      String
+  lastName       String
+  email          String
+  phone          String?
+  dateOfBirth    DateTime?
+  niNumber       String?      // National Insurance Number (UK)
+  jobTitle       String?
+  startDate      DateTime?
+  status         WorkerStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  agency              Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  complianceDocuments ComplianceDocument[]
+  expiryAlerts        ExpiryAlert[]
+
+  @@unique([agencyId, email])
+  @@map("workers")
+}
+
+enum WorkerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ─── DocumentType (Template for compliance docs e.g. DBS, Right to Work) ───
+model DocumentType {
+  id                  String    @id @default(cuid())
+  agencyId            String
+  name                String                         // e.g. "DBS Check", "Right to Work"
+  description         String?
+  isRequired          Boolean   @default(true)
+  expiryWarningDays   Int       @default(30)         // Warn N days before expiry
+  hasExpiry           Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  agency              Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  complianceDocuments ComplianceDocument[]
+
+  @@unique([agencyId, name])
+  @@map("document_types")
+}
+
+// ─── ComplianceDocument (Actual uploaded doc for a worker) ──────────────────
+model ComplianceDocument {
+  id               String             @id @default(cuid())
+  agencyId         String
+  workerId         String
+  documentTypeId   String
+  fileUrl          String                             // Cloudflare R2 URL
+  fileKey          String                             // R2 object key
+  fileName         String
+  fileSize         Int?
+  mimeType         String?
+  status           DocumentStatus     @default(PENDING)
+  issueDate        DateTime?
+  expiryDate       DateTime?
+  notes            String?
+  rejectionReason  String?
+  uploadedAt       DateTime           @default(now())
+  reviewedAt       DateTime?
+  updatedAt        DateTime           @updatedAt
+
+  // Relations
+  agency       Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id])
+  expiryAlerts ExpiryAlert[]
+
+  @@map("compliance_documents")
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// ─── ExpiryAlert (Notifications for expiring documents) ─────────────────────
+model ExpiryAlert {
+  id                   String      @id @default(cuid())
+  agencyId             String
+  workerId             String
+  complianceDocumentId String
+  alertDate            DateTime
+  daysUntilExpiry      Int
+  isSent               Boolean     @default(false)
+  sentAt               DateTime?
+  createdAt            DateTime    @default(now())
+
+  // Relations
+  agency             Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  worker             Worker             @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  complianceDocument ComplianceDocument @relation(fields: [complianceDocumentId], references: [id], onDelete: Cascade)
+
+  @@map("expiry_alerts")
+}
+
+// ─── AuditLog (Immutable record of actions for compliance purposes) ──────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  agencyId  String
+  userId    String?
+  action    String                          // e.g. "document.approved", "worker.created"
+  entity    String                          // e.g. "ComplianceDocument", "Worker"
+  entityId  String
+  metadata  Json?                           // Extra context (old/new values, etc.)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  agency Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
