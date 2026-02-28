@@ -11,7 +11,14 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Auth is handled per-route via verifyToken in workers.js
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
+const workersRouter = require('./routes/workers');
+app.use('/api/workers', workersRouter);
+
+const agenciesRouter = require('./routes/agencies');
+app.use('/api/agencies', agenciesRouter);
 
 // Health Check
 app.get('/api/health', async (req, res) => {
@@ -50,6 +57,13 @@ app.use((err, req, res, next) => {
 // ─── Start Server ─────────────────────────────────────────────────────────────
 async function startServer() {
     try {
+        // Check required env vars
+        if (!process.env.CLERK_SECRET_KEY) {
+            console.error('❌ CLERK_SECRET_KEY is not set! Auth will not work.');
+        } else {
+            console.log('✅ Clerk secret key loaded:', process.env.CLERK_SECRET_KEY.slice(0, 12) + '...');
+        }
+
         await prisma.$connect();
         console.log('✅ Database connected');
         app.listen(PORT, () => {
