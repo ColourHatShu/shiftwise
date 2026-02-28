@@ -81,12 +81,67 @@ router.post('/setup', async (req, res) => {
         console.log(`✅ Agency created for ${email}: ${agency.id}`);
         return res.status(201).json({ data: agency, created: true });
     } catch (error) {
-        // Handle unique constraint (email already used on another agency)
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'An agency with this email already exists' });
         }
         console.error('Error in agency setup:', error);
         res.status(500).json({ error: 'Failed to setup agency' });
+    }
+});
+
+// ─── PUT /api/agencies/onboard ────────────────────────────────────────────────
+// Saves onboarding details and marks agency as onboarded.
+router.put('/onboard', async (req, res) => {
+    try {
+        const clerkUserId = await verifyClerkToken(req, res);
+        if (!clerkUserId) return;
+
+        const user = await prisma.user.findUnique({
+            where: { clerkId: clerkUserId }
+        });
+
+        if (!user?.agencyId) {
+            return res.status(403).json({ error: 'No agency found. Please refresh the page.' });
+        }
+
+        const { name, address, city, postcode, phone, agencyType } = req.body;
+
+        if (!name || !address || !city || !postcode || !phone || !agencyType) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const agency = await prisma.agency.update({
+            where: { id: user.agencyId },
+            data: { name, address, city, postcode, phone, agencyType, isOnboarded: true }
+        });
+
+        return res.json({ data: agency });
+    } catch (error) {
+        console.error('Error completing onboarding:', error);
+        res.status(500).json({ error: 'Failed to save onboarding details' });
+    }
+});
+
+// ─── GET /api/agencies/me ─────────────────────────────────────────────────────
+// Returns the current user's agency (including isOnboarded status).
+router.get('/me', async (req, res) => {
+    try {
+        const clerkUserId = await verifyClerkToken(req, res);
+        if (!clerkUserId) return;
+
+        const user = await prisma.user.findUnique({
+            where: { clerkId: clerkUserId },
+            include: { agency: true }
+        });
+
+        if (!user?.agency) {
+            return res.status(404).json({ error: 'No agency found' });
+        }
+
+        return res.json({ data: user.agency });
+    } catch (error) {
+        console.error('Error fetching agency:', error);
+        res.status(500).json({ error: 'Failed to fetch agency' });
     }
 });
 

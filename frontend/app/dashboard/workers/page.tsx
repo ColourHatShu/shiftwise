@@ -9,6 +9,7 @@ import { Plus, User, Search, Eye } from "lucide-react";
 export default function WorkersPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
     const [workers, setWorkers] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -16,19 +17,12 @@ export default function WorkersPage() {
     useEffect(() => {
         const fetchWorkers = async () => {
             if (!isLoaded || !isSignedIn) return;
-
             try {
                 const token = await getToken();
                 const response = await fetch(`${API_URL}/api/workers`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch workers");
-                }
-
+                if (!response.ok) throw new Error("Failed to fetch workers");
                 const data = await response.json();
                 setWorkers(data.data || []);
             } catch (err: any) {
@@ -37,9 +31,19 @@ export default function WorkersPage() {
                 setIsLoading(false);
             }
         };
-
         fetchWorkers();
     }, [isLoaded, isSignedIn, getToken, API_URL]);
+
+    // ── Client-side search filter ──────────────────────────────────────────────
+    const filteredWorkers = workers.filter((w) => {
+        const q = searchQuery.toLowerCase();
+        if (!q) return true;
+        return (
+            `${w.firstName} ${w.lastName}`.toLowerCase().includes(q) ||
+            (w.jobTitle ?? "").toLowerCase().includes(q) ||
+            w.email.toLowerCase().includes(q)
+        );
+    });
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -88,12 +92,16 @@ export default function WorkersPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Search workers..."
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-64"
+                            placeholder="Search by name, role or email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-slate-900 border border-slate-700 text-white rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-72"
                         />
                     </div>
                     <div className="text-sm text-slate-400 font-medium">
-                        Total list: {workers.length}
+                        {searchQuery
+                            ? `${filteredWorkers.length} of ${workers.length} workers`
+                            : `Total: ${workers.length}`}
                     </div>
                 </div>
 
@@ -110,22 +118,28 @@ export default function WorkersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/50 text-sm">
-                            {workers.length === 0 ? (
+                            {filteredWorkers.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                                         <div className="flex flex-col items-center justify-center space-y-3">
                                             <div className="bg-slate-800 p-3 rounded-full">
                                                 <User size={24} className="text-slate-500" />
                                             </div>
-                                            <p>No workers added yet.</p>
-                                            <Link href="/dashboard/workers/new" className="text-blue-400 hover:text-blue-300 transition-colors">
-                                                Add your first worker
-                                            </Link>
+                                            {searchQuery ? (
+                                                <p>No workers match <span className="text-white font-medium">"{searchQuery}"</span></p>
+                                            ) : (
+                                                <>
+                                                    <p>No workers added yet.</p>
+                                                    <Link href="/dashboard/workers/new" className="text-blue-400 hover:text-blue-300 transition-colors">
+                                                        Add your first worker
+                                                    </Link>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
-                                workers.map((worker: any) => (
+                                filteredWorkers.map((worker: any) => (
                                     <tr key={worker.id} className="hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -138,17 +152,15 @@ export default function WorkersPage() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-300">{worker.jobTitle || 'Unassigned'}</td>
+                                        <td className="px-6 py-4 text-slate-300">{worker.jobTitle || "Unassigned"}</td>
                                         <td className="px-6 py-4">
                                             <p className="text-slate-300">{worker.email}</p>
-                                            <p className="text-slate-500 text-xs mt-0.5">{worker.phone || 'No phone'}</p>
+                                            <p className="text-slate-500 text-xs mt-0.5">{worker.phone || "No phone"}</p>
                                         </td>
                                         <td className="px-6 py-4 text-slate-300">
-                                            {worker.startDate ? format(new Date(worker.startDate), 'MMM dd, yyyy') : 'N/A'}
+                                            {worker.startDate ? format(new Date(worker.startDate), "MMM dd, yyyy") : "N/A"}
                                         </td>
-                                        <td className="px-6 py-4">
-                                            {getStatusBadge(worker.status)}
-                                        </td>
+                                        <td className="px-6 py-4">{getStatusBadge(worker.status)}</td>
                                         <td className="px-6 py-4 text-right">
                                             <Link
                                                 href={`/dashboard/workers/${worker.id}`}

@@ -20,6 +20,9 @@ app.use('/api/workers', workersRouter);
 const agenciesRouter = require('./routes/agencies');
 app.use('/api/agencies', agenciesRouter);
 
+const dashboardRouter = require('./routes/dashboard');
+app.use('/api/dashboard', dashboardRouter);
+
 // Health Check
 app.get('/api/health', async (req, res) => {
     try {

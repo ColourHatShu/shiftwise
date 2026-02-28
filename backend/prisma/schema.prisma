@@ -18,8 +18,12 @@ model Agency {
   email       String   @unique
   phone       String?
   address     String?
+  city        String?
+  postcode    String?
+  agencyType  String?
   logoUrl     String?
   isActive    Boolean  @default(true)
+  isOnboarded Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

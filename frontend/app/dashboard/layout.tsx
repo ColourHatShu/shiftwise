@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth, SignOutButton } from "@clerk/nextjs";
 import {
     LayoutDashboard,
@@ -29,24 +29,39 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+    const router = useRouter();
     const { getToken, isLoaded, isSignedIn } = useAuth();
 
-    // Silently ensure this user has an Agency record on every dashboard load
+    // On every dashboard load: ensure agency exists, then check onboarding status
     useEffect(() => {
-        const setupAgency = async () => {
+        const checkOnboarding = async () => {
             if (!isLoaded || !isSignedIn) return;
             try {
                 const token = await getToken();
+
+                // 1. Ensure agency + user record exist
                 await fetch(`${API_URL}/api/agencies/setup`, {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },
                 });
+
+                // 2. Check if agency has completed onboarding
+                const meRes = await fetch(`${API_URL}/api/agencies/me`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (meRes.ok) {
+                    const { data: agency } = await meRes.json();
+                    if (!agency.isOnboarded) {
+                        router.replace("/onboarding");
+                    }
+                }
             } catch (err) {
-                console.error("Agency setup failed:", err);
+                console.error("Onboarding check failed:", err);
             }
         };
-        setupAgency();
-    }, [isLoaded, isSignedIn, getToken]);
+        checkOnboarding();
+    }, [isLoaded, isSignedIn, getToken, router]);
 
     const isActive = (href: string) => {
         if (href === "/dashboard") return pathname === "/dashboard";
