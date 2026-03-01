@@ -150,4 +150,41 @@ router.get('/me', async (req, res) => {
     }
 });
 
+// ─── PATCH /api/agencies/update ───────────────────────────────────────────────
+// Updates the current user's agency details from the Settings page.
+router.patch('/update', async (req, res) => {
+    try {
+        const clerkUserId = await verifyClerkToken(req, res);
+        if (!clerkUserId) return;
+
+        const user = await prisma.user.findUnique({
+            where: { clerkId: clerkUserId }
+        });
+
+        if (!user?.agencyId) {
+            return res.status(403).json({ error: 'No agency found attached to this user.' });
+        }
+
+        const { name, address, city, postcode, phone, agencyType } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = name.trim();
+        if (address !== undefined) updateData.address = address.trim();
+        if (city !== undefined) updateData.city = city.trim();
+        if (postcode !== undefined) updateData.postcode = postcode.trim();
+        if (phone !== undefined) updateData.phone = phone.trim();
+        if (agencyType !== undefined) updateData.agencyType = agencyType.trim();
+
+        const updatedAgency = await prisma.agency.update({
+            where: { id: user.agencyId },
+            data: updateData
+        });
+
+        return res.json({ message: 'Settings saved successfully', data: updatedAgency });
+    } catch (error) {
+        console.error('Error updating agency settings:', error);
+        res.status(500).json({ error: 'Failed to update agency settings' });
+    }
+});
+
 module.exports = router;
