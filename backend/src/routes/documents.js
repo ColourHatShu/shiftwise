@@ -362,7 +362,7 @@ router.patch('/:id/verify', async (req, res) => {
         const agencyUser = await getAgencyUser(req, res);
         if (!agencyUser) return;
 
-        const { status, notes } = req.body;
+        const { status, notes, manualExpiryDate } = req.body;
         if (!['APPROVED', 'REJECTED'].includes(status)) {
             return res.status(400).json({ error: 'Status must be APPROVED or REJECTED' });
         }
@@ -372,16 +372,22 @@ router.patch('/:id/verify', async (req, res) => {
         });
         if (!doc) return res.status(404).json({ error: 'Document not found' });
 
+        const updateData = {
+            status,
+            reviewedAt: new Date(),
+            rejectionReason: status === 'REJECTED' ? notes : null,
+            notes: notes || doc.notes
+        };
+
+        if (manualExpiryDate && status === 'APPROVED') {
+            updateData.expiryDate = new Date(manualExpiryDate);
+        }
+
         // Update document status & create Audit Log transactionally
         const [updated] = await prisma.$transaction([
             prisma.complianceDocument.update({
                 where: { id: doc.id },
-                data: {
-                    status,
-                    reviewedAt: new Date(),
-                    rejectionReason: status === 'REJECTED' ? notes : null,
-                    notes: notes || doc.notes
-                },
+                data: updateData,
                 include: { documentType: true }
             }),
             prisma.auditLog.create({

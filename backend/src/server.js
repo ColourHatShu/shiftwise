@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const prisma = require('./lib/prisma');
+const { initCronJobs, checkExpiriesAndAlert } = require('./services/cronService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,6 +19,9 @@ app.use('/uploads', express.static(uploadsPath));
 
 // Auth is handled per-route via verifyToken in workers.js
 
+// ─── Cron Scheduler ────────────────────────────────────────────────────────────
+initCronJobs();
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 const workersRouter = require('./routes/workers');
 app.use('/api/workers', workersRouter);
@@ -30,6 +34,9 @@ app.use('/api/dashboard', dashboardRouter);
 
 const documentsRouter = require('./routes/documents');
 app.use('/api/documents', documentsRouter);
+
+const alertsRouter = require('./routes/alerts');
+app.use('/api/alerts', alertsRouter);
 
 // Health Check
 app.get('/api/health', async (req, res) => {
