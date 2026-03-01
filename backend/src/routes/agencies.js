@@ -1,6 +1,7 @@
 const express = require('express');
 const { verifyToken, createClerkClient } = require('@clerk/backend');
 const prisma = require('../lib/prisma');
+const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
 
 const router = express.Router();
 
@@ -79,6 +80,8 @@ router.post('/setup', async (req, res) => {
         });
 
         console.log(`✅ Agency created for ${email}: ${agency.id}`);
+        // Seed standard document types for this new agency
+        await seedDocumentTypes(agency.id, prisma);
         return res.status(201).json({ data: agency, created: true });
     } catch (error) {
         if (error.code === 'P2002') {
@@ -115,6 +118,8 @@ router.put('/onboard', async (req, res) => {
             data: { name, address, city, postcode, phone, agencyType, isOnboarded: true }
         });
 
+        // Ensure document types exist (idempotent)
+        await seedDocumentTypes(user.agencyId, prisma);
         return res.json({ data: agency });
     } catch (error) {
         console.error('Error completing onboarding:', error);

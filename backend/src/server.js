@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const prisma = require('./lib/prisma');
 
 const app = express();
@@ -10,6 +11,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ─── Static uploads (local file storage for development) ─────────────────────
+const uploadsPath = path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadsPath));
 
 // Auth is handled per-route via verifyToken in workers.js
 
@@ -22,6 +27,9 @@ app.use('/api/agencies', agenciesRouter);
 
 const dashboardRouter = require('./routes/dashboard');
 app.use('/api/dashboard', dashboardRouter);
+
+const documentsRouter = require('./routes/documents');
+app.use('/api/documents', documentsRouter);
 
 // Health Check
 app.get('/api/health', async (req, res) => {

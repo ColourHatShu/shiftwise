@@ -137,6 +137,7 @@ model ComplianceDocument {
   uploadedAt       DateTime           @default(now())
   reviewedAt       DateTime?
   updatedAt        DateTime           @updatedAt
+  analysisResult   Json?
 
   // Relations
   agency       Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
