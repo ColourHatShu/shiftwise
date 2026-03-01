@@ -128,4 +128,46 @@ router.post('/', requireAgency, async (req, res) => {
     }
 });
 
+// ─── PATCH /api/workers/:id ───────────────────────────────────────────────────
+router.patch('/:id', requireAgency, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { firstName, lastName, email, phone, jobRole, startDate, notes } = req.body;
+
+        // Verify ownership
+        const existingWorker = await prisma.worker.findFirst({
+            where: { id, agencyId: req.agencyId }
+        });
+
+        if (!existingWorker) {
+            return res.status(404).json({ error: 'Worker not found' });
+        }
+
+        // Build update payload
+        const updateData = {};
+        if (firstName) updateData.firstName = firstName.trim();
+        if (lastName) updateData.lastName = lastName.trim();
+        if (email) updateData.email = email.trim().toLowerCase();
+        if (phone !== undefined) updateData.phone = phone.trim(); // Allow emptying
+        if (jobRole) updateData.jobTitle = jobRole.trim();
+        if (startDate) updateData.startDate = new Date(startDate);
+        if (notes !== undefined) updateData.notes = notes.trim();
+
+        const updatedWorker = await prisma.worker.update({
+            where: { id },
+            data: updateData
+        });
+
+        res.json({ message: 'Worker updated successfully', data: updatedWorker });
+
+    } catch (error) {
+        console.error('Error updating worker:', error);
+        // Handle unique constraint violations
+        if (error.code === 'P2002') {
+            return res.status(400).json({ error: 'Email already exists' });
+        }
+        res.status(500).json({ error: 'Failed to update worker' });
+    }
+});
+
 module.exports = router;

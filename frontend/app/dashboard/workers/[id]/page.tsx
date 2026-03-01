@@ -8,9 +8,10 @@ import { format } from "date-fns";
 import {
     ArrowLeft, Mail, Phone, Calendar, Briefcase,
     Upload, Eye, CheckCircle2, Clock, AlertCircle, XCircle,
-    FileText, X
+    FileText, X, Edit
 } from "lucide-react";
 import toast from "react-hot-toast";
+import EditWorkerModal from '../components/EditWorkerModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -353,6 +354,7 @@ export default function WorkerProfilePage() {
     const [error, setError] = useState("");
     const [uploadTarget, setUploadTarget] = useState<any>(null);
     const [analysisTarget, setAnalysisTarget] = useState<any>(null);
+    const [editTarget, setEditTarget] = useState<boolean>(false);
 
     const fetchAll = async () => {
         if (!isLoaded || !isSignedIn || !workerId) return;
@@ -409,6 +411,13 @@ export default function WorkerProfilePage() {
                     onSuccess={() => { setAnalysisTarget(null); setIsLoading(true); fetchAll(); }}
                 />
             )}
+            {editTarget && (
+                <EditWorkerModal
+                    worker={worker}
+                    onClose={() => setEditTarget(false)}
+                    onSuccess={() => { setEditTarget(false); setIsLoading(true); fetchAll(); }}
+                />
+            )}
 
             {/* Back */}
             <Link href="/dashboard/workers" className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors">
@@ -422,8 +431,18 @@ export default function WorkerProfilePage() {
                         {worker.firstName[0]}{worker.lastName[0]}
                     </div>
                     <div className="flex-1">
-                        <h1 className="text-2xl font-bold text-white">{worker.firstName} {worker.lastName}</h1>
-                        <p className="text-slate-400 mt-0.5">{worker.jobTitle || "No role assigned"}</p>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-2xl font-bold text-white">{worker.firstName} {worker.lastName}</h1>
+                                <p className="text-slate-400 mt-0.5">{worker.jobTitle || "No role assigned"}</p>
+                            </div>
+                            <button
+                                onClick={() => setEditTarget(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-medium transition-colors"
+                            >
+                                <Edit size={16} /> Edit
+                            </button>
+                        </div>
                         <div className="flex flex-wrap gap-4 mt-4 text-sm text-slate-300">
                             <span className="flex items-center gap-2"><Mail size={14} className="text-slate-500" />{worker.email}</span>
                             {worker.phone && <span className="flex items-center gap-2"><Phone size={14} className="text-slate-500" />{worker.phone}</span>}

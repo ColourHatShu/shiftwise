@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, User, Search, Eye } from "lucide-react";
+import { Plus, User, Search, Eye, Edit } from "lucide-react";
+import EditWorkerModal from './components/EditWorkerModal';
 
 export default function WorkersPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
@@ -12,25 +13,27 @@ export default function WorkersPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
+    const [editingWorker, setEditingWorker] = useState<any>(null);
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+    const fetchWorkers = async () => {
+        if (!isLoaded || !isSignedIn) return;
+        try {
+            const token = await getToken();
+            const response = await fetch(`${API_URL}/api/workers`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error("Failed to fetch workers");
+            const data = await response.json();
+            setWorkers(data.data || []);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchWorkers = async () => {
-            if (!isLoaded || !isSignedIn) return;
-            try {
-                const token = await getToken();
-                const response = await fetch(`${API_URL}/api/workers`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (!response.ok) throw new Error("Failed to fetch workers");
-                const data = await response.json();
-                setWorkers(data.data || []);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         fetchWorkers();
     }, [isLoaded, isSignedIn, getToken, API_URL]);
 
@@ -161,10 +164,17 @@ export default function WorkersPage() {
                                             {worker.startDate ? format(new Date(worker.startDate), "MMM dd, yyyy") : "N/A"}
                                         </td>
                                         <td className="px-6 py-4">{getStatusBadge(worker.status)}</td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right flex gap-3 justify-end items-center">
+                                            <button
+                                                onClick={() => setEditingWorker(worker)}
+                                                className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 font-medium text-xs bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
+                                            >
+                                                <Edit size={14} />
+                                                Edit
+                                            </button>
                                             <Link
                                                 href={`/dashboard/workers/${worker.id}`}
-                                                className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 font-medium text-xs bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
+                                                className="inline-flex items-center gap-1.5 text-slate-300 hover:text-white font-medium text-xs bg-slate-700/50 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 border border-slate-600/50"
                                             >
                                                 <Eye size={14} />
                                                 View
@@ -177,6 +187,14 @@ export default function WorkersPage() {
                     </table>
                 </div>
             </div>
+
+            {editingWorker && (
+                <EditWorkerModal
+                    worker={editingWorker}
+                    onClose={() => setEditingWorker(null)}
+                    onSuccess={() => { setEditingWorker(null); fetchWorkers(); }}
+                />
+            )}
         </div>
     );
 }
