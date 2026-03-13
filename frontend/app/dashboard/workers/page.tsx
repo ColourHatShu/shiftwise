@@ -11,21 +11,28 @@ export default function WorkersPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
     const [workers, setWorkers] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [showInactive, setShowInactive] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [editingWorker, setEditingWorker] = useState<any>(null);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalWorkers, setTotalWorkers] = useState(0);
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-    const fetchWorkers = async () => {
+    const fetchWorkers = async (pageNum: number = 1) => {
         if (!isLoaded || !isSignedIn) return;
         try {
+            setIsLoading(true);
             const token = await getToken();
-            const response = await fetch(`${API_URL}/api/workers`, {
+            const response = await fetch(`${API_URL}/api/workers?page=${pageNum}&limit=20`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (!response.ok) throw new Error("Failed to fetch workers");
             const data = await response.json();
             setWorkers(data.data || []);
+            setTotalPages(data.pagination?.totalPages || 1);
+            setTotalWorkers(data.pagination?.total || 0);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -34,18 +41,20 @@ export default function WorkersPage() {
     };
 
     useEffect(() => {
-        fetchWorkers();
-    }, [isLoaded, isSignedIn, getToken, API_URL]);
+        fetchWorkers(page);
+    }, [isLoaded, isSignedIn, getToken, API_URL, page]);
 
     // ── Client-side search filter ──────────────────────────────────────────────
     const filteredWorkers = workers.filter((w) => {
-        const q = searchQuery.toLowerCase();
-        if (!q) return true;
-        return (
-            `${w.firstName} ${w.lastName}`.toLowerCase().includes(q) ||
-            (w.jobTitle ?? "").toLowerCase().includes(q) ||
-            w.email.toLowerCase().includes(q)
-        );
+        const matchesSearch =
+            `${w.firstName} ${w.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (w.jobTitle ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            w.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+        // Filter by active status (if showInactive is false, only show ACTIVE workers)
+        const matchesActive = showInactive ? true : w.status !== 'INACTIVE';
+
+        return matchesSearch && matchesActive;
     });
 
     const getStatusBadge = (status: string) => {
@@ -53,7 +62,9 @@ export default function WorkersPage() {
             case "ACTIVE":
                 return <span className="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs font-medium border border-green-500/20">Compliant</span>;
             case "INACTIVE":
-                return <span className="px-2 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-medium border border-amber-500/20">Expiring Soon</span>;
+                return <span className="px-2 py-1 bg-slate-700/50 text-slate-400 rounded-full text-xs font-medium border border-slate-600/50">Inactive</span>;
+            case "SUSPENDED":
+                return <span className="px-2 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-medium border border-amber-500/20">Suspended</span>;
             default:
                 return <span className="px-2 py-1 bg-red-500/10 text-red-400 rounded-full text-xs font-medium border border-red-500/20">Non-Compliant</span>;
         }
@@ -143,7 +154,13 @@ export default function WorkersPage() {
                                 </tr>
                             ) : (
                                 filteredWorkers.map((worker: any) => (
-                                    <tr key={worker.id} className="hover:bg-slate-800/50 transition-colors group">
+                                    <tr
+                                        key={worker.id}
+                                        className={`group transition-colors ${worker.status === 'INACTIVE'
+                                            ? "bg-slate-900/20 hover:bg-slate-800/20 opacity-60"
+                                            : "hover:bg-slate-800/30"
+                                            }`}
+                                    >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold border border-blue-500/20">
@@ -192,8 +209,36 @@ export default function WorkersPage() {
                 <EditWorkerModal
                     worker={editingWorker}
                     onClose={() => setEditingWorker(null)}
-                    onSuccess={() => { setEditingWorker(null); fetchWorkers(); }}
+                    onSuccess={() => { setEditingWorker(null); fetchWorkers(page); }}
                 />
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                    <div className="text-sm text-slate-400">
+                        Showing {workers.length} of {totalWorkers} workers
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-sm text-slate-400 px-3">
+                            Page {page} of {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -8,9 +8,10 @@ import { format } from "date-fns";
 import {
     ArrowLeft, Mail, Phone, Calendar, Briefcase,
     Upload, Eye, CheckCircle2, Clock, AlertCircle, XCircle,
-    FileText, X, Edit
+    FileText, X, Edit, UserX, Trash2, UserCheck
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 import EditWorkerModal from '../components/EditWorkerModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -346,6 +347,7 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
 export default function WorkerProfilePage() {
     const params = useParams() as any;
     const workerId = params?.id;
+    const router = useRouter();
     const { getToken, isLoaded, isSignedIn } = useAuth();
 
     const [worker, setWorker] = useState<any>(null);
@@ -375,6 +377,61 @@ export default function WorkerProfilePage() {
             setError(err.message);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDeactivate = async () => {
+        if (!worker) return;
+        const confirmMsg = `Are you sure you want to deactivate ${worker.firstName} ${worker.lastName}? They will no longer appear in active searches.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/workers/${workerId}/deactivate`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Failed to deactivate worker");
+            toast.success("Worker deactivated");
+            fetchAll();
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
+    const handleReactivate = async () => {
+        if (!worker) return;
+
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/workers/${workerId}/reactivate`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Failed to reactivate worker");
+            toast.success("Worker restored to active status");
+            fetchAll();
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
+    const handleDeleteWorker = async () => {
+        if (!worker) return;
+        const confirmMsg = `This will permanently delete ${worker.firstName} ${worker.lastName} and all their documents. This cannot be undone.`;
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/workers/${workerId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Failed to delete worker");
+            toast.success("Worker deleted permanently");
+            router.push("/dashboard/workers");
+        } catch (err: any) {
+            toast.error(err.message);
         }
     };
 
@@ -432,10 +489,15 @@ export default function WorkerProfilePage() {
                     </div>
                     <div className="flex-1">
                         <div className="flex justify-between items-start">
-                            <div>
+                            <div className="flex items-center gap-3">
                                 <h1 className="text-2xl font-bold text-white">{worker.firstName} {worker.lastName}</h1>
-                                <p className="text-slate-400 mt-0.5">{worker.jobTitle || "No role assigned"}</p>
+                                {worker.status === 'INACTIVE' && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-700/50 text-slate-400 border border-slate-600/50">
+                                        Inactive
+                                    </span>
+                                )}
                             </div>
+                            <p className="text-slate-400 mt-0.5">{worker.jobTitle || "No role assigned"}</p>
                             <button
                                 onClick={() => setEditTarget(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-medium transition-colors"
@@ -450,6 +512,33 @@ export default function WorkerProfilePage() {
                             <span className="flex items-center gap-2"><Briefcase size={14} className="text-slate-500" />ID: {worker.id.slice(-8).toUpperCase()}</span>
                         </div>
                     </div>
+                </div>
+
+                {/* Additional Risk Actions */}
+                <div className="mt-6 pt-5 border-t border-slate-700/50 flex gap-4">
+                    {worker.status !== 'INACTIVE' ? (
+                        <button
+                            onClick={handleDeactivate}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl transition-colors"
+                        >
+                            <UserX size={16} /> Deactivate Worker
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={handleReactivate}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-500 hover:text-green-400 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 rounded-xl transition-colors"
+                            >
+                                <UserCheck size={16} /> Reactivate Worker
+                            </button>
+                            <button
+                                onClick={handleDeleteWorker}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors"
+                            >
+                                <Trash2 size={16} /> Delete Worker (Permanent)
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 

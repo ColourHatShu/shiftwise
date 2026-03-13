@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const prisma = require('./lib/prisma');
 const { initCronJobs, checkExpiriesAndAlert } = require('./services/cronService');
@@ -9,7 +11,32 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
+app.use(helmet());
+
+// General rate limiting - 100 requests per 15 minutes per IP
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    message: { error: 'Too many requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Stricter rate limiting for auth-related routes - 20 requests per 15 minutes
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,
+    message: { error: 'Too many authentication attempts, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use(generalLimiter);
+
+app.use(cors({ 
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    exposedHeaders: ['Content-Disposition'] 
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -18,6 +45,11 @@ const uploadsPath = path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsPath));
 
 // Auth is handled per-route via verifyToken in workers.js
+
+// Apply stricter rate limiting to auth-related routes
+app.use('/api/workers', authLimiter);
+app.use('/api/agencies', authLimiter);
+app.use('/api/documents', authLimiter);
 
 // ─── Cron Scheduler ────────────────────────────────────────────────────────────
 initCronJobs();
@@ -37,6 +69,9 @@ app.use('/api/documents', documentsRouter);
 
 const alertsRouter = require('./routes/alerts');
 app.use('/api/alerts', alertsRouter);
+
+const reportsRouter = require('./routes/reports');
+app.use('/api/reports', reportsRouter);
 
 // Health Check
 app.get('/api/health', async (req, res) => {

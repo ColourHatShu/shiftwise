@@ -27,7 +27,7 @@ const requireAgency = async (req, res, next) => {
         try {
             payload = await verifyToken(token, {
                 secretKey,
-                authorizedParties: ['http://localhost:3000'],
+                authorizedParties: [process.env.AUTHORIZED_PARTY || 'http://localhost:3000'],
                 clockSkewInMs: 300000  // 5 min tolerance for clock skew
             });
         } catch (err) {
@@ -59,11 +59,31 @@ const requireAgency = async (req, res, next) => {
 // ─── GET /api/workers ─────────────────────────────────────────────────────────
 router.get('/', requireAgency, async (req, res) => {
     try {
-        const workers = await prisma.worker.findMany({
-            where: { agencyId: req.agencyId },
-            orderBy: { firstName: 'asc' }
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
+        const [workers, total] = await Promise.all([
+            prisma.worker.findMany({
+                where: { agencyId: req.agencyId },
+                orderBy: { firstName: 'asc' },
+                skip,
+                take: limit
+            }),
+            prisma.worker.count({ where: { agencyId: req.agencyId } })
+        ]);
+
+        const totalPages = Math.ceil(total / limit);
+
+        res.json({
+            data: workers,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages
+            }
         });
-        res.json({ data: workers });
     } catch (error) {
         console.error('Error fetching workers:', error);
         res.status(500).json({ error: 'Failed to fetch workers' });
