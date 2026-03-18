@@ -1,18 +1,13 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { DM_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dm-sans",
 });
 
 export const metadata: Metadata = {
@@ -35,18 +30,19 @@ export default function RootLayout({
     >
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-900 text-slate-100 min-h-screen selection:bg-blue-500/30`}
+          className={`${dmSans.variable} font-sans antialiased bg-[#F8F9FB] text-[#1A1A2E] min-h-screen`}
         >
           <Toaster
             position="top-right"
             toastOptions={{
               style: {
-                background: "#1e293b",
-                color: "#fff",
-                border: "1px solid #334155",
+                background: "#ffffff",
+                color: "#1A1A2E",
+                border: "1px solid #E5E7EB",
+                fontFamily: "var(--font-dm-sans), sans-serif",
               },
-              success: { iconTheme: { primary: "#22c55e", secondary: "#fff" } },
-              error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
+              success: { iconTheme: { primary: "#1D9E75", secondary: "#fff" } },
+              error: { iconTheme: { primary: "#E24B4A", secondary: "#fff" } },
             }}
           />
           {children}

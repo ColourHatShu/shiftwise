@@ -8,16 +8,17 @@ import {
     LayoutDashboard,
     Users,
     FileText,
-    BarChart2,
+    BarChart3,
     Settings,
     LogOut,
+    Shield,
 } from "lucide-react";
 
 const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Workers", href: "/dashboard/workers", icon: Users },
     { label: "Documents", href: "/dashboard/documents", icon: FileText },
-    { label: "Reports", href: "/dashboard/reports", icon: BarChart2 },
+    { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -69,16 +70,16 @@ export default function DashboardLayout({
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex">
-            {/* ── Sidebar ── */}
-            <aside className="w-64 shrink-0 flex flex-col bg-slate-900/80 backdrop-blur-md border-r border-slate-700/50 sticky top-0 h-screen">
+        <div className="min-h-screen bg-[#F8F9FB] flex">
+            {/* ── Professional Sidebar ── */}
+            <aside className="w-[220px] shrink-0 flex flex-col bg-white border-r border-[#E5E7EB] sticky top-0 h-screen">
                 {/* Logo */}
-                <div className="px-6 py-5 border-b border-slate-700/50">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-blue-500/30">
-                            SW
+                <div className="px-5 py-5 border-b border-[#E5E7EB]">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-[#0F2647] flex items-center justify-center">
+                            <span className="text-white font-semibold text-sm">SW</span>
                         </div>
-                        <span className="text-lg font-bold tracking-tight text-white">
+                        <span className="text-lg font-medium text-[#1A1A2E] tracking-tight">
                             ShiftWise
                         </span>
                     </div>
@@ -90,36 +91,28 @@ export default function DashboardLayout({
                         const active = isActive(href);
                         return (
                             <Link
-                                key={href} href={href}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${active
-                                    ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"
-                                    }`}
+                                key={href} 
+                                href={href}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 group ${active
+                                    ? "bg-[#EEF2FF] text-[#0F2647]"
+                                    : "text-[#6B7280] hover:text-[#1A1A2E] hover:bg-[#F8F9FB]"
+                                }`}
                             >
                                 <Icon
                                     size={18}
-                                    className={`shrink-0 transition-colors ${active
-                                        ? "text-blue-400"
-                                        : "text-slate-500 group-hover:text-slate-300"
-                                        }`}
+                                    className={`shrink-0 ${active ? "text-[#0F2647]" : "text-[#6B7280] group-hover:text-[#1A1A2E]"}`}
                                 />
                                 {label}
-                                {active && (
-                                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />
-                                )}
                             </Link>
                         );
                     })}
                 </nav>
 
-                {/* Sign Out */}
-                <div className="px-3 py-4 border-t border-slate-700/50">
+                {/* User & Sign Out */}
+                <div className="px-3 py-4 border-t border-[#E5E7EB]">
                     <SignOutButton redirectUrl="/sign-in">
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-150 group">
-                            <LogOut
-                                size={18}
-                                className="shrink-0 text-slate-500 group-hover:text-red-400 transition-colors"
-                            />
+                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B7280] hover:text-[#1A1A2E] hover:bg-[#F8F9FB] transition-all duration-150 group">
+                            <LogOut size={18} className="shrink-0 text-[#6B7280] group-hover:text-[#1A1A2E]" />
                             Sign Out
                         </button>
                     </SignOutButton>
@@ -128,7 +121,7 @@ export default function DashboardLayout({
 
             {/* ── Main Content ── */}
             <main className="flex-1 min-w-0 overflow-y-auto">
-                <div className="max-w-6xl mx-auto px-6 py-8">
+                <div className="p-6">
                     {children}
                 </div>
             </main>

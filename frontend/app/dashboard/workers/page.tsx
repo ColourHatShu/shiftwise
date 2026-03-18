@@ -4,17 +4,31 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, User, Search, Eye, Edit } from "lucide-react";
+import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import EditWorkerModal from './components/EditWorkerModal';
+
+interface Worker {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    jobTitle?: string;
+    startDate?: string;
+    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+    complianceScore?: number;
+    documentsUploaded?: number;
+    documentsTotal?: number;
+}
 
 export default function WorkersPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
-    const [workers, setWorkers] = useState<any[]>([]);
+    const [workers, setWorkers] = useState<Worker[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [showInactive, setShowInactive] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
-    const [editingWorker, setEditingWorker] = useState<any>(null);
+    const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalWorkers, setTotalWorkers] = useState(0);
@@ -30,7 +44,14 @@ export default function WorkersPage() {
             });
             if (!response.ok) throw new Error("Failed to fetch workers");
             const data = await response.json();
-            setWorkers(data.data || []);
+            // Add mock compliance data for demonstration
+            const workersWithCompliance = (data.data || []).map((w: Worker) => ({
+                ...w,
+                complianceScore: Math.floor(Math.random() * 40) + 60, // Random score 60-100
+                documentsUploaded: Math.floor(Math.random() * 5) + 3,
+                documentsTotal: 8
+            }));
+            setWorkers(workersWithCompliance);
             setTotalPages(data.pagination?.totalPages || 1);
             setTotalWorkers(data.pagination?.total || 0);
         } catch (err: any) {
@@ -44,50 +65,56 @@ export default function WorkersPage() {
         fetchWorkers(page);
     }, [isLoaded, isSignedIn, getToken, API_URL, page]);
 
-    // ── Client-side search filter ──────────────────────────────────────────────
+    // Client-side search filter
     const filteredWorkers = workers.filter((w) => {
         const matchesSearch =
             `${w.firstName} ${w.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (w.jobTitle ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
             w.email.toLowerCase().includes(searchQuery.toLowerCase());
-
-        // Filter by active status (if showInactive is false, only show ACTIVE workers)
         const matchesActive = showInactive ? true : w.status !== 'INACTIVE';
-
         return matchesSearch && matchesActive;
     });
 
+    // RAG Status Badge
+    const getRAGStatus = (score: number) => {
+        if (score >= 90) return { color: 'green', label: 'Compliant' };
+        if (score >= 70) return { color: 'amber', label: 'Review' };
+        return { color: 'red', label: 'Action' };
+    };
+
+    // Status Badge for worker state
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "ACTIVE":
-                return <span className="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs font-medium border border-green-500/20">Compliant</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#EAF3DE] text-[#3B6D11]">Active</span>;
             case "INACTIVE":
-                return <span className="px-2 py-1 bg-slate-700/50 text-slate-400 rounded-full text-xs font-medium border border-slate-600/50">Inactive</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#F3F4F6] text-[#6B7280]">Inactive</span>;
             case "SUSPENDED":
-                return <span className="px-2 py-1 bg-amber-500/10 text-amber-400 rounded-full text-xs font-medium border border-amber-500/20">Suspended</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FAEEDA] text-[#854F0B]">Suspended</span>;
             default:
-                return <span className="px-2 py-1 bg-red-500/10 text-red-400 rounded-full text-xs font-medium border border-red-500/20">Non-Compliant</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FCEBEB] text-[#A32D2D]">Unknown</span>;
         }
     };
 
     if (!isLoaded || isLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F2647]"></div>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
+            {/* Header */}
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Workers</h1>
-                    <p className="text-slate-400 mt-1">Manage your agency's healthcare staff</p>
+                    <h1 className="text-2xl font-medium text-[#1A1A2E]">Workers</h1>
+                    <p className="text-[#6B7280] mt-1">Manage your agency's healthcare staff</p>
                 </div>
                 <Link
                     href="/dashboard/workers/new"
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-blue-500/20"
+                    className="flex items-center gap-2 bg-[#0F2647] hover:bg-[#0F2647]/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
                 >
                     <Plus size={18} />
                     Add Worker
@@ -95,56 +122,92 @@ export default function WorkersPage() {
             </div>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl">
+                <div className="bg-[#FCEBEB] border border-[#E24B4A]/20 text-[#A32D2D] px-4 py-3 rounded-lg text-sm">
                     {error}
                 </div>
             )}
 
-            <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl">
-                <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            {/* Stats Summary */}
+            <div className="grid sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Total Workers</p>
+                    <p className="text-2xl font-medium text-[#1A1A2E] mt-1">{totalWorkers}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Compliant</p>
+                    <p className="text-2xl font-medium text-[#3B6D11] mt-1">
+                        {workers.filter(w => (w.complianceScore || 0) >= 90).length}
+                    </p>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Needs Review</p>
+                    <p className="text-2xl font-medium text-[#854F0B] mt-1">
+                        {workers.filter(w => {
+                            const score = w.complianceScore || 0;
+                            return score >= 70 && score < 90;
+                        }).length}
+                    </p>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Action Required</p>
+                    <p className="text-2xl font-medium text-[#A32D2D] mt-1">
+                        {workers.filter(w => (w.complianceScore || 0) < 70).length}
+                    </p>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                <div className="flex items-center gap-4">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" size={18} />
                         <input
                             type="text"
                             placeholder="Search by name, role or email..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-slate-900 border border-slate-700 text-white rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all w-72"
+                            className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
                         />
                     </div>
-                    <div className="text-sm text-slate-400 font-medium">
-                        {searchQuery
-                            ? `${filteredWorkers.length} of ${workers.length} workers`
-                            : `Total: ${workers.length}`}
-                    </div>
+                    <label className="flex items-center gap-2 text-sm text-[#6B7280] cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={showInactive}
+                            onChange={(e) => setShowInactive(e.target.checked)}
+                            className="rounded border-[#E5E7EB] text-[#0F2647] focus:ring-[#0F2647]"
+                        />
+                        Show inactive
+                    </label>
                 </div>
+            </div>
 
+            {/* Workers Table */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider">
-                                <th className="px-6 py-4 font-medium">Worker Name</th>
-                                <th className="px-6 py-4 font-medium">Role</th>
-                                <th className="px-6 py-4 font-medium">Contact</th>
-                                <th className="px-6 py-4 font-medium">Start Date</th>
-                                <th className="px-6 py-4 font-medium">Status</th>
-                                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                            <tr className="bg-[#F8F9FB] border-b border-[#E5E7EB]">
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Worker</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Role</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Status</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Compliance</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px] text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-700/50 text-sm">
+                        <tbody className="divide-y divide-[#E5E7EB]">
                             {filteredWorkers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                    <td colSpan={5} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-3">
-                                            <div className="bg-slate-800 p-3 rounded-full">
-                                                <User size={24} className="text-slate-500" />
+                                            <div className="bg-[#F8F9FB] p-3 rounded-lg">
+                                                <User size={24} className="text-[#6B7280]" />
                                             </div>
                                             {searchQuery ? (
-                                                <p>No workers match <span className="text-white font-medium">"{searchQuery}"</span></p>
+                                                <p className="text-[#6B7280]">No workers match <span className="text-[#1A1A2E] font-medium">"{searchQuery}"</span></p>
                                             ) : (
                                                 <>
-                                                    <p>No workers added yet.</p>
-                                                    <Link href="/dashboard/workers/new" className="text-blue-400 hover:text-blue-300 transition-colors">
+                                                    <p className="text-[#6B7280]">No workers added yet.</p>
+                                                    <Link href="/dashboard/workers/new" className="text-[#0F2647] hover:text-[#0F2647]/80 font-medium text-sm transition-colors">
                                                         Add your first worker
                                                     </Link>
                                                 </>
@@ -153,52 +216,80 @@ export default function WorkersPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredWorkers.map((worker: any) => (
-                                    <tr
-                                        key={worker.id}
-                                        className={`group transition-colors ${worker.status === 'INACTIVE'
-                                            ? "bg-slate-900/20 hover:bg-slate-800/20 opacity-60"
-                                            : "hover:bg-slate-800/30"
-                                            }`}
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold border border-blue-500/20">
-                                                    {worker.firstName.charAt(0)}{worker.lastName.charAt(0)}
+                                filteredWorkers.map((worker) => {
+                                    const rag = getRAGStatus(worker.complianceScore || 0);
+                                    const ragColors = {
+                                        green: { dot: "bg-[#1D9E75]", bar: "bg-[#1D9E75]", text: "text-[#3B6D11]" },
+                                        amber: { dot: "bg-[#EF9F27]", bar: "bg-[#EF9F27]", text: "text-[#854F0B]" },
+                                        red: { dot: "bg-[#E24B4A]", bar: "bg-[#E24B4A]", text: "text-[#A32D2D]" },
+                                    };
+                                    const colors = ragColors[rag.color as keyof typeof ragColors];
+                                    return (
+                                        <tr
+                                            key={worker.id}
+                                            className="group hover:bg-[#F8F9FB] transition-colors"
+                                        >
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-lg bg-[#EEF2FF] text-[#0F2647] flex items-center justify-center font-medium text-sm">
+                                                        {worker.firstName.charAt(0)}{worker.lastName.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-[#1A1A2E]">{worker.firstName} {worker.lastName}</p>
+                                                        <p className="text-xs text-[#6B7280]">{worker.email}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-semibold text-white">{worker.firstName} {worker.lastName}</p>
-                                                    <p className="text-xs text-slate-500">{worker.id.slice(-6).toUpperCase()}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="text-sm text-[#1A1A2E]">{worker.jobTitle || "Unassigned"}</p>
+                                                <p className="text-xs text-[#6B7280]">
+                                                    {worker.startDate ? format(new Date(worker.startDate), "MMM yyyy") : "N/A"}
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-4">{getStatusBadge(worker.status)}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    {/* Compliance Progress Bar */}
+                                                    <div className="flex-1 max-w-[120px]">
+                                                        <div className="flex justify-between text-xs mb-1">
+                                                            <span className="text-[#6B7280]">{worker.complianceScore}%</span>
+                                                            <span className={`font-medium ${colors.text}`}>{rag.label}</span>
+                                                        </div>
+                                                        <div className="w-full bg-[#F8F9FB] rounded-full h-1.5">
+                                                            <div 
+                                                                className={`h-1.5 rounded-full ${colors.bar}`}
+                                                                style={{ width: `${worker.complianceScore}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    {/* RAG Indicator */}
+                                                    <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-300">{worker.jobTitle || "Unassigned"}</td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-slate-300">{worker.email}</p>
-                                            <p className="text-slate-500 text-xs mt-0.5">{worker.phone || "No phone"}</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-300">
-                                            {worker.startDate ? format(new Date(worker.startDate), "MMM dd, yyyy") : "N/A"}
-                                        </td>
-                                        <td className="px-6 py-4">{getStatusBadge(worker.status)}</td>
-                                        <td className="px-6 py-4 text-right flex gap-3 justify-end items-center">
-                                            <button
-                                                onClick={() => setEditingWorker(worker)}
-                                                className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 font-medium text-xs bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 border border-blue-500/20"
-                                            >
-                                                <Edit size={14} />
-                                                Edit
-                                            </button>
-                                            <Link
-                                                href={`/dashboard/workers/${worker.id}`}
-                                                className="inline-flex items-center gap-1.5 text-slate-300 hover:text-white font-medium text-xs bg-slate-700/50 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 border border-slate-600/50"
-                                            >
-                                                <Eye size={14} />
-                                                View
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))
+                                                <p className="text-xs text-[#6B7280] mt-1">
+                                                    {worker.documentsUploaded} of {worker.documentsTotal} documents
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => setEditingWorker(worker)}
+                                                        className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0F2647] font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-[#F8F9FB] transition-all"
+                                                    >
+                                                        <Edit size={14} />
+                                                        Edit
+                                                    </button>
+                                                    <Link
+                                                        href={`/dashboard/workers/${worker.id}`}
+                                                        className="inline-flex items-center gap-1.5 text-[#0F2647] hover:text-[#0F2647]/80 font-medium text-sm px-3 py-1.5 rounded-lg bg-[#EEF2FF] hover:bg-[#EEF2FF]/80 transition-all"
+                                                    >
+                                                        <Eye size={14} />
+                                                        View
+                                                    </Link>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
@@ -215,27 +306,29 @@ export default function WorkersPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-                    <div className="text-sm text-slate-400">
-                        Showing {workers.length} of {totalWorkers} workers
+                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-[#E5E7EB]">
+                    <div className="text-sm text-[#6B7280]">
+                        Showing <span className="font-medium text-[#1A1A2E]">{workers.length}</span> of <span className="font-medium text-[#1A1A2E]">{totalWorkers}</span> workers
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
-                            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[#6B7280] bg-white hover:bg-[#F8F9FB] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors border border-[#E5E7EB]"
                         >
+                            <ChevronLeft size={16} />
                             Previous
                         </button>
-                        <span className="text-sm text-slate-400 px-3">
-                            Page {page} of {totalPages}
+                        <span className="text-sm text-[#6B7280] px-3">
+                            Page <span className="font-medium text-[#1A1A2E]">{page}</span> of <span className="font-medium text-[#1A1A2E]">{totalPages}</span>
                         </span>
                         <button
                             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                             disabled={page === totalPages}
-                            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[#6B7280] bg-white hover:bg-[#F8F9FB] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors border border-[#E5E7EB]"
                         >
                             Next
+                            <ChevronRight size={16} />
                         </button>
                     </div>
                 </div>

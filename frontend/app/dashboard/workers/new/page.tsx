@@ -75,29 +75,29 @@ export default function AddWorkerPage() {
             <div className="flex items-center gap-4">
                 <Link
                     href="/dashboard/workers"
-                    className="text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700/50 p-2 rounded-lg border border-slate-700/50"
+                    className="text-[#6B7280] hover:text-[#1A1A2E] transition-colors bg-white hover:bg-[#F8F9FB] p-2 rounded-lg border border-[#E5E7EB]"
                 >
                     <ArrowLeft size={20} />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Add New Worker</h1>
-                    <p className="text-slate-400 mt-1">Register a new healthcare professional to your agency</p>
+                    <h1 className="text-2xl font-medium text-[#1A1A2E]">Add New Worker</h1>
+                    <p className="text-[#6B7280] mt-1">Register a new healthcare professional to your agency</p>
                 </div>
             </div>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl mb-6">
+                <div className="bg-[#FCEBEB] border border-[#E24B4A]/20 text-[#A32D2D] px-4 py-3 rounded-xl mb-6">
                     {error}
                 </div>
             )}
 
-            <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6 md:p-8 backdrop-blur-sm shadow-xl">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 md:p-8 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-6 flex flex-col">
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label htmlFor="fullName" className="text-sm font-medium text-slate-300">
-                                Full Name <span className="text-red-400">*</span>
+                            <label htmlFor="fullName" className="text-sm font-medium text-[#1A1A2E]">
+                                Full Name <span className="text-[#E24B4A]">*</span>
                             </label>
                             <input
                                 type="text"
@@ -105,13 +105,13 @@ export default function AddWorkerPage() {
                                 name="fullName"
                                 required
                                 placeholder="Jane Doe"
-                                className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+                                className="w-full bg-white border border-[#E5E7EB] text-[#1A1A2E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all placeholder:text-[#9CA3AF]"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="email" className="text-sm font-medium text-slate-300">
-                                Email Address <span className="text-red-400">*</span>
+                            <label htmlFor="email" className="text-sm font-medium text-[#1A1A2E]">
+                                Email Address <span className="text-[#E24B4A]">*</span>
                             </label>
                             <input
                                 type="email"
@@ -119,13 +119,13 @@ export default function AddWorkerPage() {
                                 name="email"
                                 required
                                 placeholder="jane.doe@example.com"
-                                className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+                                className="w-full bg-white border border-[#E5E7EB] text-[#1A1A2E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all placeholder:text-[#9CA3AF]"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="phone" className="text-sm font-medium text-slate-300">
-                                Phone Number <span className="text-red-400">*</span>
+                            <label htmlFor="phone" className="text-sm font-medium text-[#1A1A2E]">
+                                Phone Number <span className="text-[#E24B4A]">*</span>
                             </label>
                             <input
                                 type="tel"
@@ -133,22 +133,22 @@ export default function AddWorkerPage() {
                                 name="phone"
                                 required
                                 placeholder="+44 7700 900000"
-                                className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+                                className="w-full bg-white border border-[#E5E7EB] text-[#1A1A2E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all placeholder:text-[#9CA3AF]"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="role" className="text-sm font-medium text-slate-300">
-                                Role <span className="text-red-400">*</span>
+                            <label htmlFor="role" className="text-sm font-medium text-[#1A1A2E]">
+                                Role <span className="text-[#E24B4A]">*</span>
                             </label>
                             <select
                                 id="role"
                                 name="role"
                                 required
                                 defaultValue=""
-                                className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
+                                className="w-full bg-white border border-[#E5E7EB] text-[#1A1A2E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all appearance-none"
                             >
-                                <option value="" disabled className="text-slate-500">Select a role...</option>
+                                <option value="" disabled className="text-[#9CA3AF]">Select a role...</option>
                                 {ROLES.map(role => (
                                     <option key={role} value={role}>{role}</option>
                                 ))}
@@ -156,21 +156,21 @@ export default function AddWorkerPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="startDate" className="text-sm font-medium text-slate-300">
-                                Start Date <span className="text-red-400">*</span>
+                            <label htmlFor="startDate" className="text-sm font-medium text-[#1A1A2E]">
+                                Start Date <span className="text-[#E24B4A]">*</span>
                             </label>
                             <input
                                 type="date"
                                 id="startDate"
                                 name="startDate"
                                 required
-                                className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                                className="w-full bg-white border border-[#E5E7EB] text-[#1A1A2E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2 pt-2">
-                        <label htmlFor="notes" className="text-sm font-medium text-slate-300">
+                        <label htmlFor="notes" className="text-sm font-medium text-[#1A1A2E]">
                             Notes (Optional)
                         </label>
                         <textarea
@@ -178,7 +178,7 @@ export default function AddWorkerPage() {
                             name="notes"
                             rows={4}
                             placeholder="Any additional information about this worker..."
-                            className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none placeholder:text-slate-500"
+                            className="w-full bg-white border border-[#E5E7EB] text-[#1A1A2E] rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all resize-none placeholder:text-[#9CA3AF]"
                         />
                     </div>
 
@@ -186,7 +186,7 @@ export default function AddWorkerPage() {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-wait text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-blue-500/20"
+                            className="flex items-center gap-2 bg-[#0F2647] hover:bg-[#0F2647]/90 disabled:bg-[#0F2647]/50 disabled:cursor-wait text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors"
                         >
                             {isSubmitting ? (
                                 <>

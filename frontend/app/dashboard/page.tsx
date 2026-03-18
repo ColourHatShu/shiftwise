@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { Users, FileText, Clock, ShieldCheck } from "lucide-react";
+import { Users, FileText, Clock, ShieldCheck, ArrowUpRight } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -45,90 +45,158 @@ export default function DashboardPage() {
 
     const statCards = [
         {
-            label: "Total Workers",
+            label: "TOTAL WORKERS",
             value: stats?.totalWorkers ?? 0,
             icon: Users,
-            color: "blue",
+            color: "navy" as const,
             href: "/dashboard/workers",
         },
         {
-            label: "Documents Pending",
+            label: "PENDING REVIEW",
             value: stats?.documentsPending ?? 0,
             icon: FileText,
-            color: "amber",
+            color: "amber" as const,
             href: "/dashboard/documents",
         },
         {
-            label: "Expiring Soon",
+            label: "EXPIRING SOON",
             value: stats?.expiringSoon ?? 0,
             icon: Clock,
-            color: "red",
+            color: "red" as const,
             href: "/dashboard/documents",
         },
         {
-            label: "Compliant Workers",
+            label: "COMPLIANT",
             value: stats?.compliantWorkers ?? 0,
             icon: ShieldCheck,
-            color: "green",
+            color: "green" as const,
             href: "/dashboard/workers",
         },
     ];
 
-    const colorMap: Record<string, string> = {
-        blue: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-        amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-        red: "text-red-400 bg-red-500/10 border-red-500/20",
-        green: "text-green-400 bg-green-500/10 border-green-500/20",
+    const getComplianceRate = () => {
+        if (!stats || stats.totalWorkers === 0) return 0;
+        return Math.round((stats.compliantWorkers / stats.totalWorkers) * 100);
+    };
+
+    const getComplianceColor = () => {
+        const rate = getComplianceRate();
+        if (rate >= 80) return "#1D9E75";
+        if (rate >= 50) return "#EF9F27";
+        return "#E24B4A";
     };
 
     return (
-        <div className="space-y-8">
-            {/* Welcome Banner */}
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 backdrop-blur-sm">
-                <p className="text-blue-400 text-sm font-semibold uppercase tracking-widest mb-2">
-                    Overview
-                </p>
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2">
-                    {agencyName
-                        ? <>Welcome back, <span className="text-blue-400">{agencyName}</span>!</>
-                        : "Dashboard"}
+        <div className="space-y-6">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-medium text-[#1A1A2E]">
+                    {agencyName ? `Welcome back, ${agencyName}` : "Dashboard"}
                 </h1>
-                <p className="text-slate-400">
-                    Here's a snapshot of your agency's compliance status.
-                </p>
+                <p className="text-[#6B7280] mt-1">Here's a snapshot of your agency's compliance status.</p>
+            </div>
+
+            {/* Compliance Overview Card */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-lg font-medium text-[#1A1A2E]">Compliance Overview</h2>
+                        <p className="text-sm text-[#6B7280]">Overall agency compliance rate</p>
+                    </div>
+                    <div className="text-right">
+                        <span 
+                            className="text-3xl font-medium"
+                            style={{ color: getComplianceColor() }}
+                        >
+                            {getComplianceRate()}%
+                        </span>
+                        <p className="text-sm text-[#6B7280]">Compliant</p>
+                    </div>
+                </div>
+                <div className="w-full bg-[#F8F9FB] rounded-full h-2">
+                    <div 
+                        className="h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${getComplianceRate()}%`, backgroundColor: getComplianceColor() }}
+                    />
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-[#6B7280]">
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
+                </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((s) => {
                     const Icon = s.icon;
+                    const colorStyles = {
+                        navy: { bg: "bg-[#EEF2FF]", text: "text-[#0F2647]", icon: "text-[#0F2647]" },
+                        green: { bg: "bg-[#EAF3DE]", text: "text-[#3B6D11]", icon: "text-[#3B6D11]" },
+                        amber: { bg: "bg-[#FAEEDA]", text: "text-[#854F0B]", icon: "text-[#854F0B]" },
+                        red: { bg: "bg-[#FCEBEB]", text: "text-[#A32D2D]", icon: "text-[#A32D2D]" },
+                    };
+                    const styles = colorStyles[s.color];
                     return (
                         <Link
                             key={s.label}
                             href={s.href}
-                            className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 backdrop-blur-sm hover:border-slate-600/50 hover:bg-slate-800/70 transition-all group"
+                            className="bg-white rounded-xl border border-[#E5E7EB] p-5 hover:border-[#0F2647]/20 hover:shadow-sm transition-all group"
                         >
-                            <div className="flex items-center justify-between mb-3">
-                                <p className="text-slate-400 text-xs uppercase tracking-wide font-medium">
-                                    {s.label}
-                                </p>
-                                <div className={`p-2 rounded-lg border ${colorMap[s.color]}`}>
-                                    <Icon size={16} />
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-[0.5px] font-medium text-[#6B7280]">
+                                        {s.label}
+                                    </p>
+                                    {statsLoading ? (
+                                        <div className="h-8 w-12 bg-[#F8F9FB] rounded mt-2 animate-pulse" />
+                                    ) : (
+                                        <p className={`text-2xl font-medium mt-1 ${styles.text}`}>{s.value}</p>
+                                    )}
+                                </div>
+                                <div className={`p-2 rounded-lg ${styles.bg}`}>
+                                    <Icon size={18} className={styles.icon} />
                                 </div>
                             </div>
-                            {statsLoading ? (
-                                <div className="h-8 w-12 bg-slate-700/50 rounded animate-pulse" />
-                            ) : (
-                                <p className="text-3xl font-bold text-white">{s.value}</p>
-                            )}
+                            <div className="flex items-center gap-1 mt-4 text-xs font-medium text-[#6B7280] group-hover:text-[#0F2647] transition-colors">
+                                View details
+                                <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
                         </Link>
                     );
                 })}
             </div>
 
-            {/* Info Banner */}
-            <div className="bg-blue-900/30 border border-blue-700/40 rounded-xl p-5 text-sm text-blue-200">
-                🚧 <strong>Document management is coming soon.</strong> You'll be able to upload, track and get expiry alerts for compliance documents.
+            {/* Quick Actions */}
+            <div className="grid sm:grid-cols-2 gap-4">
+                <Link 
+                    href="/dashboard/workers/new"
+                    className="bg-white rounded-xl border border-[#E5E7EB] p-5 hover:border-[#0F2647]/20 hover:shadow-sm transition-all"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-[#0F2647] flex items-center justify-center">
+                            <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-medium text-[#1A1A2E]">Add New Worker</h3>
+                            <p className="text-sm text-[#6B7280]">Register a new staff member</p>
+                        </div>
+                    </div>
+                </Link>
+                <Link 
+                    href="/dashboard/reports"
+                    className="bg-white rounded-xl border border-[#E5E7EB] p-5 hover:border-[#0F2647]/20 hover:shadow-sm transition-all"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-[#0F2647] flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-medium text-[#1A1A2E]">Generate Report</h3>
+                            <p className="text-sm text-[#6B7280]">Download compliance reports</p>
+                        </div>
+                    </div>
+                </Link>
             </div>
         </div>
     );

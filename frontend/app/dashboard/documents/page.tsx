@@ -3,17 +3,42 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle } from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle, Search } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
-    NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-slate-700/50 text-slate-400 border-slate-600/50", icon: XCircle },
-    PENDING: { label: "Pending Review", classes: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock },
-    APPROVED: { label: "Verified", classes: "bg-green-500/10 text-green-400 border-green-500/20", icon: CheckCircle2 },
-    EXPIRING_SOON: { label: "Expiring Soon", classes: "bg-orange-500/10 text-orange-400 border-orange-500/20", icon: AlertCircle },
-    EXPIRED: { label: "Expired", classes: "bg-red-500/10 text-red-400 border-red-500/20", icon: AlertCircle },
-    REJECTED: { label: "Non-Compliant", classes: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle },
+// RAG Status Config
+const statusConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
+    NOT_UPLOADED: { 
+        label: "Not Uploaded", 
+        bgColor: "bg-[#F3F4F6]",
+        textColor: "text-[#6B7280]"
+    },
+    PENDING: { 
+        label: "Pending Review", 
+        bgColor: "bg-[#FAEEDA]",
+        textColor: "text-[#854F0B]"
+    },
+    APPROVED: { 
+        label: "Verified", 
+        bgColor: "bg-[#EAF3DE]",
+        textColor: "text-[#3B6D11]"
+    },
+    EXPIRING_SOON: { 
+        label: "Expiring Soon", 
+        bgColor: "bg-[#FAEEDA]",
+        textColor: "text-[#854F0B]"
+    },
+    EXPIRED: { 
+        label: "Expired", 
+        bgColor: "bg-[#FCEBEB]",
+        textColor: "text-[#A32D2D]"
+    },
+    REJECTED: { 
+        label: "Non-Compliant", 
+        bgColor: "bg-[#FCEBEB]",
+        textColor: "text-[#A32D2D]"
+    },
 };
 
 export default function DocumentsPage() {
@@ -45,7 +70,7 @@ export default function DocumentsPage() {
     if (!isLoaded || isLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F2647]" />
             </div>
         );
     }
@@ -67,25 +92,67 @@ export default function DocumentsPage() {
         return Math.round((approved / docs.length) * 100);
     };
 
+    const getRAGColor = (score: number | null) => {
+        if (score === null) return "gray";
+        if (score >= 90) return "green";
+        if (score >= 70) return "amber";
+        return "red";
+    };
+
+    const getRAGStyles = (color: string) => {
+        switch (color) {
+            case "green":
+                return { dot: "bg-[#1D9E75]", bar: "bg-[#1D9E75]", text: "text-[#3B6D11]" };
+            case "amber":
+                return { dot: "bg-[#EF9F27]", bar: "bg-[#EF9F27]", text: "text-[#854F0B]" };
+            case "red":
+                return { dot: "bg-[#E24B4A]", bar: "bg-[#E24B4A]", text: "text-[#A32D2D]" };
+            default:
+                return { dot: "bg-[#6B7280]", bar: "bg-[#6B7280]", text: "text-[#6B7280]" };
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm">
-                <h1 className="text-2xl font-bold text-white">Documents</h1>
-                <p className="text-slate-400 mt-1">Compliance documents across all workers</p>
+            <div>
+                <h1 className="text-2xl font-medium text-[#1A1A2E]">Documents</h1>
+                <p className="text-[#6B7280] mt-1">Compliance documents across all workers</p>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid sm:grid-cols-3 gap-4">
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Total Documents</p>
+                    <p className="text-2xl font-medium text-[#1A1A2E] mt-1">
+                        {workers.reduce((acc, w) => acc + (w.complianceDocuments?.length || 0), 0)}
+                    </p>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Verified</p>
+                    <p className="text-2xl font-medium text-[#3B6D11] mt-1">
+                        {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: any) => d.status === "APPROVED").length || 0), 0)}
+                    </p>
+                </div>
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Needs Attention</p>
+                    <p className="text-2xl font-medium text-[#A32D2D] mt-1">
+                        {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: any) => d.status === "EXPIRED" || d.status === "REJECTED").length || 0), 0)}
+                    </p>
+                </div>
             </div>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">{error}</div>
+                <div className="bg-[#FCEBEB] border border-[#E24B4A]/20 text-[#A32D2D] px-4 py-3 rounded-lg text-sm">{error}</div>
             )}
 
             {workers.length === 0 ? (
-                <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-12 text-center">
-                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 mb-4">
-                        <FileText size={24} className="text-slate-500" />
+                <div className="bg-white border border-[#E5E7EB] rounded-xl p-12 text-center">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-[#F8F9FB] mb-4">
+                        <FileText size={24} className="text-[#6B7280]" />
                     </div>
-                    <p className="text-slate-400">No workers added yet.</p>
-                    <Link href="/dashboard/workers/new" className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block transition-colors">
+                    <p className="text-[#6B7280]">No workers added yet.</p>
+                    <Link href="/dashboard/workers/new" className="text-[#0F2647] hover:text-[#0F2647]/80 font-medium text-sm mt-2 inline-block transition-colors">
                         Add your first worker →
                     </Link>
                 </div>
@@ -94,63 +161,92 @@ export default function DocumentsPage() {
                     {workers.map((worker: any) => {
                         const docs = worker.complianceDocuments || [];
                         const score = getComplianceScore(docs);
+                        const ragColor = getRAGColor(score);
+                        const ragStyles = getRAGStyles(ragColor);
                         return (
-                            <div key={worker.id} className="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden backdrop-blur-sm">
+                            <div key={worker.id} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                                 {/* Worker header */}
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 bg-slate-900/30">
+                                <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB] bg-[#F8F9FB]">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-9 w-9 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-sm font-bold">
+                                        <div className="h-10 w-10 rounded-lg bg-[#EEF2FF] text-[#0F2647] flex items-center justify-center font-medium text-sm">
                                             {worker.firstName[0]}{worker.lastName[0]}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-white">{worker.firstName} {worker.lastName}</p>
-                                            <p className="text-xs text-slate-500">{worker.jobTitle || "Unassigned"}</p>
+                                            <p className="font-medium text-[#1A1A2E]">{worker.firstName} {worker.lastName}</p>
+                                            <p className="text-xs text-[#6B7280]">{worker.jobTitle || "Unassigned"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         {score !== null && (
-                                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${score === 100 ? "bg-green-500/10 text-green-400 border-green-500/20" : score >= 50 ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
-                                                {score}% Compliant
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1.5 text-xs">
+                                                    <div className={`w-2 h-2 rounded-full ${ragStyles.dot}`} />
+                                                    <span className={`font-medium ${ragStyles.text}`}>
+                                                        {score}%
+                                                    </span>
+                                                </div>
+                                                <div className="w-20 bg-[#F8F9FB] rounded-full h-1.5">
+                                                    <div 
+                                                        className={`h-1.5 rounded-full ${ragStyles.bar}`}
+                                                        style={{ width: `${score}%` }}
+                                                    />
+                                                </div>
+                                            </div>
                                         )}
                                         <Link href={`/dashboard/workers/${worker.id}`}
-                                            className="text-xs text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-1.5 rounded-lg transition-all">
-                                            View Profile →
+                                            className="text-xs text-[#0F2647] hover:text-[#0F2647]/80 font-medium px-3 py-1.5 rounded-lg bg-[#EEF2FF] hover:bg-[#EEF2FF]/80 transition-all">
+                                            View →
                                         </Link>
                                     </div>
                                 </div>
 
-                                {/* Documents grid */}
+                                {/* Documents Table */}
                                 <div className="p-4">
                                     {docs.length === 0 ? (
-                                        <p className="text-slate-500 text-sm text-center py-4">No documents uploaded. <Link href={`/dashboard/workers/${worker.id}`} className="text-blue-400 hover:underline">Upload on their profile →</Link></p>
+                                        <p className="text-[#6B7280] text-sm text-center py-4">No documents uploaded. <Link href={`/dashboard/workers/${worker.id}`} className="text-[#0F2647] hover:underline font-medium">Upload on their profile →</Link></p>
                                     ) : (
-                                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                            {docs.map((doc: any) => {
-                                                const status = getComputedStatus(doc);
-                                                const cfg = statusConfig[status] || statusConfig.NOT_UPLOADED;
-                                                const Icon = cfg.icon;
-                                                return (
-                                                    <div key={doc.id} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-3">
-                                                        <div className="flex items-start justify-between mb-2">
-                                                            <p className="text-xs font-medium text-white leading-tight">{doc.documentType?.name}</p>
-                                                            <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${cfg.classes}`}>
-                                                                <Icon size={10} />
-                                                                {cfg.label}
-                                                            </span>
-                                                        </div>
-                                                        {doc.expiryDate && (
-                                                            <p className="text-xs text-slate-500">Expires: {new Date(doc.expiryDate).toLocaleDateString('en-GB')}</p>
-                                                        )}
-                                                        {doc.fileUrl && (
-                                                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                                                                className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-flex items-center gap-1 transition-colors">
-                                                                <FileText size={10} /> View file
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b border-[#E5E7EB]">
+                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Document</th>
+                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Status</th>
+                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Expiry</th>
+                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px] text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-[#E5E7EB]">
+                                                    {docs.map((doc: any) => {
+                                                        const status = getComputedStatus(doc);
+                                                        const cfg = statusConfig[status] || statusConfig.NOT_UPLOADED;
+                                                        return (
+                                                            <tr key={doc.id} className="group hover:bg-[#F8F9FB] transition-colors">
+                                                                <td className="py-3">
+                                                                    <p className="text-sm font-medium text-[#1A1A2E]">{doc.documentType?.name}</p>
+                                                                </td>
+                                                                <td className="py-3">
+                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bgColor} ${cfg.textColor}`}>
+                                                                        {cfg.label}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3">
+                                                                    <p className="text-sm text-[#6B7280]">
+                                                                        {doc.expiryDate ? new Date(doc.expiryDate).toLocaleDateString('en-GB') : 'No expiry'}
+                                                                    </p>
+                                                                </td>
+                                                                <td className="py-3 text-right">
+                                                                    {doc.fileUrl && (
+                                                                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                                                                            className="text-sm text-[#0F2647] hover:text-[#0F2647]/80 font-medium inline-flex items-center gap-1 transition-colors">
+                                                                            <FileText size={14} /> View
+                                                                        </a>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     )}
                                 </div>
