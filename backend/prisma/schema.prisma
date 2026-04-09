@@ -33,6 +33,7 @@ model Agency {
   documentTypes       DocumentType[]
   complianceDocuments ComplianceDocument[]
   expiryAlerts        ExpiryAlert[]
+  failedAlerts        FailedAlert[]
   auditLogs           AuditLog[]
 
   @@map("agencies")
@@ -174,6 +175,39 @@ model ExpiryAlert {
   complianceDocument ComplianceDocument @relation(fields: [complianceDocumentId], references: [id], onDelete: Cascade)
 
   @@map("expiry_alerts")
+}
+
+// ─── FailedAlert (Dead Letter Queue for failed email notifications) ─────────
+model FailedAlert {
+  id                   String    @id @default(cuid())
+  agencyId             String
+  workerId             String
+  complianceDocumentId String
+  alertDate            DateTime
+  daysUntilExpiry      Int
+  retryCount           Int       @default(0)
+  maxRetries           Int       @default(3)
+  errorMessage         String?
+  errorDetails         String?
+  status               FailedAlertStatus @default(PENDING)
+  lastRetryAt          DateTime?
+  resolvedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  agency             Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  worker             Worker             @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  complianceDocument ComplianceDocument @relation(fields: [complianceDocumentId], references: [id], onDelete: Cascade)
+
+  @@map("failed_alerts")
+}
+
+enum FailedAlertStatus {
+  PENDING
+  RETRYING
+  FAILED_PERMANENTLY
+  RESOLVED
 }
 
 // ─── AuditLog (Immutable record of actions for compliance purposes) ──────────

@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma');
 const { sendExpiryAlert } = require('./emailService');
 
 const TARGET_DAYS_UNTIL_EXPIRY = [30, 14, 7];
+const MAX_RETRY_ATTEMPTS = 3;
 
 /**
  * Calculates the exact number of days remaining between the current date
@@ -17,6 +18,111 @@ const getDaysDiff = (targetDateString) => {
 
     const diffTime = targetDate.getTime() - today.getTime();
     return Math.round(diffTime / (1000 * 60 * 60 * 24));
+};
+
+/**
+ * Retry failed alerts from the dead letter queue
+ */
+const retryFailedAlerts = async () => {
+    console.log('[Cron Service] Starting failed alert retry process...');
+
+    try {
+        const failedAlerts = await prisma.failedAlert.findMany({
+            where: {
+                status: { in: ['PENDING', 'RETRYING'] },
+                retryCount: { lt: MAX_RETRY_ATTEMPTS }
+            },
+            include: {
+                worker: true,
+                complianceDocument: { include: { documentType: true } },
+                agency: true
+            }
+        });
+
+        console.log(`[Cron Service] Found ${failedAlerts.length} failed alerts to retry.`);
+
+        let retriedCount = 0;
+        let resolvedCount = 0;
+
+        for (const failedAlert of failedAlerts) {
+            try {
+                const fullWorkerName = `${failedAlert.worker.firstName} ${failedAlert.worker.lastName}`;
+                
+                // Update status to RETRYING
+                await prisma.failedAlert.update({
+                    where: { id: failedAlert.id },
+                    data: { 
+                        status: 'RETRYING',
+                        retryCount: { increment: 1 },
+                        lastRetryAt: new Date()
+                    }
+                });
+
+                // Attempt to send the email again
+                await sendExpiryAlert(
+                    failedAlert.agency.email,
+                    fullWorkerName,
+                    failedAlert.complianceDocument.documentType.name,
+                    failedAlert.complianceDocument.expiryDate,
+                    failedAlert.daysUntilExpiry
+                );
+
+                // Success! Mark as resolved and create ExpiryAlert record
+                await prisma.failedAlert.update({
+                    where: { id: failedAlert.id },
+                    data: { 
+                        status: 'RESOLVED',
+                        resolvedAt: new Date()
+                    }
+                });
+
+                await prisma.expiryAlert.create({
+                    data: {
+                        agencyId: failedAlert.agencyId,
+                        workerId: failedAlert.workerId,
+                        complianceDocumentId: failedAlert.complianceDocumentId,
+                        alertDate: new Date(),
+                        daysUntilExpiry: failedAlert.daysUntilExpiry,
+                        isSent: true,
+                        sentAt: new Date()
+                    }
+                });
+
+                console.log(`[Cron Service] SUCCESS: Resolved failed alert ${failedAlert.id} for ${fullWorkerName}`);
+                resolvedCount++;
+            } catch (err) {
+                console.error(`[Cron Service] FAILED: Retry attempt ${failedAlert.retryCount + 1} failed for alert ${failedAlert.id}:`, err.message);
+                
+                // Check if max retries reached
+                if (failedAlert.retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
+                    await prisma.failedAlert.update({
+                        where: { id: failedAlert.id },
+                        data: { 
+                            status: 'FAILED_PERMANENTLY',
+                            errorMessage: err.message,
+                            errorDetails: err.stack
+                        }
+                    });
+                    console.error(`[Cron Service] ALERT: Alert ${failedAlert.id} has failed permanently after ${MAX_RETRY_ATTEMPTS} attempts.`);
+                } else {
+                    await prisma.failedAlert.update({
+                        where: { id: failedAlert.id },
+                        data: { 
+                            status: 'PENDING',
+                            errorMessage: err.message
+                        }
+                    });
+                }
+            }
+            retriedCount++;
+        }
+
+        console.log(`[Cron Service] Retry process complete. Retried: ${retriedCount}, Resolved: ${resolvedCount}`);
+        return { retriedCount, resolvedCount };
+    } catch (err) {
+        console.error('[Cron Service] Error during failed alert retry process:', err);
+        throw err;
+    }
 };
 
 /**
@@ -124,6 +230,28 @@ const checkExpiriesAndAlert = async () => {
                 });
             } catch (err) {
                 console.error(`[Cron Service] FAILED: Could not process alert step for doc ${doc.id} (${fullWorkerName}'s ${doc.documentType.name}). Expiry date: ${doc.expiryDate}:`, err);
+                
+                // Add to dead letter queue (FailedAlert)
+                try {
+                    await prisma.failedAlert.create({
+                        data: {
+                            agencyId: doc.agencyId,
+                            workerId: doc.workerId,
+                            complianceDocumentId: doc.id,
+                            alertDate: new Date(),
+                            daysUntilExpiry: daysRemaining,
+                            retryCount: 0,
+                            maxRetries: MAX_RETRY_ATTEMPTS,
+                            errorMessage: err.message,
+                            errorDetails: err.stack,
+                            status: 'PENDING'
+                        }
+                    });
+                    console.log(`[Cron Service] Added failed alert to dead letter queue for doc ${doc.id}`);
+                } catch (dlqErr) {
+                    console.error(`[Cron Service] CRITICAL: Failed to add to dead letter queue:`, dlqErr);
+                }
+
                 triggeredDocuments.push({
                     documentId: doc.id,
                     workerName: fullWorkerName,
@@ -150,9 +278,14 @@ const initCronJobs = () => {
     // 0 8 * * * = "At 08:00 every day"
     cron.schedule('0 8 * * *', checkExpiriesAndAlert);
     console.log('[Cron Service] Initialized daily background expiry sweep (08:00 AM)');
+    
+    // Retry failed alerts every hour
+    cron.schedule('0 * * * *', retryFailedAlerts);
+    console.log('[Cron Service] Initialized hourly failed alert retry process');
 };
 
 module.exports = {
     initCronJobs,
-    checkExpiriesAndAlert
+    checkExpiriesAndAlert,
+    retryFailedAlerts
 };

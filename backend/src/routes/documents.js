@@ -2,25 +2,48 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { verifyToken } = require('@clerk/backend');
 const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
+const { fetchWithRetry } = require('../lib/fetchWithRetry');
+const { encryptFile, readAndDecryptFile, validateEncryptionSetup } = require('../lib/encryption');
+const { validate, documentUploadSchema, documentVerifySchema } = require('../middleware/validation');
+const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
-// ─── Multer disk storage ──────────────────────────────────────────────────────
+// ─── Encryption Setup Validation ──────────────────────────────────────────────
+if (!validateEncryptionSetup()) {
+    console.error('❌ [Documents] Encryption setup validation failed. Document uploads will fail.');
+}
+
+// ─── Multer memory storage (encrypt before writing to disk) ─────────────────────
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage, 
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        // Only allow specific document types
+        const allowedMimeTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/webp'
+        ];
+        if (allowedMimeTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`Invalid file type: ${file.mimetype}. Only PDF and images are allowed.`), false);
+        }
+    }
+});
+
+// ─── Uploads Directory for encrypted files ────────────────────────────────────
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-
-const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-    filename: (_req, file, cb) => {
-        const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.originalname.replace(/\s+/g, '_')}`;
-        cb(null, unique);
-    },
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ─── Shared auth helper ───────────────────────────────────────────────────────
 const getAgencyUser = async (req, res) => {
@@ -54,7 +77,7 @@ const runDocAnalysis = async (doc, worker, filePath) => {
     try {
         if (!fs.existsSync(filePath)) return { error: 'File not found' };
 
-        const ext = path.extname(doc.fileKey).toLowerCase();
+        const ext = path.extname(doc.fileName).toLowerCase();
         const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
         const isPdf = ext === '.pdf';
 
@@ -63,40 +86,60 @@ const runDocAnalysis = async (doc, worker, filePath) => {
         }
 
         let base64Data;
-        if (isImage) {
-            const fileData = fs.readFileSync(filePath);
-            base64Data = fileData.toString('base64');
-        } else if (isPdf) {
-            try {
-                console.log(`Converting first page of PDF to image...`);
-                let document = await pdf(filePath, { scale: 2.0 });
-                let firstPageBuffer;
-                for await (const image of document) {
-                    firstPageBuffer = image;
-                    break;
-                }
-                if (!firstPageBuffer) throw new Error('PDF conversion returned empty');
 
-                base64Data = firstPageBuffer.toString('base64');
-            } catch (err) {
-                console.error("PDF to Image conversion failed:", err);
-                return {
-                    summary: 'Document uploaded successfully. Please upload as an image for automatic scanning.',
-                    concerns: ['Could not read PDF. Please upload an image format (.jpg, .png) for automatic scanning.'],
-                    documentType: null,
-                    fullName: null,
-                    documentNumber: null,
-                    expiryDate: null,
-                    issueDate: null,
-                    issuingAuthority: null,
-                    confidence: "low",
-                    wrongDocumentWarning: null,
-                    nameMatchesWorker: false
-                };
+        // Decrypt the file first
+        try {
+            const decryptedBuffer = readAndDecryptFile(filePath);
+
+            if (isImage) {
+                base64Data = decryptedBuffer.toString('base64');
+            } else if (isPdf) {
+                try {
+                    console.log(`Converting first page of PDF to image...`);
+                    const tempPath = path.join(UPLOADS_DIR, `temp-${Date.now()}.pdf`);
+                    fs.writeFileSync(tempPath, decryptedBuffer);
+
+                    let document = await pdf(tempPath, { scale: 2.0 });
+                    let firstPageBuffer;
+                    for await (const image of document) {
+                        firstPageBuffer = image;
+                        break;
+                    }
+                    if (!firstPageBuffer) throw new Error('PDF conversion returned empty');
+
+                    base64Data = firstPageBuffer.toString('base64');
+
+                    try {
+                        fs.unlinkSync(tempPath);
+                    } catch (cleanupErr) {
+                        console.error('Failed to cleanup temp PDF:', cleanupErr.message);
+                    }
+                } catch (err) {
+                    console.error("PDF to Image conversion failed:", err);
+                    return {
+                        summary: 'Document uploaded successfully. Please upload as an image for automatic scanning.',
+                        concerns: ['Could not read PDF. Please upload an image format (.jpg, .png) for automatic scanning.'],
+                        documentType: null,
+                        fullName: null,
+                        documentNumber: null,
+                        expiryDate: null,
+                        issueDate: null,
+                        issuingAuthority: null,
+                        confidence: "low",
+                        wrongDocumentWarning: null,
+                        nameMatchesWorker: false
+                    };
+                }
             }
+        } catch (decryptErr) {
+            console.error('Failed to decrypt or process file:', decryptErr);
+            return {
+                error: 'Failed to decrypt or process document. File may be corrupted.',
+                details: decryptErr.message
+            };
         }
 
-        const prompt = `You are a UK healthcare staffing compliance expert. Analyse this ${doc.documentType.name} document and extract key information. 
+        const prompt = `You are a UK healthcare staffing compliance expert. Analyse this ${doc.documentType.name} document and extract key information.
 Return ONLY a JSON object with these exact fields:
 {
   "documentType": "what type of document this appears to be",
@@ -110,10 +153,10 @@ Return ONLY a JSON object with these exact fields:
   "summary": "one sentence summary of findings"
 }`;
 
-        console.log(`Sending base64 image to local Ollama (${process.env.OLLAMA_MODEL || 'llava'}) for analysis...`);
+        console.log(`[AI Analysis] Processing document ${doc.id} (type: ${doc.documentType.name})...`);
 
         const ollamaHost = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
-        const response = await fetch(`${ollamaHost}/api/generate`, {
+        const response = await fetchWithRetry(`${ollamaHost}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -126,6 +169,9 @@ Return ONLY a JSON object with these exact fields:
                     temperature: 0
                 }
             })
+        }, {
+            maxRetries: 3,
+            timeout: 30000
         });
 
         if (!response.ok) {
@@ -168,6 +214,20 @@ Return ONLY a JSON object with these exact fields:
         }
         result.wrongDocumentWarning = wrongDocumentWarning;
 
+        // PII Sanitization: Store only non-sensitive analysis results
+        const safeResult = {
+            documentType: result.documentType,
+            expiryDate: result.expiryDate,
+            issueDate: result.issueDate,
+            issuingAuthority: result.issuingAuthority,
+            confidence: result.confidence,
+            summary: result.summary,
+            concerns: result.concerns,
+            nameMatchesWorker: result.nameMatchesWorker,
+            wrongDocumentWarning: result.wrongDocumentWarning
+            // Note: fullName and documentNumber are intentionally excluded to prevent PII storage
+        };
+
         // Auto-save expiry date if applicable and found
         let savedExpiryDate = doc.expiryDate;
         let expiryFound = false;
@@ -180,7 +240,7 @@ Return ONLY a JSON object with these exact fields:
             });
         }
 
-        return { result, expiryFound, savedExpiryDate, error: null };
+        return { result: safeResult, expiryFound, savedExpiryDate, error: null };
     } catch (error) {
         console.error('Claude extraction error:', error);
         return { error: 'Failed to extract AI data' };
@@ -188,14 +248,13 @@ Return ONLY a JSON object with these exact fields:
 };
 
 // ─── POST /api/documents/upload ───────────────────────────────────────────────
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', documentUploadLimiter, upload.single('file'), validate(documentUploadSchema), async (req, res) => {
     try {
         const agencyUser = await getAgencyUser(req, res);
         if (!agencyUser) return;
 
         const { workerId, documentTypeId, notes } = req.body;
         if (!req.file || !workerId || !documentTypeId) {
-            if (req.file) fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: 'File, workerId and documentTypeId are required' });
         }
 
@@ -203,44 +262,106 @@ router.post('/upload', upload.single('file'), async (req, res) => {
             where: { id: workerId, agencyId: agencyUser.agencyId }
         });
         if (!worker) {
-            fs.unlinkSync(req.file.path);
             return res.status(404).json({ error: 'Worker not found' });
         }
 
         const documentType = await prisma.documentType.findUnique({ where: { id: documentTypeId } });
-        const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:3001'}/uploads/${req.file.filename}`;
-        const filePath = path.join(UPLOADS_DIR, req.file.filename);
+        
+        // Generate encrypted filename
+        const originalName = req.file.originalname.replace(/\s+/g, '_');
+        const uniqueId = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
+        const encryptedFilename = `${uniqueId}-${originalName}.enc`;
+        const encryptedFilePath = path.join(UPLOADS_DIR, encryptedFilename);
 
+        // Encrypt and save the file
+        const { encryptFile } = require('../lib/encryption');
+        const encrypted = encryptFile(req.file.buffer);
+        fs.writeFileSync(encryptedFilePath, encrypted);
+
+        const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:3001'}/uploads/${encryptedFilename}`;
+
+        // Delete any existing document of this type for this worker
         const existing = await prisma.complianceDocument.findFirst({
             where: { workerId, documentTypeId, agencyId: agencyUser.agencyId }
         });
         if (existing) {
             const oldPath = path.join(UPLOADS_DIR, path.basename(existing.fileKey));
-            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+            if (fs.existsSync(oldPath)) {
+                try {
+                    // Securely delete old file (overwrite then unlink)
+                    const stats = fs.statSync(oldPath);
+                    const overwriteBuffer = Buffer.alloc(stats.size, 0);
+                    fs.writeFileSync(oldPath, overwriteBuffer);
+                    fs.unlinkSync(oldPath);
+                } catch (err) {
+                    console.error('Failed to securely delete old file:', err.message);
+                }
+            }
             await prisma.complianceDocument.delete({ where: { id: existing.id } });
         }
 
-        const doc = await prisma.complianceDocument.create({
-            data: {
+        const [doc] = await prisma.$transaction([
+            prisma.complianceDocument.create({
+                data: {
+                    agencyId: agencyUser.agencyId,
+                    workerId,
+                    documentTypeId,
+                    fileUrl,
+                    fileKey: encryptedFilename,
+                    fileName: req.file.originalname,
+                    fileSize: req.file.size,
+                    mimeType: req.file.mimetype,
+                    status: 'PENDING',
+                    notes: notes || null,
+                },
+                include: { documentType: true }
+            }),
+            prisma.auditLog.create({
+                data: {
+                    agencyId: agencyUser.agencyId,
+                    userId: agencyUser.id,
+                    action: 'document.uploaded',
+                    entity: 'ComplianceDocument',
+                    entityId: encryptedFilename, // Use fileKey as reference before doc is created
+                    metadata: {
+                        workerId,
+                        documentTypeId,
+                        fileName: req.file.originalname,
+                        fileSize: req.file.size,
+                        mimeType: req.file.mimetype,
+                        encrypted: true
+                    },
+                    ipAddress: req.ip || req.connection.remoteAddress,
+                    userAgent: req.headers['user-agent']
+                }
+            })
+        ]);
+
+        // Update the audit log with the actual document ID after creation
+        await prisma.auditLog.updateMany({
+            where: {
                 agencyId: agencyUser.agencyId,
-                workerId,
-                documentTypeId,
-                fileUrl,
-                fileKey: req.file.filename,
-                fileName: req.file.originalname,
-                fileSize: req.file.size,
-                mimeType: req.file.mimetype,
-                status: 'PENDING',
-                notes: notes || null,
+                userId: agencyUser.id,
+                action: 'document.uploaded',
+                entityId: encryptedFilename
             },
-            include: { documentType: true }
+            data: {
+                entityId: doc.id
+            }
         });
 
-        res.status(201).json({ data: doc });
+        console.log(`[Documents] Encrypted and stored document: ${encryptedFilename} (${encrypted.length} bytes)`);
+
+        res.status(201).json({ 
+            data: {
+                ...doc,
+                isEncrypted: true,
+                encryptionAlgorithm: 'aes-256-cbc'
+            }
+        });
     } catch (error) {
         console.error('Upload error:', error);
-        if (req.file) fs.unlink(req.file.path, () => { });
-        res.status(500).json({ error: 'Failed to upload document' });
+        res.status(500).json({ error: 'Failed to upload document', details: error.message });
     }
 });
 
@@ -335,7 +456,7 @@ router.get('/agency', async (req, res) => {
 });
 
 // ─── POST /api/documents/:id/analyse (Claude AI Verification) ────────────────
-router.post('/:id/analyse', async (req, res) => {
+router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
     try {
         const agencyUser = await getAgencyUser(req, res);
         if (!agencyUser) return;
@@ -376,20 +497,29 @@ router.post('/:id/analyse', async (req, res) => {
 });
 
 // ─── PATCH /api/documents/:id/verify ─────────────────────────────────────────
-router.patch('/:id/verify', async (req, res) => {
+router.patch('/:id/verify', validate(documentVerifySchema), async (req, res) => {
     try {
         const agencyUser = await getAgencyUser(req, res);
         if (!agencyUser) return;
 
-        const { status, notes, manualExpiryDate } = req.body;
+        const { status, notes, manualExpiryDate, version } = req.body;
         if (!['APPROVED', 'REJECTED'].includes(status)) {
             return res.status(400).json({ error: 'Status must be APPROVED or REJECTED' });
         }
 
+        // Optimistic Locking: Fetch document with version check
         const doc = await prisma.complianceDocument.findFirst({
             where: { id: req.params.id, agencyId: agencyUser.agencyId }
         });
         if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+        // Check for version conflict (optimistic locking)
+        if (version !== undefined && doc.updatedAt.getTime() !== new Date(version).getTime()) {
+            return res.status(409).json({ 
+                error: 'Document was modified by another user. Please refresh and try again.',
+                currentVersion: doc.updatedAt
+            });
+        }
 
         const updateData = {
             status,
@@ -416,12 +546,20 @@ router.patch('/:id/verify', async (req, res) => {
                     action: `document.${status.toLowerCase()}`,
                     entity: 'ComplianceDocument',
                     entityId: doc.id,
-                    metadata: { notes, documentType: doc.documentTypeId }
+                    metadata: { 
+                        notes, 
+                        documentType: doc.documentTypeId,
+                        previousStatus: doc.status,
+                        newStatus: status
+                    }
                 }
             })
         ]);
 
-        res.json({ data: updated });
+        res.json({ 
+            data: updated,
+            version: updated.updatedAt 
+        });
     } catch (error) {
         console.error('Error verifying document:', error);
         res.status(500).json({ error: 'Failed to verify document' });
