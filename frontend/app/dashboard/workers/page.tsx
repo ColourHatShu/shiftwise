@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import React from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -25,7 +26,7 @@ export default function WorkersPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [showInactive, setShowInactive] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState<string>("");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
@@ -34,12 +35,24 @@ export default function WorkersPage() {
     const [totalWorkers, setTotalWorkers] = useState(0);
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-    const fetchWorkers = async (pageNum: number = 1) => {
+    // Debounce for search input
+    const [searchInputValue, setSearchInputValue] = useState("");
+    const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
+
+    const fetchWorkers = async (pageNum: number = 1, search: string = "", status: string = "") => {
         if (!isLoaded || !isSignedIn) return;
         try {
             setIsLoading(true);
             const token = await getToken();
-            const response = await fetch(`${API_URL}/api/workers?page=${pageNum}&limit=20`, {
+
+            // Build query params
+            const params = new URLSearchParams();
+            params.append("page", pageNum.toString());
+            params.append("limit", "20");
+            if (search) params.append("search", search);
+            if (status) params.append("status", status);
+
+            const response = await fetch(`${API_URL}/api/workers?${params}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (!response.ok) throw new Error("Failed to fetch workers");
@@ -61,19 +74,33 @@ export default function WorkersPage() {
         }
     };
 
+    // Initial load
     useEffect(() => {
-        fetchWorkers(page);
-    }, [isLoaded, isSignedIn, getToken, API_URL, page]);
+        fetchWorkers(1, searchQuery, selectedStatus);
+    }, [isLoaded, isSignedIn, getToken, API_URL]);
 
-    // Client-side search filter
-    const filteredWorkers = workers.filter((w) => {
-        const matchesSearch =
-            `${w.firstName} ${w.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (w.jobTitle ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-            w.email.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesActive = showInactive ? true : w.status !== 'INACTIVE';
-        return matchesSearch && matchesActive;
-    });
+    // Fetch when page changes
+    useEffect(() => {
+        fetchWorkers(page, searchQuery, selectedStatus);
+    }, [page]);
+
+    // Debounced search
+    const handleSearchChange = (value: string) => {
+        setSearchInputValue(value);
+        clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = setTimeout(() => {
+            setSearchQuery(value);
+            setPage(1);
+            fetchWorkers(1, value, selectedStatus);
+        }, 300);
+    };
+
+    // Status filter change
+    const handleStatusChange = (status: string) => {
+        setSelectedStatus(status);
+        setPage(1);
+        fetchWorkers(1, searchQuery, status);
+    };
 
     // RAG Status Badge
     const getRAGStatus = (score: number) => {
@@ -164,20 +191,21 @@ export default function WorkersPage() {
                         <input
                             type="text"
                             placeholder="Search by name, role or email..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={searchInputValue}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
                         />
                     </div>
-                    <label className="flex items-center gap-2 text-sm text-[#6B7280] cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={showInactive}
-                            onChange={(e) => setShowInactive(e.target.checked)}
-                            className="rounded border-[#E5E7EB] text-[#0F2647] focus:ring-[#0F2647]"
-                        />
-                        Show inactive
-                    </label>
+                    <select
+                        value={selectedStatus}
+                        onChange={(e) => handleStatusChange(e.target.value)}
+                        className="bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                        <option value="SUSPENDED">Suspended</option>
+                    </select>
                 </div>
             </div>
 
@@ -195,15 +223,15 @@ export default function WorkersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E5E7EB]">
-                            {filteredWorkers.length === 0 ? (
+                            {workers.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-3">
                                             <div className="bg-[#F8F9FB] p-3 rounded-lg">
                                                 <User size={24} className="text-[#6B7280]" />
                                             </div>
-                                            {searchQuery ? (
-                                                <p className="text-[#6B7280]">No workers match <span className="text-[#1A1A2E] font-medium">"{searchQuery}"</span></p>
+                                            {searchInputValue || selectedStatus ? (
+                                                <p className="text-[#6B7280]">No workers match your filters</p>
                                             ) : (
                                                 <>
                                                     <p className="text-[#6B7280]">No workers added yet.</p>
@@ -216,7 +244,7 @@ export default function WorkersPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredWorkers.map((worker) => {
+                                workers.map((worker) => {
                                     const rag = getRAGStatus(worker.complianceScore || 0);
                                     const ragColors = {
                                         green: { dot: "bg-[#1D9E75]", bar: "bg-[#1D9E75]", text: "text-[#3B6D11]" },
