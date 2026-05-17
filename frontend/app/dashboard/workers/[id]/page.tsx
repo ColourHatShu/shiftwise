@@ -13,7 +13,7 @@ import {
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import EditWorkerModal from '../components/EditWorkerModal';
-import { downloadDocument } from "@/lib/api/documents";
+import { downloadDocument, getDocumentStatus, pollDocumentStatus } from "@/lib/api/documents";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -156,32 +156,60 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
         setLoadingAI(true);
         setError("");
         try {
-            const token = await getToken();
-            const url = `${API_URL}/api/documents/${document.id}/analyse${forceRescan ? '?force=true' : ''}`;
-            const res = await fetch(url, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error("Document analysis failed.");
-            const parsed = await res.json();
+            // Try to fetch cached analysis first
+            const statusRes = await getDocumentStatus(document.id, getToken);
 
-            // Fire toasts based on the delayed analysis result
-            if (parsed.data) {
-                if (document.documentType?.hasExpiry && parsed.data.expiryDate && parsed.data.expiryDate !== 'null') {
-                    toast.success(`Document scanned — Expiry date found: ${new Date(parsed.data.expiryDate).toLocaleDateString()}`);
+            if (statusRes.data.status === 'completed' && statusRes.data.analysisResult) {
+                // Already has analysis result
+                const parsed = statusRes.data.analysisResult;
+
+                // Fire toasts based on the analysis result
+                if (document.documentType?.hasExpiry && parsed.expiryDate && parsed.expiryDate !== 'null') {
+                    toast.success(`Document scanned — Expiry date found: ${new Date(parsed.expiryDate).toLocaleDateString()}`);
                 } else if (document.documentType?.hasExpiry) {
                     toast.error("Document scanned — No expiry date found, please add manually", { icon: "⚠️" });
                 } else {
                     toast.success("Document scanned successfully");
                 }
-                if (parsed.data.concerns?.some((c: string) => c.includes("mismatch"))) {
+                if (parsed.concerns?.some((c: string) => c.includes("mismatch"))) {
                     toast.error("Name mismatch detected — please review", { icon: "⚠️", duration: 6000 });
                 }
-            }
 
-            setResult(parsed.data);
+                setResult(parsed);
+            } else if (statusRes.data.status === 'pending') {
+                // Polling still in progress
+                try {
+                    const polled = await pollDocumentStatus(document.id, getToken, {
+                        maxRetries: 30,
+                        initialDelay: 500,
+                        maxDelay: 2000
+                    });
+
+                    const parsed = polled.data.analysisResult;
+                    if (polled.data.status === 'completed' && parsed) {
+                        // Fire toasts based on the analysis result
+                        if (document.documentType?.hasExpiry && parsed.expiryDate && parsed.expiryDate !== 'null') {
+                            toast.success(`Document scanned — Expiry date found: ${new Date(parsed.expiryDate).toLocaleDateString()}`);
+                        } else if (document.documentType?.hasExpiry) {
+                            toast.error("Document scanned — No expiry date found, please add manually", { icon: "⚠️" });
+                        } else {
+                            toast.success("Document scanned successfully");
+                        }
+                        if (parsed.concerns?.some((c: string) => c.includes("mismatch"))) {
+                            toast.error("Name mismatch detected — please review", { icon: "⚠️", duration: 6000 });
+                        }
+                        setResult(parsed);
+                    } else {
+                        setError("Document analysis failed or timed out");
+                    }
+                } catch (pollErr: any) {
+                    setError(pollErr.message || "Document analysis timed out");
+                }
+            } else if (statusRes.data.status === 'failed') {
+                setError("Document scanning failed. Please try uploading again.");
+            }
         } catch (err: any) {
-            setError(err.message);
+            setError(err.message || "Failed to fetch document status");
         } finally {
             setLoadingAI(false);
         }
