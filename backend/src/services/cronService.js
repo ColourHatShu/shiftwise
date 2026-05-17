@@ -70,23 +70,38 @@ const retryFailedAlerts = async () => {
                 // Success! Mark as resolved and create ExpiryAlert record
                 await prisma.failedAlert.update({
                     where: { id: failedAlert.id },
-                    data: { 
+                    data: {
                         status: 'RESOLVED',
                         resolvedAt: new Date()
                     }
                 });
 
-                await prisma.expiryAlert.create({
-                    data: {
-                        agencyId: failedAlert.agencyId,
-                        workerId: failedAlert.workerId,
-                        complianceDocumentId: failedAlert.complianceDocumentId,
-                        alertDate: new Date(),
-                        daysUntilExpiry: failedAlert.daysUntilExpiry,
-                        isSent: true,
-                        sentAt: new Date()
+                // Try to create the successful alert record
+                try {
+                    const alertDateToday = new Date();
+                    alertDateToday.setUTCHours(0, 0, 0, 0);  // Normalize to UTC midnight
+
+                    await prisma.expiryAlert.create({
+                        data: {
+                            agencyId: failedAlert.agencyId,
+                            workerId: failedAlert.workerId,
+                            complianceDocumentId: failedAlert.complianceDocumentId,
+                            alertDate: new Date(),
+                            alertDateOnly: alertDateToday,  // Normalized date for dedup constraint
+                            daysUntilExpiry: failedAlert.daysUntilExpiry,
+                            isSent: true,
+                            sentAt: new Date()
+                        }
+                    });
+                } catch (alertErr) {
+                    // P2002: alert already exists (benign - don't retry)
+                    if (alertErr.code === 'P2002') {
+                        console.log(`[Cron Service] alert already exists for doc ${failedAlert.complianceDocumentId}, marking failed alert as resolved`);
+                    } else {
+                        // Re-throw non-dedup errors
+                        throw alertErr;
                     }
-                });
+                }
 
                 console.log(`[Cron Service] SUCCESS: Resolved failed alert ${failedAlert.id} for ${fullWorkerName}`);
                 resolvedCount++;
@@ -157,31 +172,14 @@ const checkExpiriesAndAlert = async () => {
             if (daysRemaining > 30 || daysRemaining < 0) continue;
 
             // Check if an alert was ALREADY sent today for this exact document
-            // To prevent accidental duplicate spam if checking manually or server restarts
-            const todayStart = new Date();
-            todayStart.setUTCHours(0, 0, 0, 0);
-            const todayEnd = new Date();
-            todayEnd.setUTCHours(23, 59, 59, 999);
-
-            const duplicateAlert = await prisma.expiryAlert.findFirst({
-                where: {
-                    complianceDocumentId: doc.id,
-                    daysUntilExpiry: daysRemaining,
-                    createdAt: {
-                        gte: todayStart,
-                        lte: todayEnd,
-                    }
-                }
-            });
-
-            if (duplicateAlert) {
-                console.log(`[Cron Service] Already triggered ${daysRemaining}-day alert for doc ${doc.id} today. Skipping.`);
-                continue;
-            }
-
-            // Fire the HTML email
+            // Dedup at database level: the unique constraint on (complianceDocumentId, daysUntilExpiry, alertDateOnly)
+            // ensures at most one alert per (document, threshold, day). If two cron runs race, the loser catches P2002.
             const fullWorkerName = `${doc.worker.firstName} ${doc.worker.lastName}`;
+            const alertDateToday = new Date();
+            alertDateToday.setUTCHours(0, 0, 0, 0);  // Normalize to UTC midnight
+
             try {
+                // Attempt to create the alert. If it already exists for today, Prisma will throw P2002.
                 await sendExpiryAlert(
                     doc.agency.email,
                     fullWorkerName,
@@ -190,18 +188,30 @@ const checkExpiriesAndAlert = async () => {
                     daysRemaining
                 );
 
-                // Setup foreign key tracker showing an email was requested for this threshold
-                await prisma.expiryAlert.create({
-                    data: {
-                        agencyId: doc.agencyId,
-                        workerId: doc.workerId,
-                        complianceDocumentId: doc.id,
-                        alertDate: new Date(),
-                        daysUntilExpiry: daysRemaining,
-                        isSent: true,
-                        sentAt: new Date()
+                // Email sent successfully. Now record the alert in the database.
+                try {
+                    await prisma.expiryAlert.create({
+                        data: {
+                            agencyId: doc.agencyId,
+                            workerId: doc.workerId,
+                            complianceDocumentId: doc.id,
+                            alertDate: new Date(),
+                            alertDateOnly: alertDateToday,  // Normalized date for dedup constraint
+                            daysUntilExpiry: daysRemaining,
+                            isSent: true,
+                            sentAt: new Date()
+                        }
+                    });
+                } catch (err) {
+                    // P2002: unique constraint violation (alert already exists for today)
+                    // This is benign when running concurrently - just log and skip.
+                    if (err.code === 'P2002') {
+                        console.log(`[Cron Service] alert already exists for doc ${doc.id}, daysUntilExpiry ${daysRemaining}, day ${alertDateToday.toISOString().split('T')[0]} — skipping`);
+                        continue;
                     }
-                });
+                    // Any other database error is re-thrown for the outer catch block
+                    throw err;
+                }
 
                 // Write identical audit log record dynamically for compliance
                 await prisma.auditLog.create({
