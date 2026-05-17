@@ -5,20 +5,62 @@ const prisma = require('../lib/prisma');
 const router = express.Router();
 
 // ─── GET /api/workers ─────────────────────────────────────────────────────────
+// Query params:
+//   - page: page number (default: 1)
+//   - limit: results per page (default: 20, max: 100)
+//   - search: case-insensitive search on firstName, lastName, email, jobTitle
+//   - status: filter by status (ACTIVE|INACTIVE|SUSPENDED)
 router.get('/', requireAgency, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
         const skip = (page - 1) * limit;
+        const search = req.query.search || undefined;
+        const status = req.query.status || undefined;
+
+        // Validate pagination
+        if (page < 1 || limit < 1) {
+            return res.status(400).json({
+                error: 'Invalid pagination parameters. page and limit must be positive integers'
+            });
+        }
+
+        // Validate status if provided
+        const validStatuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
+        if (status && !validStatuses.includes(status)) {
+            return res.status(400).json({
+                error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+            });
+        }
+
+        // Build where clause
+        const where = {
+            agencyId: req.agencyId
+        };
+
+        // Add search filter (case-insensitive OR across multiple fields)
+        if (search) {
+            where.OR = [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { jobTitle: { contains: search, mode: 'insensitive' } }
+            ];
+        }
+
+        // Add status filter
+        if (status) {
+            where.status = status;
+        }
 
         const [workers, total] = await Promise.all([
             prisma.worker.findMany({
-                where: { agencyId: req.agencyId },
+                where,
                 orderBy: { firstName: 'asc' },
                 skip,
                 take: limit
             }),
-            prisma.worker.count({ where: { agencyId: req.agencyId } })
+            prisma.worker.count({ where })
         ]);
 
         const totalPages = Math.ceil(total / limit);
