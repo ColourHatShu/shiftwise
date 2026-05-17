@@ -103,6 +103,11 @@ app.use('/api/reports', reportsRouter);
 const auditLogRouter = require('./routes/audit-log');
 app.use('/api/audit-log', auditLogRouter);
 
+// Worker self-service auth routes
+const { handleWorkerSignin, handleVerifyCode } = require('./routes/worker-auth');
+app.post('/worker-signin', handleWorkerSignin);
+app.post('/worker/verify-code', handleVerifyCode);
+
 // Health Check
 app.get('/api/health', async (req, res) => {
     try {
