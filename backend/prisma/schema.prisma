@@ -89,6 +89,7 @@ model Worker {
   agency              Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   complianceDocuments ComplianceDocument[]
   expiryAlerts        ExpiryAlert[]
+  failedAlerts        FailedAlert[]
 
   @@unique([agencyId, email])
   @@map("workers")
@@ -146,6 +147,7 @@ model ComplianceDocument {
   worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
   documentType DocumentType @relation(fields: [documentTypeId], references: [id])
   expiryAlerts ExpiryAlert[]
+  failedAlerts FailedAlert[]
 
   @@map("compliance_documents")
 }
