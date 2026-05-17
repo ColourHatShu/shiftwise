@@ -533,4 +533,60 @@ router.patch('/:id/verify', validate(documentVerifySchema), requireRole(['OWNER'
     }
 });
 
+// ─── GET /api/documents/:id/download ───────────────────────────────────────
+// Streaming download of a decrypted document.
+// Requires: valid JWT for the owning agency, document must belong to user's agency.
+// Returns: decrypted file with proper headers (Content-Disposition, Content-Type).
+// On auth failure: 401. On cross-agency access: 404 (not 403, to avoid existence leak).
+// On missing file: 500 with sanitized error.
+router.get('/:id/download', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Load document scoped to user's agency (return null on cross-agency, not throw)
+        const document = await prisma.complianceDocument.findFirst({
+            where: { id, agencyId: req.agencyId }
+        });
+
+        // Return 404 on both not-found and cross-agency (intentional: no existence leak)
+        if (!document) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        // Construct file path from fileKey
+        const filePath = path.join(UPLOADS_DIR, path.basename(document.fileKey));
+
+        // Check if file exists on disk
+        if (!fs.existsSync(filePath)) {
+            console.error(`[Documents] File missing on disk for document ${document.id}: ${filePath}`);
+            return res.status(500).json({ error: 'Document file unavailable' });
+        }
+
+        try {
+            // Read encrypted file
+            const encryptedBuffer = fs.readFileSync(filePath);
+
+            // Decrypt the file
+            // For now, use the existing decryptFile (CBC) for backward compat.
+            // Task D3 will replace this with decryptFileAuto based on encryptionAlgorithm.
+            const decryptedBuffer = readAndDecryptFile(filePath);
+
+            // Set response headers BEFORE piping
+            res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(document.fileName)}"`);
+            res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+            res.setHeader('Content-Length', decryptedBuffer.length);
+
+            // Send decrypted buffer
+            res.send(decryptedBuffer);
+        } catch (decryptError) {
+            console.error(`[Documents] Decryption failed for document ${document.id}:`, decryptError.message);
+            // Return sanitized 500 (no file path or key info in response)
+            return res.status(500).json({ error: 'Document decryption failed' });
+        }
+    } catch (error) {
+        console.error('Error in download endpoint:', error);
+        res.status(500).json({ error: 'Failed to download document' });
+    }
+});
+
 module.exports = router;
