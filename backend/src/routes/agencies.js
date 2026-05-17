@@ -1,5 +1,6 @@
 const express = require('express');
-const { verifyToken, createClerkClient } = require('@clerk/backend');
+const { createClerkClient } = require('@clerk/backend');
+const { verifyClerkToken } = require('../lib/auth');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
 
@@ -8,34 +9,13 @@ const router = express.Router();
 // Shared Clerk client for fetching user info
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
-// ─── Shared token verifier ────────────────────────────────────────────────────
-const verifyClerkToken = async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Unauthorized: No token provided' });
-        return null;
-    }
-    const token = authHeader.split(' ')[1];
-    try {
-        const payload = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY,
-            authorizedParties: ['http://localhost:3000'],
-            clockSkewInMs: 300000
-        });
-        return payload.sub; // clerkUserId
-    } catch (err) {
-        console.error('❌ Token verification failed:', err.message);
-        res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
-        return null;
-    }
-};
-
 // ─── POST /api/agencies/setup ─────────────────────────────────────────────────
 // Idempotent: creates an Agency + User if they don't exist, returns existing if they do.
+// Special case: uses verifyClerkToken (not requireAgency middleware) because user may not have agency yet.
 router.post('/setup', async (req, res) => {
     try {
-        const clerkUserId = await verifyClerkToken(req, res);
-        if (!clerkUserId) return;
+        const payload = await verifyClerkToken(req);
+        const clerkUserId = payload.sub;
 
         // Check if user already exists with an agency
         const existingUser = await prisma.user.findUnique({
@@ -84,6 +64,9 @@ router.post('/setup', async (req, res) => {
         await seedDocumentTypes(agency.id, prisma);
         return res.status(201).json({ data: agency, created: true });
     } catch (error) {
+        if (error.status === 401) {
+            return res.status(401).json({ error: error.message });
+        }
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'An agency with this email already exists' });
         }
@@ -94,19 +77,8 @@ router.post('/setup', async (req, res) => {
 
 // ─── PUT /api/agencies/onboard ────────────────────────────────────────────────
 // Saves onboarding details and marks agency as onboarded.
-router.put('/onboard', async (req, res) => {
+router.put('/onboard', require('../lib/auth').requireAgency, async (req, res) => {
     try {
-        const clerkUserId = await verifyClerkToken(req, res);
-        if (!clerkUserId) return;
-
-        const user = await prisma.user.findUnique({
-            where: { clerkId: clerkUserId }
-        });
-
-        if (!user?.agencyId) {
-            return res.status(403).json({ error: 'No agency found. Please refresh the page.' });
-        }
-
         const { name, address, city, postcode, phone, agencyType } = req.body;
 
         if (!name || !address || !city || !postcode || !phone || !agencyType) {
@@ -114,12 +86,12 @@ router.put('/onboard', async (req, res) => {
         }
 
         const agency = await prisma.agency.update({
-            where: { id: user.agencyId },
+            where: { id: req.agencyId },
             data: { name, address, city, postcode, phone, agencyType, isOnboarded: true }
         });
 
         // Ensure document types exist (idempotent)
-        await seedDocumentTypes(user.agencyId, prisma);
+        await seedDocumentTypes(req.agencyId, prisma);
         return res.json({ data: agency });
     } catch (error) {
         console.error('Error completing onboarding:', error);
@@ -129,21 +101,17 @@ router.put('/onboard', async (req, res) => {
 
 // ─── GET /api/agencies/me ─────────────────────────────────────────────────────
 // Returns the current user's agency (including isOnboarded status).
-router.get('/me', async (req, res) => {
+router.get('/me', require('../lib/auth').requireAgency, async (req, res) => {
     try {
-        const clerkUserId = await verifyClerkToken(req, res);
-        if (!clerkUserId) return;
-
-        const user = await prisma.user.findUnique({
-            where: { clerkId: clerkUserId },
-            include: { agency: true }
+        const agency = await prisma.agency.findUnique({
+            where: { id: req.agencyId }
         });
 
-        if (!user?.agency) {
+        if (!agency) {
             return res.status(404).json({ error: 'No agency found' });
         }
 
-        return res.json({ data: user.agency });
+        return res.json({ data: agency });
     } catch (error) {
         console.error('Error fetching agency:', error);
         res.status(500).json({ error: 'Failed to fetch agency' });
@@ -152,19 +120,8 @@ router.get('/me', async (req, res) => {
 
 // ─── PATCH /api/agencies/update ───────────────────────────────────────────────
 // Updates the current user's agency details from the Settings page.
-router.patch('/update', async (req, res) => {
+router.patch('/update', require('../lib/auth').requireAgency, async (req, res) => {
     try {
-        const clerkUserId = await verifyClerkToken(req, res);
-        if (!clerkUserId) return;
-
-        const user = await prisma.user.findUnique({
-            where: { clerkId: clerkUserId }
-        });
-
-        if (!user?.agencyId) {
-            return res.status(403).json({ error: 'No agency found attached to this user.' });
-        }
-
         const { name, address, city, postcode, phone, agencyType } = req.body;
 
         const updateData = {};
@@ -176,7 +133,7 @@ router.patch('/update', async (req, res) => {
         if (agencyType !== undefined) updateData.agencyType = agencyType.trim();
 
         const updatedAgency = await prisma.agency.update({
-            where: { id: user.agencyId },
+            where: { id: req.agencyId },
             data: updateData
         });
 

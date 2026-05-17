@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { verifyToken } = require('@clerk/backend');
+const { requireAgency } = require('../lib/auth');
 const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
@@ -13,6 +13,9 @@ const { validate, documentUploadSchema, documentVerifySchema } = require('../mid
 const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+
+// Apply auth to all routes in this router
+router.use(requireAgency);
 
 // ─── Encryption Setup Validation ──────────────────────────────────────────────
 if (!validateEncryptionSetup()) {
@@ -45,32 +48,6 @@ const upload = multer({
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-// ─── Shared auth helper ───────────────────────────────────────────────────────
-const getAgencyUser = async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return null;
-    }
-    const token = authHeader.split(' ')[1];
-    let payload;
-    try {
-        payload = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY,
-            authorizedParties: [process.env.AUTHORIZED_PARTY || 'http://localhost:3000'],
-            clockSkewInMs: 300000,
-        });
-    } catch {
-        res.status(401).json({ error: 'Invalid token' });
-        return null;
-    }
-    const user = await prisma.user.findUnique({ where: { clerkId: payload.sub } });
-    if (!user?.agencyId) {
-        res.status(403).json({ error: 'No agency found' });
-        return null;
-    }
-    return user;
-};
 
 // ─── AI Analysis Helper ────────────────────────────────────────────────────────
 const runDocAnalysis = async (doc, worker, filePath) => {
@@ -250,8 +227,6 @@ Return ONLY a JSON object with these exact fields:
 // ─── POST /api/documents/upload ───────────────────────────────────────────────
 router.post('/upload', documentUploadLimiter, upload.single('file'), validate(documentUploadSchema), async (req, res) => {
     try {
-        const agencyUser = await getAgencyUser(req, res);
-        if (!agencyUser) return;
 
         const { workerId, documentTypeId, notes } = req.body;
         if (!req.file || !workerId || !documentTypeId) {
@@ -259,7 +234,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
         }
 
         const worker = await prisma.worker.findFirst({
-            where: { id: workerId, agencyId: agencyUser.agencyId }
+            where: { id: workerId, agencyId: req.agencyId }
         });
         if (!worker) {
             return res.status(404).json({ error: 'Worker not found' });
@@ -282,7 +257,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
 
         // Delete any existing document of this type for this worker
         const existing = await prisma.complianceDocument.findFirst({
-            where: { workerId, documentTypeId, agencyId: agencyUser.agencyId }
+            where: { workerId, documentTypeId, agencyId: req.agencyId }
         });
         if (existing) {
             const oldPath = path.join(UPLOADS_DIR, path.basename(existing.fileKey));
@@ -303,7 +278,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
         const [doc] = await prisma.$transaction([
             prisma.complianceDocument.create({
                 data: {
-                    agencyId: agencyUser.agencyId,
+                    agencyId: req.agencyId,
                     workerId,
                     documentTypeId,
                     fileUrl,
@@ -318,7 +293,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
             }),
             prisma.auditLog.create({
                 data: {
-                    agencyId: agencyUser.agencyId,
+                    agencyId: req.agencyId,
                     userId: agencyUser.id,
                     action: 'document.uploaded',
                     entity: 'ComplianceDocument',
@@ -340,7 +315,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
         // Update the audit log with the actual document ID after creation
         await prisma.auditLog.updateMany({
             where: {
-                agencyId: agencyUser.agencyId,
+                agencyId: req.agencyId,
                 userId: agencyUser.id,
                 action: 'document.uploaded',
                 entityId: encryptedFilename
@@ -369,22 +344,20 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
 // Returns all 8 document type slots merged with any uploaded documents.
 router.get('/worker/:workerId', async (req, res) => {
     try {
-        const agencyUser = await getAgencyUser(req, res);
-        if (!agencyUser) return;
 
         const { workerId } = req.params;
         const worker = await prisma.worker.findFirst({
-            where: { id: workerId, agencyId: agencyUser.agencyId }
+            where: { id: workerId, agencyId: req.agencyId }
         });
         if (!worker) return res.status(404).json({ error: 'Worker not found' });
 
         // Auto-seed document types for this agency if none exist yet
-        const typeCount = await prisma.documentType.count({ where: { agencyId: agencyUser.agencyId } });
-        if (typeCount === 0) await seedDocumentTypes(agencyUser.agencyId, prisma);
+        const typeCount = await prisma.documentType.count({ where: { agencyId: req.agencyId } });
+        if (typeCount === 0) await seedDocumentTypes(req.agencyId, prisma);
 
         const [documentTypes, uploaded] = await Promise.all([
-            prisma.documentType.findMany({ where: { agencyId: agencyUser.agencyId }, orderBy: { name: 'asc' } }),
-            prisma.complianceDocument.findMany({ where: { workerId, agencyId: agencyUser.agencyId }, include: { documentType: true } })
+            prisma.documentType.findMany({ where: { agencyId: req.agencyId }, orderBy: { name: 'asc' } }),
+            prisma.complianceDocument.findMany({ where: { workerId, agencyId: req.agencyId }, include: { documentType: true } })
         ]);
 
         const uploadedMap = {};
@@ -415,8 +388,6 @@ router.get('/worker/:workerId', async (req, res) => {
 // ─── GET /api/documents/agency ────────────────────────────────────────────────
 router.get('/agency', async (req, res) => {
     try {
-        const agencyUser = await getAgencyUser(req, res);
-        if (!agencyUser) return;
 
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
@@ -424,7 +395,7 @@ router.get('/agency', async (req, res) => {
 
         const [workers, total] = await Promise.all([
             prisma.worker.findMany({
-                where: { agencyId: agencyUser.agencyId },
+                where: { agencyId: req.agencyId },
                 orderBy: { firstName: 'asc' },
                 skip,
                 take: limit,
@@ -435,7 +406,7 @@ router.get('/agency', async (req, res) => {
                     }
                 }
             }),
-            prisma.worker.count({ where: { agencyId: agencyUser.agencyId } })
+            prisma.worker.count({ where: { agencyId: req.agencyId } })
         ]);
 
         const totalPages = Math.ceil(total / limit);
@@ -458,11 +429,9 @@ router.get('/agency', async (req, res) => {
 // ─── POST /api/documents/:id/analyse (Claude AI Verification) ────────────────
 router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
     try {
-        const agencyUser = await getAgencyUser(req, res);
-        if (!agencyUser) return;
 
         const doc = await prisma.complianceDocument.findFirst({
-            where: { id: req.params.id, agencyId: agencyUser.agencyId },
+            where: { id: req.params.id, agencyId: req.agencyId },
             include: { documentType: true, worker: true }
         });
         if (!doc) return res.status(404).json({ error: 'Document not found' });
@@ -499,8 +468,6 @@ router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
 // ─── PATCH /api/documents/:id/verify ─────────────────────────────────────────
 router.patch('/:id/verify', validate(documentVerifySchema), async (req, res) => {
     try {
-        const agencyUser = await getAgencyUser(req, res);
-        if (!agencyUser) return;
 
         const { status, notes, manualExpiryDate, version } = req.body;
         if (!['APPROVED', 'REJECTED'].includes(status)) {
@@ -509,7 +476,7 @@ router.patch('/:id/verify', validate(documentVerifySchema), async (req, res) => 
 
         // Optimistic Locking: Fetch document with version check
         const doc = await prisma.complianceDocument.findFirst({
-            where: { id: req.params.id, agencyId: agencyUser.agencyId }
+            where: { id: req.params.id, agencyId: req.agencyId }
         });
         if (!doc) return res.status(404).json({ error: 'Document not found' });
 
@@ -541,7 +508,7 @@ router.patch('/:id/verify', validate(documentVerifySchema), async (req, res) => 
             }),
             prisma.auditLog.create({
                 data: {
-                    agencyId: agencyUser.agencyId,
+                    agencyId: req.agencyId,
                     userId: agencyUser.id,
                     action: `document.${status.toLowerCase()}`,
                     entity: 'ComplianceDocument',

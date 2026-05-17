@@ -1,46 +1,13 @@
 const express = require('express');
-const { verifyToken } = require('@clerk/backend');
+const { requireAgency } = require('../lib/auth');
 const prisma = require('../lib/prisma');
 
 const router = express.Router();
 
-// ─── Shared token verifier ────────────────────────────────────────────────────
-const getAgencyId = async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return null;
-    }
-    const token = authHeader.split(' ')[1];
-    let payload;
-    try {
-        payload = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY,
-            authorizedParties: ['http://localhost:3000'],
-            clockSkewInMs: 300000
-        });
-    } catch (err) {
-        res.status(401).json({ error: 'Invalid token' });
-        return null;
-    }
-
-    const user = await prisma.user.findUnique({
-        where: { clerkId: payload.sub }
-    });
-
-    if (!user?.agencyId) {
-        res.status(403).json({ error: 'No agency found' });
-        return null;
-    }
-
-    return user.agencyId;
-};
-
 // ─── GET /api/dashboard/stats ─────────────────────────────────────────────────
-router.get('/stats', async (req, res) => {
+router.get('/stats', requireAgency, async (req, res) => {
     try {
-        const agencyId = await getAgencyId(req, res);
-        if (!agencyId) return;
+        const agencyId = req.agencyId;
 
         const now = new Date();
         const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
