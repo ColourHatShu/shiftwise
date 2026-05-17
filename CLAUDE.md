@@ -47,7 +47,39 @@ Use these entry points:
 Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
 <!-- GSD:workflow-end -->
 
+## Sentry Setup (Error Monitoring)
 
+**Phase 3 Implementation:** Sentry free tier is integrated on both backend and frontend for error observability.
+
+**Setup Steps:**
+1. Sign up for free tier at https://sentry.io/signup/ (no card required)
+2. Create a backend project (Node.js)
+3. Create a frontend project (Next.js)
+4. Copy the DSN from each project
+5. Add to `.env`:
+   - `SENTRY_DSN_BACKEND=<backend-dsn>`
+   - `NEXT_PUBLIC_SENTRY_DSN=<frontend-dsn>`
+
+**Local Development:**
+- Leave DSN empty in `.env` for local dev (Sentry disabled automatically)
+- No signup required locally
+
+**Integration Points:**
+- Backend: `backend/src/server.js` initializes Sentry with request/error handlers
+- Frontend: `frontend/app/providers/sentry-initializer.tsx` initializes client-side Sentry
+- Errors logged from:
+  - GCM decryption failures (document download)
+  - Cron service (daily expiry check, failed alert retry)
+  - All unhandled exceptions via global error handler
+  - All errors include structured tags: userId, agencyId, documentId, context
+
+**Error Logging Pattern:**
+```javascript
+Sentry.captureException(error, {
+    tags: { userId: req.user?.id, agencyId: req.agencyId, context: 'operation-name' },
+    extra: { metadata: 'details' }
+});
+```
 
 <!-- GSD:profile-start -->
 ## Developer Profile
