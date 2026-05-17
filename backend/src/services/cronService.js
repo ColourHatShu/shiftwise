@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const Sentry = require('@sentry/node');
 const prisma = require('../lib/prisma');
 const { sendExpiryAlert } = require('./emailService');
 
@@ -107,12 +108,25 @@ const retryFailedAlerts = async () => {
                 resolvedCount++;
             } catch (err) {
                 console.error(`[Cron Service] FAILED: Retry attempt ${failedAlert.retryCount + 1} failed for alert ${failedAlert.id}:`, err.message);
-                
+
+                // Log to Sentry
+                Sentry.captureException(err, {
+                    tags: {
+                        agencyId: failedAlert.agencyId,
+                        workerId: failedAlert.workerId,
+                        context: 'cron-alert-retry-failure'
+                    },
+                    extra: {
+                        failedAlertId: failedAlert.id,
+                        retryCount: failedAlert.retryCount
+                    }
+                });
+
                 // Check if max retries reached
                 if (failedAlert.retryCount + 1 >= MAX_RETRY_ATTEMPTS) {
                     await prisma.failedAlert.update({
                         where: { id: failedAlert.id },
-                        data: { 
+                        data: {
                             status: 'FAILED_PERMANENTLY',
                             errorMessage: err.message,
                             errorDetails: err.stack
@@ -122,7 +136,7 @@ const retryFailedAlerts = async () => {
                 } else {
                     await prisma.failedAlert.update({
                         where: { id: failedAlert.id },
-                        data: { 
+                        data: {
                             status: 'PENDING',
                             errorMessage: err.message
                         }
@@ -136,6 +150,12 @@ const retryFailedAlerts = async () => {
         return { retriedCount, resolvedCount };
     } catch (err) {
         console.error('[Cron Service] Error during failed alert retry process:', err);
+        // Log to Sentry
+        Sentry.captureException(err, {
+            tags: {
+                context: 'cron-retry-process-error'
+            }
+        });
         throw err;
     }
 };
@@ -240,7 +260,20 @@ const checkExpiriesAndAlert = async () => {
                 });
             } catch (err) {
                 console.error(`[Cron Service] FAILED: Could not process alert step for doc ${doc.id} (${fullWorkerName}'s ${doc.documentType.name}). Expiry date: ${doc.expiryDate}:`, err);
-                
+
+                // Log to Sentry
+                Sentry.captureException(err, {
+                    tags: {
+                        agencyId: doc.agencyId,
+                        workerId: doc.workerId,
+                        context: 'cron-expiry-alert-failure'
+                    },
+                    extra: {
+                        documentId: doc.id,
+                        daysRemaining
+                    }
+                });
+
                 // Add to dead letter queue (FailedAlert)
                 try {
                     await prisma.failedAlert.create({
@@ -260,6 +293,13 @@ const checkExpiriesAndAlert = async () => {
                     console.log(`[Cron Service] Added failed alert to dead letter queue for doc ${doc.id}`);
                 } catch (dlqErr) {
                     console.error(`[Cron Service] CRITICAL: Failed to add to dead letter queue:`, dlqErr);
+                    // Log DLQ failure to Sentry too
+                    Sentry.captureException(dlqErr, {
+                        tags: {
+                            agencyId: doc.agencyId,
+                            context: 'cron-dlq-failure'
+                        }
+                    });
                 }
 
                 triggeredDocuments.push({
@@ -277,6 +317,12 @@ const checkExpiriesAndAlert = async () => {
         return { alertsSent, triggeredDocuments };
     } catch (err) {
         console.error('[Cron Service] Global error executing expiry check sweep:', err);
+        // Log to Sentry
+        Sentry.captureException(err, {
+            tags: {
+                context: 'cron-expiry-check-global-error'
+            }
+        });
         throw err;
     }
 };

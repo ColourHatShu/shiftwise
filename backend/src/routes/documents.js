@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const Sentry = require('@sentry/node');
 const { requireAgency, requireRole } = require('../lib/auth');
 const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
@@ -578,6 +579,19 @@ router.get('/:id/download', async (req, res) => {
                         agencyId: req.agencyId,
                         error: 'GCM_AUTH_FAIL'
                     });
+                    // Log to Sentry
+                    Sentry.captureException(err, {
+                        tags: {
+                            userId: req.user?.id,
+                            agencyId: req.agencyId,
+                            documentId: document.id,
+                            context: 'gcm-decryption-failure'
+                        },
+                        extra: {
+                            algorithm,
+                            fileSize: encryptedBuffer.length
+                        }
+                    });
                     return res.status(500).json({ error: 'Document decryption failed' });
                 }
                 // Re-throw for outer catch
@@ -593,11 +607,28 @@ router.get('/:id/download', async (req, res) => {
             res.send(decryptedBuffer);
         } catch (decryptError) {
             console.error(`[Documents] Decryption failed for document ${document.id}:`, decryptError.message);
+            // Log to Sentry
+            Sentry.captureException(decryptError, {
+                tags: {
+                    userId: req.user?.id,
+                    agencyId: req.agencyId,
+                    documentId: document.id,
+                    context: 'document-decryption-error'
+                }
+            });
             // Return sanitized 500 (no file path or key info in response)
             return res.status(500).json({ error: 'Document decryption failed' });
         }
     } catch (error) {
         console.error('Error in download endpoint:', error);
+        // Log to Sentry
+        Sentry.captureException(error, {
+            tags: {
+                userId: req.user?.id,
+                agencyId: req.agencyId,
+                context: 'document-download-error'
+            }
+        });
         res.status(500).json({ error: 'Failed to download document' });
     }
 });
