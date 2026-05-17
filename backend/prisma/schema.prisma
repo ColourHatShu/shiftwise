@@ -36,6 +36,9 @@ model Agency {
   failedAlerts        FailedAlert[]
   auditLogs           AuditLog[]
   workerSessions      WorkerSession[]
+  shifts              Shift[]
+  workerAvailability  WorkerAvailability[]
+  shiftAssignments    ShiftAssignment[]
 
   @@map("agencies")
 }
@@ -92,6 +95,8 @@ model Worker {
   expiryAlerts        ExpiryAlert[]
   failedAlerts        FailedAlert[]
   sessions            WorkerSession[]
+  availability        WorkerAvailability[]
+  shiftAssignments    ShiftAssignment[]
 
   @@unique([agencyId, email])
   @@map("workers")
@@ -254,4 +259,67 @@ model AuditLog {
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
+}
+
+// ─── Shift (Work shifts assigned by coordinator) ────────────────────────────
+model Shift {
+  id                String             @id @default(cuid())
+  agencyId          String
+  facilityName      String
+  shiftDate         DateTime           @db.Date
+  startTime         String // HH:mm format
+  endTime           String // HH:mm format
+  role              String // e.g. "Nurse", "Carer", "Support Worker"
+  requiredCount     Int // How many workers needed
+  complianceCheckup Boolean            @default(false) // Require compliance review before assign
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  // Relations
+  agency       Agency              @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  assignments  ShiftAssignment[]
+
+  @@map("shifts")
+}
+
+// ─── WorkerAvailability (Worker marks available/unavailable/on leave) ────────
+model WorkerAvailability {
+  id           String   @id @default(cuid())
+  workerId     String
+  agencyId     String
+  date         DateTime @db.Date
+  status       String   @default("AVAILABLE") // AVAILABLE, UNAVAILABLE, ON_LEAVE
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, date])
+  @@map("worker_availability")
+}
+
+// ─── ShiftAssignment (Assign worker to shift) ────────────────────────────────
+model ShiftAssignment {
+  id                     String   @id @default(cuid())
+  shiftId                String
+  workerId               String
+  agencyId               String
+  assignedAt             DateTime @default(now())
+  complianceCheckPassed  Boolean  @default(false)
+  complianceCheckDetails Json? // e.g. { missingDocs: ["DBS", "Right to Work"] }
+  notes                  String?  @db.Text
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Relations
+  shift   Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  worker  Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  agency  Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([shiftId, workerId])
+  @@map("shift_assignments")
 }
