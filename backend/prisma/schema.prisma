@@ -35,6 +35,7 @@ model Agency {
   expiryAlerts        ExpiryAlert[]
   failedAlerts        FailedAlert[]
   auditLogs           AuditLog[]
+  workerSessions      WorkerSession[]
 
   @@map("agencies")
 }
@@ -90,6 +91,7 @@ model Worker {
   complianceDocuments ComplianceDocument[]
   expiryAlerts        ExpiryAlert[]
   failedAlerts        FailedAlert[]
+  sessions            WorkerSession[]
 
   @@unique([agencyId, email])
   @@map("workers")
@@ -215,6 +217,23 @@ enum FailedAlertStatus {
   RETRYING
   FAILED_PERMANENTLY
   RESOLVED
+}
+
+// ─── WorkerSession (OTP-based auth sessions for worker self-service) ────────
+model WorkerSession {
+  id        String   @id @default(cuid())
+  workerId  String
+  agencyId  String
+  otp       String   // 6-digit code
+  isUsed    Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@map("worker_sessions")
 }
 
 // ─── AuditLog (Immutable record of actions for compliance purposes) ──────────
