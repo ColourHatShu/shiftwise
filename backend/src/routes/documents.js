@@ -8,7 +8,7 @@ const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
 const { fetchWithRetry } = require('../lib/fetchWithRetry');
-const { encryptFile, encryptFileGCM, readAndDecryptFile, validateEncryptionSetup } = require('../lib/encryption');
+const { encryptFile, encryptFileGCM, decryptFileAuto, readAndDecryptFile, validateEncryptionSetup } = require('../lib/encryption');
 const { validate, documentUploadSchema, documentVerifySchema } = require('../middleware/validation');
 const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
 
@@ -566,12 +566,30 @@ router.get('/:id/download', async (req, res) => {
             // Read encrypted file
             const encryptedBuffer = fs.readFileSync(filePath);
 
-            // Decrypt the file
-            // For now, use the existing decryptFile (CBC) for backward compat.
-            // Task D3 will replace this with decryptFileAuto based on encryptionAlgorithm.
-            const decryptedBuffer = readAndDecryptFile(filePath);
+            // Determine encryption algorithm (default to CBC for backward compat with old docs)
+            const algorithm = document.encryptionAlgorithm || 'aes-256-cbc';
 
-            // Set response headers BEFORE piping
+            // Decrypt using the appropriate algorithm
+            // Note: GCM documents require full-buffer decryption for auth-tag verification.
+            // CBC documents could stream, but for simplicity all documents are buffered.
+            let decryptedBuffer;
+            try {
+                decryptedBuffer = decryptFileAuto(encryptedBuffer, algorithm);
+            } catch (err) {
+                // Handle GCM auth failures with structured logging
+                if (err.code === 'GCM_AUTH_FAIL') {
+                    console.error('[encryption] GCM auth failure', {
+                        documentId: document.id,
+                        agencyId: req.agencyId,
+                        error: 'GCM_AUTH_FAIL'
+                    });
+                    return res.status(500).json({ error: 'Document decryption failed' });
+                }
+                // Re-throw for outer catch
+                throw err;
+            }
+
+            // Set response headers BEFORE sending
             res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(document.fileName)}"`);
             res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
             res.setHeader('Content-Length', decryptedBuffer.length);
