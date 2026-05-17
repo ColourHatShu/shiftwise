@@ -100,6 +100,9 @@ app.use('/api/alerts', alertsRouter);
 const reportsRouter = require('./routes/reports');
 app.use('/api/reports', reportsRouter);
 
+const auditLogRouter = require('./routes/audit-log');
+app.use('/api/audit-log', auditLogRouter);
+
 // Health Check
 app.get('/api/health', async (req, res) => {
     try {
