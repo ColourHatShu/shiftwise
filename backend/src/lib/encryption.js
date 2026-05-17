@@ -12,8 +12,13 @@ const fs = require('fs');
 const path = require('path');
 
 const ALGORITHM = 'aes-256-cbc';
-const IV_LENGTH = 16; // AES block size
+const IV_LENGTH = 16; // AES block size (for CBC)
 const KEY_LENGTH = 32; // 256 bits
+
+// GCM Constants
+const GCM_ALGORITHM = 'aes-256-gcm';
+const GCM_IV_LENGTH = 12; // Standard GCM IV size
+const GCM_TAG_LENGTH = 16; // 128-bit auth tag
 
 /**
  * Get encryption key from environment
@@ -140,6 +145,88 @@ const readAndDecryptFile = (encryptedPath) => {
 };
 
 /**
+ * Encrypt a file buffer using AES-256-GCM
+ * Returns encrypted data with IV and auth tag prepended.
+ * Layout: [IV(12) | authTag(16) | ciphertext]
+ *
+ * @param {Buffer} fileBuffer - The file data to encrypt
+ * @returns {Buffer} - Encrypted data (IV + authTag + ciphertext)
+ */
+const encryptFileGCM = (fileBuffer) => {
+    try {
+        const key = getEncryptionKey();
+        const iv = crypto.randomBytes(GCM_IV_LENGTH);
+
+        const cipher = crypto.createCipheriv(GCM_ALGORITHM, key, iv);
+        const encrypted = Buffer.concat([cipher.update(fileBuffer), cipher.final()]);
+        const authTag = cipher.getAuthTag(); // MUST be called AFTER final()
+
+        // Prepend IV and authTag to ciphertext
+        return Buffer.concat([iv, authTag, encrypted]);
+    } catch (error) {
+        console.error('[Encryption GCM] Failed to encrypt file:', error.message);
+        throw new Error('Document GCM encryption failed');
+    }
+};
+
+/**
+ * Decrypt a file buffer using AES-256-GCM
+ * Expects IV(12) | authTag(16) | ciphertext layout.
+ * Throws a tagged error on authentication failure.
+ *
+ * @param {Buffer} encryptedBuffer - The encrypted data (IV + authTag + ciphertext)
+ * @returns {Buffer} - Decrypted original data
+ * @throws {Error} with code='GCM_AUTH_FAIL' on auth tag mismatch
+ */
+const decryptFileGCM = (encryptedBuffer) => {
+    try {
+        const key = getEncryptionKey();
+
+        // Extract IV, authTag, and ciphertext from buffer
+        const iv = encryptedBuffer.slice(0, GCM_IV_LENGTH);
+        const authTag = encryptedBuffer.slice(GCM_IV_LENGTH, GCM_IV_LENGTH + GCM_TAG_LENGTH);
+        const ciphertext = encryptedBuffer.slice(GCM_IV_LENGTH + GCM_TAG_LENGTH);
+
+        const decipher = crypto.createDecipheriv(GCM_ALGORITHM, key, iv);
+        decipher.setAuthTag(authTag); // MUST be called BEFORE update()
+        const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+
+        return decrypted;
+    } catch (error) {
+        // GCM authentication failure is indicated in the error message
+        // Common messages: "Unsupported state or unable to authenticate data"
+        if (error instanceof Error && (error.message.includes('auth') || error.message.includes('Unsupported state'))) {
+            const gcmError = new Error('GCM auth failure');
+            gcmError.code = 'GCM_AUTH_FAIL';
+            throw gcmError;
+        }
+        console.error('[Encryption GCM] Failed to decrypt file:', error.message);
+        const decryptError = new Error('Document GCM decryption failed');
+        decryptError.code = 'GCM_DECRYPT_ERROR';
+        throw decryptError;
+    }
+};
+
+/**
+ * Decrypt a file buffer using the appropriate algorithm.
+ * Routes to either decryptFile (CBC) or decryptFileGCM based on algorithm string.
+ *
+ * @param {Buffer} encryptedBuffer - The encrypted data
+ * @param {string} algorithm - The encryption algorithm ('aes-256-cbc' or 'aes-256-gcm')
+ * @returns {Buffer} - Decrypted original data
+ * @throws {Error} on unsupported algorithm or decryption failure
+ */
+const decryptFileAuto = (encryptedBuffer, algorithm) => {
+    if (algorithm === 'aes-256-cbc') {
+        return decryptFile(encryptedBuffer);
+    } else if (algorithm === 'aes-256-gcm') {
+        return decryptFileGCM(encryptedBuffer);
+    } else {
+        throw new Error(`Unsupported encryption algorithm: ${algorithm}`);
+    }
+};
+
+/**
  * Generate a new encryption key (for initial setup)
  * @returns {string} - 64 character hex string
  */
@@ -164,9 +251,15 @@ const validateEncryptionSetup = () => {
 module.exports = {
     encryptFile,
     decryptFile,
+    encryptFileGCM,
+    decryptFileGCM,
+    decryptFileAuto,
     encryptAndSaveFile,
     readAndDecryptFile,
     generateEncryptionKey,
     validateEncryptionSetup,
-    ALGORITHM
+    ALGORITHM,
+    GCM_ALGORITHM,
+    GCM_IV_LENGTH,
+    GCM_TAG_LENGTH
 };

@@ -8,7 +8,7 @@ const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
 const { fetchWithRetry } = require('../lib/fetchWithRetry');
-const { encryptFile, readAndDecryptFile, validateEncryptionSetup } = require('../lib/encryption');
+const { encryptFile, encryptFileGCM, readAndDecryptFile, validateEncryptionSetup } = require('../lib/encryption');
 const { validate, documentUploadSchema, documentVerifySchema } = require('../middleware/validation');
 const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
 
@@ -248,9 +248,8 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
         const encryptedFilename = `${uniqueId}-${originalName}.enc`;
         const encryptedFilePath = path.join(UPLOADS_DIR, encryptedFilename);
 
-        // Encrypt and save the file
-        const { encryptFile } = require('../lib/encryption');
-        const encrypted = encryptFile(req.file.buffer);
+        // Encrypt and save the file using GCM (new authenticated cipher)
+        const encrypted = encryptFileGCM(req.file.buffer);
         fs.writeFileSync(encryptedFilePath, encrypted);
 
         const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:3001'}/uploads/${encryptedFilename}`;
@@ -286,6 +285,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
                     fileName: req.file.originalname,
                     fileSize: req.file.size,
                     mimeType: req.file.mimetype,
+                    encryptionAlgorithm: 'aes-256-gcm',  // New uploads use authenticated GCM
                     status: 'PENDING',
                     notes: notes || null,
                 },
@@ -294,7 +294,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
             prisma.auditLog.create({
                 data: {
                     agencyId: req.agencyId,
-                    userId: agencyUser.id,
+                    userId: req.user.id,
                     action: 'document.uploaded',
                     entity: 'ComplianceDocument',
                     entityId: encryptedFilename, // Use fileKey as reference before doc is created
