@@ -4,14 +4,43 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const Sentry = require('@sentry/node');
 const prisma = require('./lib/prisma');
 const { initCronJobs, checkExpiriesAndAlert } = require('./services/cronService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ─── Sentry Initialization ───────────────────────────────────────────────────
+const SENTRY_DSN = process.env.SENTRY_DSN_BACKEND;
+if (SENTRY_DSN) {
+    Sentry.init({
+        dsn: SENTRY_DSN,
+        environment: process.env.NODE_ENV || 'development',
+        tracesSampleRate: 0.1,
+        integrations: [
+            new Sentry.Integrations.Http({ tracing: true }),
+            new Sentry.Integrations.Express({
+                request: true,
+                serverName: true,
+                transaction: true
+            }),
+            new Sentry.Integrations.OnUncaughtException(),
+            new Sentry.Integrations.OnUnhandledRejection()
+        ]
+    });
+    console.log('✅ Sentry initialized for backend');
+} else {
+    console.log('ℹ️ SENTRY_DSN_BACKEND not set; Sentry disabled (no-op)');
+}
+
 // ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(helmet());
+
+// Sentry request handler middleware (must be early)
+if (SENTRY_DSN) {
+    app.use(Sentry.Handlers.requestHandler());
+}
 
 // General rate limiting - 100 requests per 15 minutes per IP
 const generalLimiter = rateLimit({
@@ -99,9 +128,25 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
+// Sentry error handler middleware (must be after all other middleware/routes)
+if (SENTRY_DSN) {
+    app.use(Sentry.Handlers.errorHandler());
+}
+
 // Global error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
+
+    // Log to Sentry if initialized
+    if (SENTRY_DSN) {
+        Sentry.captureException(err, {
+            tags: {
+                userId: req.user?.id,
+                agencyId: req.agencyId
+            }
+        });
+    }
+
     res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
