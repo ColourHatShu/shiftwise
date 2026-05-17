@@ -1,0 +1,300 @@
+.container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    font-size: 32px;
+    color: #1a202c;
+    margin-bottom: 8px;
+}
+
+.header p {
+    font-size: 16px;
+    color: #718096;
+}
+
+.error {
+    background-color: #fed7d7;
+    color: #c53030;
+    padding: 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border-left: 4px solid #c53030;
+}
+
+.content {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    gap: 30px;
+}
+
+/* Upload Section */
+.uploadSection {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.uploadSection h2 {
+    font-size: 20px;
+    color: #2d3748;
+    margin-bottom: 20px;
+}
+
+.uploadForm {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.formGroup label {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 14px;
+}
+
+.select,
+.fileInput {
+    padding: 10px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.select:focus,
+.fileInput:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.fileInput {
+    cursor: pointer;
+}
+
+.fileHint {
+    font-size: 12px;
+    color: #718096;
+    margin-top: -5px;
+}
+
+.progressContainer {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progressBar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.2s;
+}
+
+.uploadButton {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.uploadButton:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.uploadButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Documents Section */
+.documentsSection {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.documentsSection h2 {
+    font-size: 20px;
+    color: #2d3748;
+    margin-bottom: 20px;
+}
+
+.loading,
+.emptyState {
+    text-align: center;
+    color: #718096;
+    padding: 40px 20px;
+    font-size: 16px;
+}
+
+.documentsList {
+    display: grid;
+    gap: 16px;
+}
+
+.documentCard {
+    border-left: 4px solid;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 4px;
+    transition: box-shadow 0.2s;
+}
+
+.documentCard:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Color coding based on expiry urgency */
+.color-green {
+    border-left-color: #22863a;
+    background: #f0f8f4;
+}
+
+.color-yellow {
+    border-left-color: #b08500;
+    background: #fffbf0;
+}
+
+.color-red {
+    border-left-color: #cb2431;
+    background: #fef5f4;
+}
+
+.color-gray {
+    border-left-color: #6a737d;
+    background: #fafbfc;
+}
+
+.docHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.docName {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a202c;
+    margin: 0;
+}
+
+.docStatus {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.statusApproved {
+    background-color: #c3e9c9;
+    color: #22543d;
+}
+
+.statusPending {
+    background-color: #fef3c7;
+    color: #78350f;
+}
+
+.statusRejected {
+    background-color: #fecaca;
+    color: #7f1d1d;
+}
+
+.statusExpired {
+    background-color: #fca5a5;
+    color: #7f1d1d;
+}
+
+.fileName {
+    color: #4a5568;
+    font-size: 14px;
+    margin: 8px 0;
+    word-break: break-all;
+}
+
+.docMeta {
+    font-size: 12px;
+    color: #718096;
+    margin: 12px 0;
+}
+
+.uploadDate {
+    display: block;
+}
+
+.expiryAlert {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.alert-green {
+    background-color: #d4f4dd;
+    color: #22543d;
+    border: 1px solid #a7d8b0;
+}
+
+.alert-yellow {
+    background-color: #fef9e7;
+    color: #78350f;
+    border: 1px solid #f6d95f;
+}
+
+.alert-red {
+    background-color: #fde8e8;
+    color: #7f1d1d;
+    border: 1px solid #f5b9b9;
+}
+
+.actionBadge,
+.warningBadge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.actionBadge {
+    background-color: #cb2431;
+    color: white;
+}
+
+.warningBadge {
+    background-color: #bf8700;
+    color: white;
+}
