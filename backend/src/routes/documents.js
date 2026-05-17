@@ -7,10 +7,10 @@ const { requireAgency, requireRole } = require('../lib/auth');
 const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
-const { fetchWithRetry } = require('../lib/fetchWithRetry');
 const { encryptFile, encryptFileGCM, decryptFileAuto, readAndDecryptFile, validateEncryptionSetup } = require('../lib/encryption');
 const { validate, documentUploadSchema, documentVerifySchema } = require('../middleware/validation');
 const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
+const { analyzeDocumentImage, shutdownOCR } = require('../lib/ocrService');
 
 const router = express.Router();
 
@@ -49,30 +49,34 @@ const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 
-// ─── AI Analysis Helper ────────────────────────────────────────────────────────
-const runDocAnalysis = async (doc, worker, filePath) => {
+// ─── Async Document Analysis (via setImmediate) ──────────────────────────────
+const analyzeDocument = async (doc, worker, filePath) => {
     try {
-        if (!fs.existsSync(filePath)) return { error: 'File not found' };
+        if (!fs.existsSync(filePath)) {
+            console.error(`[Async OCR] File not found: ${filePath}`);
+            return;
+        }
 
         const ext = path.extname(doc.fileName).toLowerCase();
         const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
         const isPdf = ext === '.pdf';
 
         if (!isImage && !isPdf) {
-            return { error: 'Unsupported file type for analysis' };
+            console.error(`[Async OCR] Unsupported file type: ${ext}`);
+            await updateDocumentStatus(doc.id, 'FAILED', null);
+            return;
         }
 
-        let base64Data;
+        let imageBuffer;
 
-        // Decrypt the file first
         try {
             const decryptedBuffer = readAndDecryptFile(filePath);
 
             if (isImage) {
-                base64Data = decryptedBuffer.toString('base64');
+                imageBuffer = decryptedBuffer;
             } else if (isPdf) {
                 try {
-                    console.log(`Converting first page of PDF to image...`);
+                    console.log(`[Async OCR] Converting PDF to image...`);
                     const tempPath = path.join(UPLOADS_DIR, `temp-${Date.now()}.pdf`);
                     fs.writeFileSync(tempPath, decryptedBuffer);
 
@@ -82,147 +86,107 @@ const runDocAnalysis = async (doc, worker, filePath) => {
                         firstPageBuffer = image;
                         break;
                     }
-                    if (!firstPageBuffer) throw new Error('PDF conversion returned empty');
-
-                    base64Data = firstPageBuffer.toString('base64');
 
                     try {
                         fs.unlinkSync(tempPath);
                     } catch (cleanupErr) {
-                        console.error('Failed to cleanup temp PDF:', cleanupErr.message);
+                        console.error('[Async OCR] Cleanup error:', cleanupErr.message);
                     }
+
+                    if (!firstPageBuffer) {
+                        console.error('[Async OCR] PDF conversion returned empty');
+                        await updateDocumentStatus(doc.id, 'FAILED', null);
+                        return;
+                    }
+
+                    imageBuffer = firstPageBuffer;
                 } catch (err) {
-                    console.error("PDF to Image conversion failed:", err);
-                    return {
-                        summary: 'Document uploaded successfully. Please upload as an image for automatic scanning.',
-                        concerns: ['Could not read PDF. Please upload an image format (.jpg, .png) for automatic scanning.'],
-                        documentType: null,
-                        fullName: null,
-                        documentNumber: null,
-                        expiryDate: null,
-                        issueDate: null,
-                        issuingAuthority: null,
-                        confidence: "low",
-                        wrongDocumentWarning: null,
-                        nameMatchesWorker: false
-                    };
+                    console.error('[Async OCR] PDF conversion failed:', err);
+                    await updateDocumentStatus(doc.id, 'FAILED', null);
+                    return;
                 }
             }
         } catch (decryptErr) {
-            console.error('Failed to decrypt or process file:', decryptErr);
-            return {
-                error: 'Failed to decrypt or process document. File may be corrupted.',
-                details: decryptErr.message
+            console.error('[Async OCR] Decryption error:', decryptErr);
+            await updateDocumentStatus(doc.id, 'FAILED', null);
+            return;
+        }
+
+        // Run Tesseract OCR and extract
+        try {
+            console.log(`[Async OCR] Analyzing document ${doc.id}...`);
+            const workerData = { firstName: worker.firstName, lastName: worker.lastName };
+            const ocrResult = await analyzeDocumentImage(imageBuffer, workerData);
+
+            if (ocrResult.error) {
+                console.error(`[Async OCR] Analysis error:`, ocrResult.error);
+                await updateDocumentStatus(doc.id, 'FAILED', null);
+                return;
+            }
+
+            const { analysis } = ocrResult;
+
+            // Build final analysisResult (excluding PII like fullName, documentNumber)
+            const analysisResult = {
+                documentType: analysis.documentType,
+                expiryDate: analysis.expiryDate,
+                issueDate: analysis.issueDate,
+                issuingAuthority: analysis.issuingAuthority,
+                confidence: analysis.confidence,
+                summary: analysis.summary,
+                concerns: analysis.concerns,
+                nameMatchesWorker: analysis.nameMatchesWorker || false,
+                wrongDocumentWarning: null
             };
-        }
 
-        const prompt = `You are a UK healthcare staffing compliance expert. Analyse this ${doc.documentType.name} document and extract key information.
-Return ONLY a JSON object with these exact fields:
-{
-  "documentType": "what type of document this appears to be",
-  "fullName": "name found on document",
-  "documentNumber": "any ID/reference number",
-  "expiryDate": "YYYY-MM-DD or null",
-  "issueDate": "YYYY-MM-DD or null",
-  "issuingAuthority": "who issued the document",
-  "concerns": ["List of any issues or anomalies noticed. Return empty array [] if none."],
-  "confidence": "high/medium/low",
-  "summary": "one sentence summary of findings"
-}`;
+            // Detect wrong document type
+            if (analysis.documentType && analysis.documentType !== 'OTHER') {
+                const expectedDocType = doc.documentType.name.toLowerCase();
+                const detectedType = analysis.documentType.replace(/_/g, ' ').toLowerCase();
 
-        console.log(`[AI Analysis] Processing document ${doc.id} (type: ${doc.documentType.name})...`);
-
-        const ollamaHost = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
-        const response = await fetchWithRetry(`${ollamaHost}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: process.env.OLLAMA_MODEL || 'llava',
-                prompt: prompt,
-                images: [base64Data],
-                stream: false,
-                format: 'json',
-                options: {
-                    temperature: 0
-                }
-            })
-        }, {
-            maxRetries: 3,
-            timeout: 30000
-        });
-
-        if (!response.ok) {
-            throw new Error(`Ollama API error: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // Parse JSON safely in case llava outputs markdown wrappers despite format: json
-        const rawText = data.response.replace(/```json/g, '').replace(/```/g, '').trim();
-        const result = JSON.parse(rawText);
-
-        const concerns = result.concerns || [];
-
-        // Name matching Check
-        if (result.fullName) {
-            const workerName = `${worker.firstName} ${worker.lastName}`.toLowerCase();
-            const foundName = result.fullName.toLowerCase();
-            const namesMatch = foundName.includes(worker.firstName.toLowerCase()) || foundName.includes(worker.lastName.toLowerCase());
-            result.nameMatchesWorker = namesMatch;
-            if (!namesMatch) concerns.unshift(`Name mismatch: Document says "${result.fullName}" but worker is "${worker.firstName} ${worker.lastName}"`);
-        }
-        result.concerns = concerns;
-
-        // Wrong Document Type Detection
-        // We check if the expected noun (e.g. "Passport", "DBS") is roughly found in the extracted type
-        // E.g. expected: "DBS Check", extracted: "Passport" -> mismatch
-        const expectedName = doc.documentType.name.toLowerCase();
-        const extractedType = (result.documentType || '').toLowerCase();
-
-        let wrongDocumentWarning = null;
-        if (extractedType && extractedType !== 'not found' && extractedType !== 'null') {
-            const expectedWords = expectedName.split(' ').filter(w => w.length > 3);
-            if (expectedWords.length > 0) {
-                const hasMatch = expectedWords.some(w => extractedType.includes(w));
-                if (!hasMatch) {
-                    wrongDocumentWarning = `This looks like a ${result.documentType}, not a ${doc.documentType.name}. Please check you've uploaded the correct document.`;
+                if (!expectedDocType.includes(detectedType) && !detectedType.includes(expectedDocType)) {
+                    analysisResult.wrongDocumentWarning =
+                        `This appears to be a ${detectedType}, not a ${doc.documentType.name}. Please verify.`;
                 }
             }
-        }
-        result.wrongDocumentWarning = wrongDocumentWarning;
 
-        // PII Sanitization: Store only non-sensitive analysis results
-        const safeResult = {
-            documentType: result.documentType,
-            expiryDate: result.expiryDate,
-            issueDate: result.issueDate,
-            issuingAuthority: result.issuingAuthority,
-            confidence: result.confidence,
-            summary: result.summary,
-            concerns: result.concerns,
-            nameMatchesWorker: result.nameMatchesWorker,
-            wrongDocumentWarning: result.wrongDocumentWarning
-            // Note: fullName and documentNumber are intentionally excluded to prevent PII storage
-        };
+            // Update document with analysis result and save expiry date if found
+            const updateData = { analysisResult, status: 'PENDING' };
+            if (doc.documentType.hasExpiry && analysis.expiryDate) {
+                updateData.expiryDate = new Date(analysis.expiryDate);
+            }
 
-        // Auto-save expiry date if applicable and found
-        let savedExpiryDate = doc.expiryDate;
-        let expiryFound = false;
-        if (doc.documentType.hasExpiry && result.expiryDate && result.expiryDate !== 'null') {
-            savedExpiryDate = new Date(result.expiryDate);
-            expiryFound = true;
             await prisma.complianceDocument.update({
                 where: { id: doc.id },
-                data: { expiryDate: savedExpiryDate }
+                data: updateData
             });
-        }
 
-        return { result: safeResult, expiryFound, savedExpiryDate, error: null };
+            console.log(`[Async OCR] Analysis complete for document ${doc.id}`);
+        } catch (analysisErr) {
+            console.error(`[Async OCR] Analysis exception:`, analysisErr);
+            await updateDocumentStatus(doc.id, 'FAILED', null);
+        }
     } catch (error) {
-        console.error('Claude extraction error:', error);
-        return { error: 'Failed to extract AI data' };
+        console.error('[Async OCR] Unexpected error:', error);
+        try {
+            await updateDocumentStatus(doc.id, 'FAILED', null);
+        } catch (e) {
+            console.error('[Async OCR] Failed to update document status:', e);
+        }
     }
 };
+
+// Helper to update document status
+async function updateDocumentStatus(docId, status, analysisResult) {
+    try {
+        await prisma.complianceDocument.update({
+            where: { id: docId },
+            data: { status, analysisResult }
+        });
+    } catch (error) {
+        console.error(`[Async OCR] Failed to update status for ${docId}:`, error);
+    }
+}
 
 // ─── POST /api/documents/upload ───────────────────────────────────────────────
 router.post('/upload', documentUploadLimiter, upload.single('file'), validate(documentUploadSchema), async (req, res) => {
@@ -327,16 +291,50 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
 
         console.log(`[Documents] Encrypted and stored document: ${encryptedFilename} (${encrypted.length} bytes)`);
 
-        res.status(201).json({ 
+        // Return 201 immediately (non-blocking)
+        res.status(201).json({
             data: {
                 ...doc,
                 isEncrypted: true,
-                encryptionAlgorithm: 'aes-256-cbc'
+                encryptionAlgorithm: 'aes-256-cbc',
+                status: 'pending',
+                analysisResult: null
             }
+        });
+
+        // Dispatch async OCR analysis via setImmediate
+        setImmediate(async () => {
+            const filePath = path.join(UPLOADS_DIR, encryptedFilename);
+            await analyzeDocument(doc, worker, filePath);
         });
     } catch (error) {
         console.error('Upload error:', error);
         res.status(500).json({ error: 'Failed to upload document', details: error.message });
+    }
+});
+
+// ─── GET /api/documents/:id/status ────────────────────────────────────────────
+// Returns document status and analysis result (for frontend polling)
+router.get('/:id/status', async (req, res) => {
+    try {
+        const doc = await prisma.complianceDocument.findFirst({
+            where: { id: req.params.id, agencyId: req.agencyId }
+        });
+        if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+        const status = doc.analysisResult ? 'completed' : (doc.status === 'FAILED' ? 'failed' : 'pending');
+
+        res.json({
+            data: {
+                id: doc.id,
+                status,
+                analysisResult: doc.analysisResult,
+                expiryDate: doc.expiryDate
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching document status:', error);
+        res.status(500).json({ error: 'Failed to fetch status' });
     }
 });
 
@@ -426,7 +424,8 @@ router.get('/agency', async (req, res) => {
     }
 });
 
-// ─── POST /api/documents/:id/analyse (Claude AI Verification) ────────────────
+// ─── POST /api/documents/:id/analyse (Tesseract OCR Verification) ──────────────
+// Manually trigger re-scan of a document
 router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
     try {
 
@@ -436,29 +435,25 @@ router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
         });
         if (!doc) return res.status(404).json({ error: 'Document not found' });
 
-        const forceRescan = req.query.force === 'true';
-
-        // 1. Check Cache first
-        if (doc.analysisResult && !forceRescan) {
+        // Return current analysis if available
+        if (doc.analysisResult) {
             console.log(`Serving cached analysis for document ${doc.id}`);
             return res.json({ data: doc.analysisResult });
         }
 
-        // 2. Otherwise run inference
-        const filePath = path.join(UPLOADS_DIR, path.basename(doc.fileKey));
-        const aiAnalysis = await runDocAnalysis(doc, doc.worker, filePath);
-
-        if (aiAnalysis.error || !aiAnalysis.result) {
-            return res.status(500).json({ error: aiAnalysis.error || 'Failed to extract AI data' });
-        }
-
-        // 3. Save the result to the cache
-        await prisma.complianceDocument.update({
-            where: { id: doc.id },
-            data: { analysisResult: aiAnalysis.result }
+        // If no analysis yet, return pending status
+        res.json({
+            data: {
+                status: 'pending',
+                message: 'Document is being scanned. Please try again in a moment.'
+            }
         });
 
-        res.json({ data: aiAnalysis.result });
+        // Trigger re-analysis in background
+        const filePath = path.join(UPLOADS_DIR, path.basename(doc.fileKey));
+        setImmediate(async () => {
+            await analyzeDocument(doc, doc.worker, filePath);
+        });
     } catch (error) {
         console.error('AI Analysis API error:', error);
         res.status(500).json({ error: 'Failed to analyse document with AI' });
