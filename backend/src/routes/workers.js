@@ -259,4 +259,8 @@ router.delete('/:id', requireAgency, requireRole(['OWNER', 'ADMIN']), async (req
     }
 });
 
+// ─── Nested availability routes ───────────────────────────────────────────────
+const workerAvailabilityRouter = require('./worker-availability');
+router.use('/:workerId/availability', workerAvailabilityRouter);
+
 module.exports = router;
