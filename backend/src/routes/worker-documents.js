@@ -12,6 +12,7 @@ const prisma = require('../lib/prisma');
 const { workerAuthMiddleware } = require('./worker-auth');
 const { uploadToR2, downloadFromR2 } = require('../lib/r2');
 const { encryptFileGCM, decryptFileAuto } = require('../lib/encryption');
+const { sendCoordinatorUploadNotification } = require('../lib/nodemailer');
 const Sentry = require('@sentry/node');
 
 /**
@@ -171,6 +172,41 @@ async function uploadWorkerDocument(req, res) {
                 },
             },
         });
+
+        // Get worker info for notification email
+        const worker = await prisma.worker.findUnique({
+            where: { id: workerId },
+            select: { firstName: true, lastName: true },
+        });
+
+        // Get agency info for notification email
+        const agency = await prisma.agency.findUnique({
+            where: { id: agencyId },
+            select: { name: true, email: true },
+        });
+
+        // Send notification email to agency coordinator (async, don't block response)
+        if (agency?.email) {
+            try {
+                const reviewUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/documents/${document.id}/review`;
+                const workerName = `${worker?.firstName} ${worker?.lastName}`.trim();
+
+                await sendCoordinatorUploadNotification(
+                    agency.email,
+                    workerName,
+                    docType.name,
+                    agency.name,
+                    reviewUrl
+                );
+            } catch (emailError) {
+                // Log but don't fail the upload
+                Sentry.captureException(emailError, {
+                    tags: { agencyId, workerId, context: 'worker.upload-notification' },
+                    extra: { coordinatorEmail: agency.email },
+                });
+                console.error('Failed to send coordinator notification:', emailError.message);
+            }
+        }
 
         res.status(201).json({
             message: 'Document uploaded successfully',

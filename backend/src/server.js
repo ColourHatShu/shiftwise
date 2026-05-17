@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+const multer = require('multer');
 const Sentry = require('@sentry/node');
 const prisma = require('./lib/prisma');
 const { initCronJobs, checkExpiriesAndAlert } = require('./services/cronService');
@@ -62,12 +64,20 @@ const authLimiter = rateLimit({
 
 app.use(generalLimiter);
 
-app.use(cors({ 
+app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    exposedHeaders: ['Content-Disposition'] 
+    exposedHeaders: ['Content-Disposition'],
+    credentials: true, // Allow cookies in CORS
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // Parse cookies for JWT token
+
+// Configure multer for file uploads (max 10 MB)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 // SECURITY: /uploads is intentionally NOT exposed as a public static route.
 // Files are served via GET /api/documents/:id/download with auth + agency-scope enforcement.
@@ -103,10 +113,14 @@ app.use('/api/reports', reportsRouter);
 const auditLogRouter = require('./routes/audit-log');
 app.use('/api/audit-log', auditLogRouter);
 
-// Worker self-service auth routes
-const { handleWorkerSignin, handleVerifyCode } = require('./routes/worker-auth');
+// Worker self-service routes (auth + documents)
+const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('./routes/worker-auth');
+const { getWorkerDocuments, uploadWorkerDocument } = require('./routes/worker-documents');
+
 app.post('/worker-signin', handleWorkerSignin);
 app.post('/worker/verify-code', handleVerifyCode);
+app.get('/worker/documents', workerAuthMiddleware, getWorkerDocuments);
+app.post('/worker/documents/upload', workerAuthMiddleware, upload.single('file'), uploadWorkerDocument);
 
 // Health Check
 app.get('/api/health', async (req, res) => {
