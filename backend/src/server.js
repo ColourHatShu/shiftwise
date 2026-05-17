@@ -40,11 +40,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Static uploads (local file storage for development) ─────────────────────
-const uploadsPath = path.join(__dirname, '../uploads');
-app.use('/uploads', express.static(uploadsPath));
-
-// Auth is handled per-route via verifyToken in workers.js
+// SECURITY: /uploads is intentionally NOT exposed as a public static route.
+// Files are served via GET /api/documents/:id/download with auth + agency-scope enforcement.
+// Any attempt to access /uploads/<filename> will result in a 404.
 
 // Apply stricter rate limiting to auth-related routes
 app.use('/api/workers', authLimiter);
