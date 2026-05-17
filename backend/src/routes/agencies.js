@@ -1,6 +1,6 @@
 const express = require('express');
 const { createClerkClient } = require('@clerk/backend');
-const { verifyClerkToken } = require('../lib/auth');
+const { verifyClerkToken, requireAgency, requireRole } = require('../lib/auth');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
 
@@ -77,7 +77,7 @@ router.post('/setup', async (req, res) => {
 
 // ─── PUT /api/agencies/onboard ────────────────────────────────────────────────
 // Saves onboarding details and marks agency as onboarded.
-router.put('/onboard', require('../lib/auth').requireAgency, async (req, res) => {
+router.put('/onboard', requireAgency, async (req, res) => {
     try {
         const { name, address, city, postcode, phone, agencyType } = req.body;
 
@@ -101,7 +101,7 @@ router.put('/onboard', require('../lib/auth').requireAgency, async (req, res) =>
 
 // ─── GET /api/agencies/me ─────────────────────────────────────────────────────
 // Returns the current user's agency (including isOnboarded status).
-router.get('/me', require('../lib/auth').requireAgency, async (req, res) => {
+router.get('/me', requireAgency, async (req, res) => {
     try {
         const agency = await prisma.agency.findUnique({
             where: { id: req.agencyId }
@@ -120,7 +120,7 @@ router.get('/me', require('../lib/auth').requireAgency, async (req, res) => {
 
 // ─── PATCH /api/agencies/update ───────────────────────────────────────────────
 // Updates the current user's agency details from the Settings page.
-router.patch('/update', require('../lib/auth').requireAgency, async (req, res) => {
+router.patch('/update', requireAgency, requireRole(['OWNER', 'ADMIN']), async (req, res) => {
     try {
         const { name, address, city, postcode, phone, agencyType } = req.body;
 

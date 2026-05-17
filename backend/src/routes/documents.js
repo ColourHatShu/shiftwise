@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { requireAgency } = require('../lib/auth');
+const { requireAgency, requireRole } = require('../lib/auth');
 const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
@@ -466,7 +466,7 @@ router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
 });
 
 // ─── PATCH /api/documents/:id/verify ─────────────────────────────────────────
-router.patch('/:id/verify', validate(documentVerifySchema), async (req, res) => {
+router.patch('/:id/verify', validate(documentVerifySchema), requireRole(['OWNER', 'ADMIN']), async (req, res) => {
     try {
 
         const { status, notes, manualExpiryDate, version } = req.body;
@@ -509,12 +509,12 @@ router.patch('/:id/verify', validate(documentVerifySchema), async (req, res) => 
             prisma.auditLog.create({
                 data: {
                     agencyId: req.agencyId,
-                    userId: agencyUser.id,
+                    userId: req.user.id,
                     action: `document.${status.toLowerCase()}`,
                     entity: 'ComplianceDocument',
                     entityId: doc.id,
-                    metadata: { 
-                        notes, 
+                    metadata: {
+                        notes,
                         documentType: doc.documentTypeId,
                         previousStatus: doc.status,
                         newStatus: status

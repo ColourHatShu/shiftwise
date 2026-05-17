@@ -1,5 +1,5 @@
 const express = require('express');
-const { requireAgency } = require('../lib/auth');
+const { requireAgency, requireRole } = require('../lib/auth');
 const prisma = require('../lib/prisma');
 
 const router = express.Router();
@@ -123,7 +123,7 @@ router.patch('/:id/reactivate', requireAgency, async (req, res) => {
 });
 
 // ─── PATCH /api/workers/:id/deactivate ───────────────────────────────────────
-router.patch('/:id/deactivate', requireAgency, async (req, res) => {
+router.patch('/:id/deactivate', requireAgency, requireRole(['OWNER', 'ADMIN']), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -191,7 +191,7 @@ router.patch('/:id', requireAgency, async (req, res) => {
 });
 
 // ─── DELETE /api/workers/:id ──────────────────────────────────────────────────
-router.delete('/:id', requireAgency, async (req, res) => {
+router.delete('/:id', requireAgency, requireRole(['OWNER', 'ADMIN']), async (req, res) => {
     try {
         const { id } = req.params;
 
