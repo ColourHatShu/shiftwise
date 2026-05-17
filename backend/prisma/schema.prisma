@@ -41,16 +41,16 @@ model Agency {
 
 // ─── User (Staff/Admin of an Agency) ────────────────────────────────────────
 model User {
-  id         String   @id @default(cuid())
-  clerkId    String   @unique               // Clerk Auth user ID
-  agencyId   String
-  email      String
-  firstName  String
-  lastName   String
-  role       UserRole @default(STAFF)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  clerkId   String   @unique // Clerk Auth user ID
+  agencyId  String
+  email     String
+  firstName String
+  lastName  String
+  role      UserRole @default(STAFF)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   agency    Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
@@ -69,21 +69,21 @@ enum UserRole {
 
 // ─── Worker (Healthcare Staff managed by an Agency) ─────────────────────────
 model Worker {
-  id             String       @id @default(cuid())
-  agencyId       String
-  firstName      String
-  lastName       String
-  email          String
-  phone          String?
-  dateOfBirth    DateTime?
-  niNumber       String?      // National Insurance Number (UK)
-  jobTitle       String?
-  startDate      DateTime?
-  notes          String?      @db.Text
-  status         WorkerStatus @default(ACTIVE)
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id          String       @id @default(cuid())
+  agencyId    String
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  dateOfBirth DateTime?
+  niNumber    String? // National Insurance Number (UK)
+  jobTitle    String?
+  startDate   DateTime?
+  notes       String?      @db.Text
+  status      WorkerStatus @default(ACTIVE)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   // Relations
   agency              Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
@@ -103,15 +103,15 @@ enum WorkerStatus {
 
 // ─── DocumentType (Template for compliance docs e.g. DBS, Right to Work) ───
 model DocumentType {
-  id                  String    @id @default(cuid())
-  agencyId            String
-  name                String                         // e.g. "DBS Check", "Right to Work"
-  description         String?
-  isRequired          Boolean   @default(true)
-  expiryWarningDays   Int       @default(30)         // Warn N days before expiry
-  hasExpiry           Boolean   @default(true)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                String   @id @default(cuid())
+  agencyId          String
+  name              String // e.g. "DBS Check", "Right to Work"
+  description       String?
+  isRequired        Boolean  @default(true)
+  expiryWarningDays Int      @default(30) // Warn N days before expiry
+  hasExpiry         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   agency              Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
@@ -123,29 +123,30 @@ model DocumentType {
 
 // ─── ComplianceDocument (Actual uploaded doc for a worker) ──────────────────
 model ComplianceDocument {
-  id               String             @id @default(cuid())
-  agencyId         String
-  workerId         String
-  documentTypeId   String
-  fileUrl          String                             // Cloudflare R2 URL
-  fileKey          String                             // R2 object key
-  fileName         String
-  fileSize         Int?
-  mimeType         String?
-  status           DocumentStatus     @default(PENDING)
-  issueDate        DateTime?
-  expiryDate       DateTime?
-  notes            String?
-  rejectionReason  String?
-  uploadedAt       DateTime           @default(now())
-  reviewedAt       DateTime?
-  updatedAt        DateTime           @updatedAt
-  analysisResult   Json?
+  id                  String         @id @default(cuid())
+  agencyId            String
+  workerId            String
+  documentTypeId      String
+  fileUrl             String // Cloudflare R2 URL
+  fileKey             String // R2 object key
+  fileName            String
+  fileSize            Int?
+  mimeType            String?
+  encryptionAlgorithm String         @default("aes-256-cbc") // Algorithm used: aes-256-cbc (legacy) or aes-256-gcm (new)
+  status              DocumentStatus @default(PENDING)
+  issueDate           DateTime?
+  expiryDate          DateTime?
+  notes               String?
+  rejectionReason     String?
+  uploadedAt          DateTime       @default(now())
+  reviewedAt          DateTime?
+  updatedAt           DateTime       @updatedAt
+  analysisResult      Json?
 
   // Relations
-  agency       Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  worker       Worker       @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  documentType DocumentType @relation(fields: [documentTypeId], references: [id])
+  agency       Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  worker       Worker        @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  documentType DocumentType  @relation(fields: [documentTypeId], references: [id])
   expiryAlerts ExpiryAlert[]
   failedAlerts FailedAlert[]
 
@@ -161,15 +162,15 @@ enum DocumentStatus {
 
 // ─── ExpiryAlert (Notifications for expiring documents) ─────────────────────
 model ExpiryAlert {
-  id                   String      @id @default(cuid())
+  id                   String    @id @default(cuid())
   agencyId             String
   workerId             String
   complianceDocumentId String
   alertDate            DateTime
   daysUntilExpiry      Int
-  isSent               Boolean     @default(false)
+  isSent               Boolean   @default(false)
   sentAt               DateTime?
-  createdAt            DateTime    @default(now())
+  createdAt            DateTime  @default(now())
 
   // Relations
   agency             Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
@@ -181,21 +182,21 @@ model ExpiryAlert {
 
 // ─── FailedAlert (Dead Letter Queue for failed email notifications) ─────────
 model FailedAlert {
-  id                   String    @id @default(cuid())
+  id                   String            @id @default(cuid())
   agencyId             String
   workerId             String
   complianceDocumentId String
   alertDate            DateTime
   daysUntilExpiry      Int
-  retryCount           Int       @default(0)
-  maxRetries           Int       @default(3)
+  retryCount           Int               @default(0)
+  maxRetries           Int               @default(3)
   errorMessage         String?
   errorDetails         String?
   status               FailedAlertStatus @default(PENDING)
   lastRetryAt          DateTime?
   resolvedAt           DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   // Relations
   agency             Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
@@ -217,17 +218,17 @@ model AuditLog {
   id        String   @id @default(cuid())
   agencyId  String
   userId    String?
-  action    String                          // e.g. "document.approved", "worker.created"
-  entity    String                          // e.g. "ComplianceDocument", "Worker"
+  action    String // e.g. "document.approved", "worker.created"
+  entity    String // e.g. "ComplianceDocument", "Worker"
   entityId  String
-  metadata  Json?                           // Extra context (old/new values, etc.)
+  metadata  Json? // Extra context (old/new values, etc.)
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
 
   // Relations
-  agency Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
 }
