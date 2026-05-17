@@ -167,6 +167,7 @@ model ExpiryAlert {
   workerId             String
   complianceDocumentId String
   alertDate            DateTime
+  alertDateOnly        DateTime  @db.Date // UTC-midnight version of alertDate for dedup
   daysUntilExpiry      Int
   isSent               Boolean   @default(false)
   sentAt               DateTime?
@@ -177,6 +178,9 @@ model ExpiryAlert {
   worker             Worker             @relation(fields: [workerId], references: [id], onDelete: Cascade)
   complianceDocument ComplianceDocument @relation(fields: [complianceDocumentId], references: [id], onDelete: Cascade)
 
+  // Race-safe unique constraint: at most one alert per (document, daysUntilExpiry, day)
+  // This prevents duplicate alerts if the cron job runs concurrently
+  @@unique([complianceDocumentId, daysUntilExpiry, alertDateOnly])
   @@map("expiry_alerts")
 }
 
