@@ -113,6 +113,9 @@ app.use('/api/reports', reportsRouter);
 const auditLogRouter = require('./routes/audit-log');
 app.use('/api/audit-log', auditLogRouter);
 
+const shiftsRouter = require('./routes/shifts');
+app.use('/api/shifts', shiftsRouter);
+
 // Worker self-service routes (auth + documents)
 const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('./routes/worker-auth');
 const { getWorkerDocuments, uploadWorkerDocument } = require('./routes/worker-documents');
