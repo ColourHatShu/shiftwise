@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle, Search } from "lucide-react";
+import { downloadDocument } from "@/lib/api/documents";
+import toast from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -235,11 +237,20 @@ export default function DocumentsPage() {
                                                                     </p>
                                                                 </td>
                                                                 <td className="py-3 text-right">
-                                                                    {doc.fileUrl && (
-                                                                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                                                                            className="text-sm text-[#0F2647] hover:text-[#0F2647]/80 font-medium inline-flex items-center gap-1 transition-colors">
-                                                                            <FileText size={14} /> View
-                                                                        </a>
+                                                                    {doc.id && (
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    await downloadDocument(doc.id, getToken);
+                                                                                    toast.success('Document downloaded');
+                                                                                } catch (error) {
+                                                                                    console.error('Download failed:', error);
+                                                                                    toast.error(error instanceof Error ? error.message : 'Failed to download document');
+                                                                                }
+                                                                            }}
+                                                                            className="text-sm text-[#0F2647] hover:text-[#0F2647]/80 font-medium inline-flex items-center gap-1 transition-colors cursor-pointer">
+                                                                            <FileText size={14} /> Download
+                                                                        </button>
                                                                     )}
                                                                 </td>
                                                             </tr>

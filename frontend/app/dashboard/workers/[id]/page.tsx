@@ -13,6 +13,7 @@ import {
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import EditWorkerModal from '../components/EditWorkerModal';
+import { downloadDocument } from "@/lib/api/documents";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -614,11 +615,21 @@ export default function WorkerProfilePage() {
 
                                 {/* Actions */}
                                 <div className="flex gap-2 mt-auto">
-                                    {doc?.fileUrl && (
-                                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                                            className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-all">
+                                    {doc && (
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await downloadDocument(doc.id, getToken);
+                                                    toast.success('Document downloaded');
+                                                } catch (error) {
+                                                    console.error('Download failed:', error);
+                                                    toast.error(error instanceof Error ? error.message : 'Failed to download document');
+                                                }
+                                            }}
+                                            className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-all"
+                                            title="Download document">
                                             <Eye size={12} />
-                                        </a>
+                                        </button>
                                     )}
                                     {doc && (
                                         <>
