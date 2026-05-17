@@ -17,14 +17,14 @@ progress:
 ## Current Position
 
 - **Milestone:** 1 — No-cost hardening + free OCR swap
-- **Active phase:** none yet (planning complete, awaiting `/gsd-discuss-phase 1` or `/gsd-plan-phase 1`)
-- **Completed phases:** none
+- **Active phase:** 2 (Phase 1 complete)
+- **Completed phases:** 1
 
 ## Phase Progress
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | Security & Auth Foundations | not started |
+| 1 | Security & Auth Foundations | ✅ complete (13 REQs, 11 tasks, 72 tests) |
 | 2 | OCR Swap (llava → Tesseract.js) | not started |
 | 3 | Observability & Operational UX | not started |
 
