@@ -93,8 +93,8 @@ export default function SettingsPage() {
             toast.success("Settings saved successfully", {
                 style: {
                     background: '#ffffff',
-                    color: '#1A1A2E',
-                    border: '1px solid #E5E7EB',
+                    color: '#0A1628',
+                    border: '1px solid #DDE3EE',
                     fontFamily: 'var(--font-dm-sans), sans-serif',
                 }
             });
@@ -109,7 +109,7 @@ export default function SettingsPage() {
     if (!isLoaded || isLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F2647]"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003087]"></div>
             </div>
         );
     }
@@ -117,46 +117,46 @@ export default function SettingsPage() {
     return (
         <div className="max-w-4xl space-y-6">
             <div>
-                <h1 className="text-2xl font-medium text-[#1A1A2E]">Agency Settings</h1>
-                <p className="text-[#6B7280] mt-1">Manage your agency details and core preferences</p>
+                <h1 className="text-2xl font-medium text-[#0A1628]">Agency Settings</h1>
+                <p className="text-[#5B6E8C] mt-1">Manage your agency details and core preferences</p>
             </div>
 
             {error && (
-                <div className="bg-[#FCEBEB] border border-[#E24B4A]/20 text-[#A32D2D] px-4 py-3 rounded-lg text-sm">
+                <div className="bg-[#FEE2E2] border border-[#DC2626]/20 text-[#991B1B] px-4 py-3 rounded-lg text-sm">
                     {error}
                 </div>
             )}
 
-            <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 md:p-8">
+            <div className="bg-white border border-[#DDE3EE] rounded-xl p-6 md:p-8">
                 <form onSubmit={handleSubmit} className="space-y-8">
 
                     {/* General Section */}
                     <div className="space-y-6">
-                        <div className="border-b border-[#E5E7EB] pb-3 flex items-center gap-2 text-[#0F2647] font-medium">
+                        <div className="border-b border-[#DDE3EE] pb-3 flex items-center gap-2 text-[#003087] font-medium">
                             <Building2 size={18} />
                             <h3>General Information</h3>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-[#1A1A2E]">Agency Name <span className="text-[#E24B4A]">*</span></label>
+                                <label className="text-sm font-medium text-[#0A1628]">Agency Name <span className="text-[#DC2626]">*</span></label>
                                 <input
                                     required
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                                    className="w-full bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-[#1A1A2E]">Agency Type <span className="text-[#E24B4A]">*</span></label>
+                                <label className="text-sm font-medium text-[#0A1628]">Agency Type <span className="text-[#DC2626]">*</span></label>
                                 <select
                                     required
                                     name="agencyType"
                                     value={formData.agencyType}
                                     onChange={handleChange}
-                                    className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all appearance-none"
+                                    className="w-full bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all appearance-none"
                                 >
                                     <option value="" disabled>Select type...</option>
                                     {AGENCY_TYPES.map(type => (
@@ -169,8 +169,8 @@ export default function SettingsPage() {
 
                     {/* Contact & Location Section */}
                     <div className="space-y-6">
-                        <div className="border-b border-[#E5E7EB] pb-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-[#0F2647] font-medium">
+                        <div className="border-b border-[#DDE3EE] pb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-[#003087] font-medium">
                                 <MapPin size={18} />
                                 <h3>Location & Contact</h3>
                             </div>
@@ -178,56 +178,56 @@ export default function SettingsPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2 md:col-span-2">
-                                <label className="text-sm font-medium text-[#1A1A2E]">Street Address</label>
+                                <label className="text-sm font-medium text-[#0A1628]">Street Address</label>
                                 <input
                                     name="address"
                                     value={formData.address}
                                     onChange={handleChange}
-                                    className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                                    className="w-full bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-[#1A1A2E]">City</label>
+                                <label className="text-sm font-medium text-[#0A1628]">City</label>
                                 <input
                                     name="city"
                                     value={formData.city}
                                     onChange={handleChange}
-                                    className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                                    className="w-full bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all"
                                 />
                             </div>
 
                             <div className="space-y-2 flex gap-4">
                                 <div className="flex-1 space-y-2">
-                                    <label className="text-sm font-medium text-[#1A1A2E]">Postcode</label>
+                                    <label className="text-sm font-medium text-[#0A1628]">Postcode</label>
                                     <input
                                         name="postcode"
                                         value={formData.postcode}
                                         onChange={handleChange}
-                                        className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                                        className="w-full bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all"
                                     />
                                 </div>
                                 <div className="flex-[2] space-y-2">
-                                    <label className="text-sm font-medium text-[#1A1A2E] flex items-center gap-1.5">
-                                        <Phone size={14} className="text-[#6B7280]" /> Phone Number
+                                    <label className="text-sm font-medium text-[#0A1628] flex items-center gap-1.5">
+                                        <Phone size={14} className="text-[#5B6E8C]" /> Phone Number
                                     </label>
                                     <input
                                         type="tel"
                                         name="phone"
                                         value={formData.phone}
                                         onChange={handleChange}
-                                        className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                                        className="w-full bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all"
                                     />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-6 border-t border-[#E5E7EB] flex justify-end">
+                    <div className="pt-6 border-t border-[#DDE3EE] flex justify-end">
                         <button
                             type="submit"
                             disabled={isSaving}
-                            className="flex items-center gap-2 bg-[#0F2647] hover:bg-[#0F2647]/90 text-white px-6 py-2.5 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 bg-[#003087] hover:bg-[#003087]/90 text-white px-6 py-2.5 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save size={18} />
                             {isSaving ? "Saving..." : "Save Settings"}

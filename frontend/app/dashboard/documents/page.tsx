@@ -13,33 +13,33 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const statusConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
     NOT_UPLOADED: { 
         label: "Not Uploaded", 
-        bgColor: "bg-[#F3F4F6]",
-        textColor: "text-[#6B7280]"
+        bgColor: "bg-[#EBEEF5]",
+        textColor: "text-[#5B6E8C]"
     },
     PENDING: { 
         label: "Pending Review", 
-        bgColor: "bg-[#FAEEDA]",
-        textColor: "text-[#854F0B]"
+        bgColor: "bg-[#FEF3C7]",
+        textColor: "text-[#92400E]"
     },
     APPROVED: { 
         label: "Verified", 
-        bgColor: "bg-[#EAF3DE]",
-        textColor: "text-[#3B6D11]"
+        bgColor: "bg-[#DCFCE7]",
+        textColor: "text-[#166534]"
     },
     EXPIRING_SOON: { 
         label: "Expiring Soon", 
-        bgColor: "bg-[#FAEEDA]",
-        textColor: "text-[#854F0B]"
+        bgColor: "bg-[#FEF3C7]",
+        textColor: "text-[#92400E]"
     },
     EXPIRED: { 
         label: "Expired", 
-        bgColor: "bg-[#FCEBEB]",
-        textColor: "text-[#A32D2D]"
+        bgColor: "bg-[#FEE2E2]",
+        textColor: "text-[#991B1B]"
     },
     REJECTED: { 
         label: "Non-Compliant", 
-        bgColor: "bg-[#FCEBEB]",
-        textColor: "text-[#A32D2D]"
+        bgColor: "bg-[#FEE2E2]",
+        textColor: "text-[#991B1B]"
     },
 };
 
@@ -72,7 +72,7 @@ export default function DocumentsPage() {
     if (!isLoaded || isLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F2647]" />
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003087]" />
             </div>
         );
     }
@@ -104,13 +104,13 @@ export default function DocumentsPage() {
     const getRAGStyles = (color: string) => {
         switch (color) {
             case "green":
-                return { dot: "bg-[#1D9E75]", bar: "bg-[#1D9E75]", text: "text-[#3B6D11]" };
+                return { dot: "bg-[#16A34A]", bar: "bg-[#16A34A]", text: "text-[#166534]" };
             case "amber":
-                return { dot: "bg-[#EF9F27]", bar: "bg-[#EF9F27]", text: "text-[#854F0B]" };
+                return { dot: "bg-[#D97706]", bar: "bg-[#D97706]", text: "text-[#92400E]" };
             case "red":
-                return { dot: "bg-[#E24B4A]", bar: "bg-[#E24B4A]", text: "text-[#A32D2D]" };
+                return { dot: "bg-[#DC2626]", bar: "bg-[#DC2626]", text: "text-[#991B1B]" };
             default:
-                return { dot: "bg-[#6B7280]", bar: "bg-[#6B7280]", text: "text-[#6B7280]" };
+                return { dot: "bg-[#5B6E8C]", bar: "bg-[#5B6E8C]", text: "text-[#5B6E8C]" };
         }
     };
 
@@ -118,43 +118,43 @@ export default function DocumentsPage() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-medium text-[#1A1A2E]">Documents</h1>
-                <p className="text-[#6B7280] mt-1">Compliance documents across all workers</p>
+                <h1 className="text-2xl font-medium text-[#0A1628]">Documents</h1>
+                <p className="text-[#5B6E8C] mt-1">Compliance documents across all workers</p>
             </div>
 
             {/* Summary Stats */}
             <div className="grid sm:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Total Documents</p>
-                    <p className="text-2xl font-medium text-[#1A1A2E] mt-1">
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Total Documents</p>
+                    <p className="text-2xl font-medium text-[#0A1628] mt-1">
                         {workers.reduce((acc, w) => acc + (w.complianceDocuments?.length || 0), 0)}
                     </p>
                 </div>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Verified</p>
-                    <p className="text-2xl font-medium text-[#3B6D11] mt-1">
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Verified</p>
+                    <p className="text-2xl font-medium text-[#166534] mt-1">
                         {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: any) => d.status === "APPROVED").length || 0), 0)}
                     </p>
                 </div>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Needs Attention</p>
-                    <p className="text-2xl font-medium text-[#A32D2D] mt-1">
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Needs Attention</p>
+                    <p className="text-2xl font-medium text-[#991B1B] mt-1">
                         {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: any) => d.status === "EXPIRED" || d.status === "REJECTED").length || 0), 0)}
                     </p>
                 </div>
             </div>
 
             {error && (
-                <div className="bg-[#FCEBEB] border border-[#E24B4A]/20 text-[#A32D2D] px-4 py-3 rounded-lg text-sm">{error}</div>
+                <div className="bg-[#FEE2E2] border border-[#DC2626]/20 text-[#991B1B] px-4 py-3 rounded-lg text-sm">{error}</div>
             )}
 
             {workers.length === 0 ? (
-                <div className="bg-white border border-[#E5E7EB] rounded-xl p-12 text-center">
-                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-[#F8F9FB] mb-4">
-                        <FileText size={24} className="text-[#6B7280]" />
+                <div className="bg-white border border-[#DDE3EE] rounded-xl p-12 text-center">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-[#F5F7FA] mb-4">
+                        <FileText size={24} className="text-[#5B6E8C]" />
                     </div>
-                    <p className="text-[#6B7280]">No workers added yet.</p>
-                    <Link href="/dashboard/workers/new" className="text-[#0F2647] hover:text-[#0F2647]/80 font-medium text-sm mt-2 inline-block transition-colors">
+                    <p className="text-[#5B6E8C]">No workers added yet.</p>
+                    <Link href="/dashboard/workers/new" className="text-[#003087] hover:text-[#003087]/80 font-medium text-sm mt-2 inline-block transition-colors">
                         Add your first worker →
                     </Link>
                 </div>
@@ -166,16 +166,16 @@ export default function DocumentsPage() {
                         const ragColor = getRAGColor(score);
                         const ragStyles = getRAGStyles(ragColor);
                         return (
-                            <div key={worker.id} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+                            <div key={worker.id} className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
                                 {/* Worker header */}
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB] bg-[#F8F9FB]">
+                                <div className="flex items-center justify-between px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA]">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-lg bg-[#EEF2FF] text-[#0F2647] flex items-center justify-center font-medium text-sm">
+                                        <div className="h-10 w-10 rounded-lg bg-[#E6EDF8] text-[#003087] flex items-center justify-center font-medium text-sm">
                                             {worker.firstName[0]}{worker.lastName[0]}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-[#1A1A2E]">{worker.firstName} {worker.lastName}</p>
-                                            <p className="text-xs text-[#6B7280]">{worker.jobTitle || "Unassigned"}</p>
+                                            <p className="font-medium text-[#0A1628]">{worker.firstName} {worker.lastName}</p>
+                                            <p className="text-xs text-[#5B6E8C]">{worker.jobTitle || "Unassigned"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ export default function DocumentsPage() {
                                                         {score}%
                                                     </span>
                                                 </div>
-                                                <div className="w-20 bg-[#F8F9FB] rounded-full h-1.5">
+                                                <div className="w-20 bg-[#F5F7FA] rounded-full h-1.5">
                                                     <div 
                                                         className={`h-1.5 rounded-full ${ragStyles.bar}`}
                                                         style={{ width: `${score}%` }}
@@ -196,7 +196,7 @@ export default function DocumentsPage() {
                                             </div>
                                         )}
                                         <Link href={`/dashboard/workers/${worker.id}`}
-                                            className="text-xs text-[#0F2647] hover:text-[#0F2647]/80 font-medium px-3 py-1.5 rounded-lg bg-[#EEF2FF] hover:bg-[#EEF2FF]/80 transition-all">
+                                            className="text-xs text-[#003087] hover:text-[#003087]/80 font-medium px-3 py-1.5 rounded-lg bg-[#E6EDF8] hover:bg-[#E6EDF8]/80 transition-all">
                                             View →
                                         </Link>
                                     </div>
@@ -205,26 +205,26 @@ export default function DocumentsPage() {
                                 {/* Documents Table */}
                                 <div className="p-4">
                                     {docs.length === 0 ? (
-                                        <p className="text-[#6B7280] text-sm text-center py-4">No documents uploaded. <Link href={`/dashboard/workers/${worker.id}`} className="text-[#0F2647] hover:underline font-medium">Upload on their profile →</Link></p>
+                                        <p className="text-[#5B6E8C] text-sm text-center py-4">No documents uploaded. <Link href={`/dashboard/workers/${worker.id}`} className="text-[#003087] hover:underline font-medium">Upload on their profile →</Link></p>
                                     ) : (
                                         <div className="overflow-x-auto">
                                             <table className="w-full text-left">
                                                 <thead>
-                                                    <tr className="border-b border-[#E5E7EB]">
-                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Document</th>
-                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Status</th>
-                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Expiry</th>
-                                                        <th className="pb-3 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px] text-right">Actions</th>
+                                                    <tr className="border-b border-[#DDE3EE]">
+                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Document</th>
+                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Status</th>
+                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Expiry</th>
+                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px] text-right">Actions</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-[#E5E7EB]">
+                                                <tbody className="divide-y divide-[#DDE3EE]">
                                                     {docs.map((doc: any) => {
                                                         const status = getComputedStatus(doc);
                                                         const cfg = statusConfig[status] || statusConfig.NOT_UPLOADED;
                                                         return (
-                                                            <tr key={doc.id} className="group hover:bg-[#F8F9FB] transition-colors">
+                                                            <tr key={doc.id} className="group hover:bg-[#F5F7FA] transition-colors">
                                                                 <td className="py-3">
-                                                                    <p className="text-sm font-medium text-[#1A1A2E]">{doc.documentType?.name}</p>
+                                                                    <p className="text-sm font-medium text-[#0A1628]">{doc.documentType?.name}</p>
                                                                 </td>
                                                                 <td className="py-3">
                                                                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bgColor} ${cfg.textColor}`}>
@@ -232,7 +232,7 @@ export default function DocumentsPage() {
                                                                     </span>
                                                                 </td>
                                                                 <td className="py-3">
-                                                                    <p className="text-sm text-[#6B7280]">
+                                                                    <p className="text-sm text-[#5B6E8C]">
                                                                         {doc.expiryDate ? new Date(doc.expiryDate).toLocaleDateString('en-GB') : 'No expiry'}
                                                                     </p>
                                                                 </td>
@@ -248,7 +248,7 @@ export default function DocumentsPage() {
                                                                                     toast.error(error instanceof Error ? error.message : 'Failed to download document');
                                                                                 }
                                                                             }}
-                                                                            className="text-sm text-[#0F2647] hover:text-[#0F2647]/80 font-medium inline-flex items-center gap-1 transition-colors cursor-pointer">
+                                                                            className="text-sm text-[#003087] hover:text-[#003087]/80 font-medium inline-flex items-center gap-1 transition-colors cursor-pointer">
                                                                             <FileText size={14} /> Download
                                                                         </button>
                                                                     )}

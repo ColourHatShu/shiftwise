@@ -113,20 +113,20 @@ export default function WorkersPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "ACTIVE":
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#EAF3DE] text-[#3B6D11]">Active</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#DCFCE7] text-[#166534]">Active</span>;
             case "INACTIVE":
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#F3F4F6] text-[#6B7280]">Inactive</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#EBEEF5] text-[#5B6E8C]">Inactive</span>;
             case "SUSPENDED":
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FAEEDA] text-[#854F0B]">Suspended</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FEF3C7] text-[#92400E]">Suspended</span>;
             default:
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FCEBEB] text-[#A32D2D]">Unknown</span>;
+                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FEE2E2] text-[#991B1B]">Unknown</span>;
         }
     };
 
     if (!isLoaded || isLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F2647]"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003087]"></div>
             </div>
         );
     }
@@ -136,12 +136,12 @@ export default function WorkersPage() {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-medium text-[#1A1A2E]">Workers</h1>
-                    <p className="text-[#6B7280] mt-1">Manage your agency's healthcare staff</p>
+                    <h1 className="text-2xl font-medium text-[#0A1628]">Workers</h1>
+                    <p className="text-[#5B6E8C] mt-1">Manage your agency's healthcare staff</p>
                 </div>
                 <Link
                     href="/dashboard/workers/new"
-                    className="flex items-center gap-2 bg-[#0F2647] hover:bg-[#0F2647]/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 bg-[#003087] hover:bg-[#003087]/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
                 >
                     <Plus size={18} />
                     Add Worker
@@ -149,57 +149,57 @@ export default function WorkersPage() {
             </div>
 
             {error && (
-                <div className="bg-[#FCEBEB] border border-[#E24B4A]/20 text-[#A32D2D] px-4 py-3 rounded-lg text-sm">
+                <div className="bg-[#FEE2E2] border border-[#DC2626]/20 text-[#991B1B] px-4 py-3 rounded-lg text-sm">
                     {error}
                 </div>
             )}
 
             {/* Stats Summary */}
             <div className="grid sm:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Total Workers</p>
-                    <p className="text-2xl font-medium text-[#1A1A2E] mt-1">{totalWorkers}</p>
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Total Workers</p>
+                    <p className="text-2xl font-medium text-[#0A1628] mt-1">{totalWorkers}</p>
                 </div>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Compliant</p>
-                    <p className="text-2xl font-medium text-[#3B6D11] mt-1">
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Compliant</p>
+                    <p className="text-2xl font-medium text-[#166534] mt-1">
                         {workers.filter(w => (w.complianceScore || 0) >= 90).length}
                     </p>
                 </div>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Needs Review</p>
-                    <p className="text-2xl font-medium text-[#854F0B] mt-1">
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Needs Review</p>
+                    <p className="text-2xl font-medium text-[#92400E] mt-1">
                         {workers.filter(w => {
                             const score = w.complianceScore || 0;
                             return score >= 70 && score < 90;
                         }).length}
                     </p>
                 </div>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-[11px] text-[#6B7280] uppercase tracking-[0.5px] font-medium">Action Required</p>
-                    <p className="text-2xl font-medium text-[#A32D2D] mt-1">
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Action Required</p>
+                    <p className="text-2xl font-medium text-[#991B1B] mt-1">
                         {workers.filter(w => (w.complianceScore || 0) < 70).length}
                     </p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+            <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
                 <div className="flex items-center gap-4">
                     <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" size={18} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5B6E8C]" size={18} />
                         <input
                             type="text"
                             placeholder="Search by name, role or email..."
                             value={searchInputValue}
                             onChange={(e) => handleSearchChange(e.target.value)}
-                            className="w-full bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                            className="w-full bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all"
                         />
                     </div>
                     <select
                         value={selectedStatus}
                         onChange={(e) => handleStatusChange(e.target.value)}
-                        className="bg-[#F8F9FB] border border-[#E5E7EB] text-[#1A1A2E] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2647] focus:ring-1 focus:ring-[#0F2647] transition-all"
+                        className="bg-[#F5F7FA] border border-[#DDE3EE] text-[#0A1628] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#003087] focus:ring-1 focus:ring-[#003087] transition-all"
                     >
                         <option value="">All Statuses</option>
                         <option value="ACTIVE">Active</option>
@@ -210,32 +210,32 @@ export default function WorkersPage() {
             </div>
 
             {/* Workers Table */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+            <div className="bg-white rounded-xl border border-[#DDE3EE] overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-[#F8F9FB] border-b border-[#E5E7EB]">
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Worker</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Role</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Status</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px]">Compliance</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#6B7280] uppercase tracking-[0.5px] text-right">Actions</th>
+                            <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Worker</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Role</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Status</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Compliance</th>
+                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px] text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#E5E7EB]">
+                        <tbody className="divide-y divide-[#DDE3EE]">
                             {workers.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-3">
-                                            <div className="bg-[#F8F9FB] p-3 rounded-lg">
-                                                <User size={24} className="text-[#6B7280]" />
+                                            <div className="bg-[#F5F7FA] p-3 rounded-lg">
+                                                <User size={24} className="text-[#5B6E8C]" />
                                             </div>
                                             {searchInputValue || selectedStatus ? (
-                                                <p className="text-[#6B7280]">No workers match your filters</p>
+                                                <p className="text-[#5B6E8C]">No workers match your filters</p>
                                             ) : (
                                                 <>
-                                                    <p className="text-[#6B7280]">No workers added yet.</p>
-                                                    <Link href="/dashboard/workers/new" className="text-[#0F2647] hover:text-[#0F2647]/80 font-medium text-sm transition-colors">
+                                                    <p className="text-[#5B6E8C]">No workers added yet.</p>
+                                                    <Link href="/dashboard/workers/new" className="text-[#003087] hover:text-[#003087]/80 font-medium text-sm transition-colors">
                                                         Add your first worker
                                                     </Link>
                                                 </>
@@ -247,30 +247,30 @@ export default function WorkersPage() {
                                 workers.map((worker) => {
                                     const rag = getRAGStatus(worker.complianceScore || 0);
                                     const ragColors = {
-                                        green: { dot: "bg-[#1D9E75]", bar: "bg-[#1D9E75]", text: "text-[#3B6D11]" },
-                                        amber: { dot: "bg-[#EF9F27]", bar: "bg-[#EF9F27]", text: "text-[#854F0B]" },
-                                        red: { dot: "bg-[#E24B4A]", bar: "bg-[#E24B4A]", text: "text-[#A32D2D]" },
+                                        green: { dot: "bg-[#16A34A]", bar: "bg-[#16A34A]", text: "text-[#166534]" },
+                                        amber: { dot: "bg-[#D97706]", bar: "bg-[#D97706]", text: "text-[#92400E]" },
+                                        red: { dot: "bg-[#DC2626]", bar: "bg-[#DC2626]", text: "text-[#991B1B]" },
                                     };
                                     const colors = ragColors[rag.color as keyof typeof ragColors];
                                     return (
                                         <tr
                                             key={worker.id}
-                                            className="group hover:bg-[#F8F9FB] transition-colors"
+                                            className="group hover:bg-[#F5F7FA] transition-colors"
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-lg bg-[#EEF2FF] text-[#0F2647] flex items-center justify-center font-medium text-sm">
+                                                    <div className="h-10 w-10 rounded-lg bg-[#E6EDF8] text-[#003087] flex items-center justify-center font-medium text-sm">
                                                         {worker.firstName.charAt(0)}{worker.lastName.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <p className="font-medium text-[#1A1A2E]">{worker.firstName} {worker.lastName}</p>
-                                                        <p className="text-xs text-[#6B7280]">{worker.email}</p>
+                                                        <p className="font-medium text-[#0A1628]">{worker.firstName} {worker.lastName}</p>
+                                                        <p className="text-xs text-[#5B6E8C]">{worker.email}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="text-sm text-[#1A1A2E]">{worker.jobTitle || "Unassigned"}</p>
-                                                <p className="text-xs text-[#6B7280]">
+                                                <p className="text-sm text-[#0A1628]">{worker.jobTitle || "Unassigned"}</p>
+                                                <p className="text-xs text-[#5B6E8C]">
                                                     {worker.startDate ? format(new Date(worker.startDate), "MMM yyyy") : "N/A"}
                                                 </p>
                                             </td>
@@ -280,10 +280,10 @@ export default function WorkersPage() {
                                                     {/* Compliance Progress Bar */}
                                                     <div className="flex-1 max-w-[120px]">
                                                         <div className="flex justify-between text-xs mb-1">
-                                                            <span className="text-[#6B7280]">{worker.complianceScore}%</span>
+                                                            <span className="text-[#5B6E8C]">{worker.complianceScore}%</span>
                                                             <span className={`font-medium ${colors.text}`}>{rag.label}</span>
                                                         </div>
-                                                        <div className="w-full bg-[#F8F9FB] rounded-full h-1.5">
+                                                        <div className="w-full bg-[#F5F7FA] rounded-full h-1.5">
                                                             <div 
                                                                 className={`h-1.5 rounded-full ${colors.bar}`}
                                                                 style={{ width: `${worker.complianceScore}%` }}
@@ -293,7 +293,7 @@ export default function WorkersPage() {
                                                     {/* RAG Indicator */}
                                                     <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
                                                 </div>
-                                                <p className="text-xs text-[#6B7280] mt-1">
+                                                <p className="text-xs text-[#5B6E8C] mt-1">
                                                     {worker.documentsUploaded} of {worker.documentsTotal} documents
                                                 </p>
                                             </td>
@@ -301,14 +301,14 @@ export default function WorkersPage() {
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => setEditingWorker(worker)}
-                                                        className="inline-flex items-center gap-1.5 text-[#6B7280] hover:text-[#0F2647] font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-[#F8F9FB] transition-all"
+                                                        className="inline-flex items-center gap-1.5 text-[#5B6E8C] hover:text-[#003087] font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] transition-all"
                                                     >
                                                         <Edit size={14} />
                                                         Edit
                                                     </button>
                                                     <Link
                                                         href={`/dashboard/workers/${worker.id}`}
-                                                        className="inline-flex items-center gap-1.5 text-[#0F2647] hover:text-[#0F2647]/80 font-medium text-sm px-3 py-1.5 rounded-lg bg-[#EEF2FF] hover:bg-[#EEF2FF]/80 transition-all"
+                                                        className="inline-flex items-center gap-1.5 text-[#003087] hover:text-[#003087]/80 font-medium text-sm px-3 py-1.5 rounded-lg bg-[#E6EDF8] hover:bg-[#E6EDF8]/80 transition-all"
                                                     >
                                                         <Eye size={14} />
                                                         View
@@ -334,26 +334,26 @@ export default function WorkersPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-[#E5E7EB]">
-                    <div className="text-sm text-[#6B7280]">
-                        Showing <span className="font-medium text-[#1A1A2E]">{workers.length}</span> of <span className="font-medium text-[#1A1A2E]">{totalWorkers}</span> workers
+                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-[#DDE3EE]">
+                    <div className="text-sm text-[#5B6E8C]">
+                        Showing <span className="font-medium text-[#0A1628]">{workers.length}</span> of <span className="font-medium text-[#0A1628]">{totalWorkers}</span> workers
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
-                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[#6B7280] bg-white hover:bg-[#F8F9FB] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors border border-[#E5E7EB]"
+                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[#5B6E8C] bg-white hover:bg-[#F5F7FA] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors border border-[#DDE3EE]"
                         >
                             <ChevronLeft size={16} />
                             Previous
                         </button>
-                        <span className="text-sm text-[#6B7280] px-3">
-                            Page <span className="font-medium text-[#1A1A2E]">{page}</span> of <span className="font-medium text-[#1A1A2E]">{totalPages}</span>
+                        <span className="text-sm text-[#5B6E8C] px-3">
+                            Page <span className="font-medium text-[#0A1628]">{page}</span> of <span className="font-medium text-[#0A1628]">{totalPages}</span>
                         </span>
                         <button
                             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                             disabled={page === totalPages}
-                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[#6B7280] bg-white hover:bg-[#F8F9FB] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors border border-[#E5E7EB]"
+                            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[#5B6E8C] bg-white hover:bg-[#F5F7FA] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors border border-[#DDE3EE]"
                         >
                             Next
                             <ChevronRight size={16} />
