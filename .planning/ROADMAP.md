@@ -63,3 +63,79 @@ All 29 v1 REQ-IDs from `REQUIREMENTS.md` are mapped to exactly one phase:
 1. **Phase 1 first** because every other phase depends on the unified `lib/auth.js` helper (the audit-log endpoint, the signed-download endpoint, the role checks) and because security gaps grow more expensive to retrofit the more code is written.
 2. **Phase 2 second** because the OCR swap is self-contained and removing a noisy external AI dependency before adding observability means cleaner Sentry signal.
 3. **Phase 3 last** because Sentry, audit log, and worker search are observability/UX polish — valuable but non-blocking. Audit-log endpoint also reuses the role middleware from Phase 1.
+
+---
+
+# ShiftWise — Milestone 2 Roadmap
+
+**Milestone:** Compliance Portal (worker self-service + coordinator dashboard)
+**Granularity:** Fine — 3-4 phases
+**Mode:** Vertical slices per user type
+**Total requirements:** TBD (to be locked during spec phase)
+
+---
+
+### Phase 4: Worker Self-Service Portal
+**Goal:** Enable workers to upload their own compliance documents via OTP-based magic link auth. By end of phase: workers can log in, upload documents, see their compliance status with expiry colors, and receive pre-expiry notifications without coordinator involvement.
+**Mode:** mvp
+**UI hint:** yes (worker portal)
+**Requirements:** (to be defined in spec phase)
+**Success Criteria:** (to be defined in spec phase)
+
+---
+
+### Phase 5: Coordinator Compliance Dashboard
+**Goal:** Give coordinators a complete compliance visibility layer. By end of phase: coordinators see all workers with compliance scores, can filter/sort by status, see alerts across the agency, and export compliance reports without manual work.
+**Mode:** mvp
+**UI hint:** yes (coordinator dashboard)
+**Requirements:** (to be defined in spec phase)
+**Success Criteria:** (to be defined in spec phase)
+
+---
+
+### Phase 6: Audit Pack & Compliance Reports
+**Goal:** Make CQC-inspection prep a one-click operation. By end of phase: coordinators can generate a compliance bundle (all docs + audit trail for a worker) as a ZIP file, run compliance reports by worker/status, and produce an agency-wide compliance scorecard.
+**Mode:** mvp
+**UI hint:** yes
+**Requirements:** (to be defined in spec phase)
+**Success Criteria:** (to be defined in spec phase)
+
+---
+
+## Milestone 2 dependencies
+
+- Depends on Phase 1 (auth helpers, role enforcement)
+- Depends on Phase 3 (audit log endpoint)
+- Assumes Tesseract.js + Resend email setup from Phase 2
+
+---
+
+# ShiftWise — Milestone 3 Roadmap
+
+**Milestone:** Shift Management & Compliance-Aware Assignment  
+**Granularity:** 2 phases  
+**Mode:** Vertical MVP per phase
+
+---
+
+### Phase 7: Shift Management & Creation
+**Goal:** Enable coordinators to post shifts at care facilities. By end of phase: coordinators can create shifts (date, time, location, role, required headcount), specify compliance requirements, and manage shift details. Workers see available shifts matching their qualifications.
+**Mode:** mvp
+**UI hint:** yes (shifts view)
+**Requirements:** (to be defined in spec phase)
+**Success Criteria:** (to be defined in spec phase)
+
+---
+
+### Phase 8: Compliance-Based Shift Assignment
+**Goal:** Assign workers to shifts only if compliant. By end of phase: coordinators can bulk-assign compliant workers to shifts, system prevents assigning non-compliant workers (missing docs or expired), and workers can view their assigned shifts with confirmation workflow.
+**Mode:** mvp
+**UI hint:** yes (assignment workflow)
+**Requirements:** (to be defined in spec phase)
+**Success Criteria:** (to be defined in spec phase)
+
+---
+
+## Build order rationale
+
+Phase 7 (Shift Management) before Phase 8 (Assignments) because assignments depend on shift infrastructure. Both depend on Phases 1-6 (auth, compliance tracking, dashboards).
