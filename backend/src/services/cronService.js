@@ -363,20 +363,158 @@ const checkExpiriesAndAlert = async () => {
 };
 
 /**
+ * Generate daily compliance snapshots (R-AP-04, R-AP-08)
+ * Creates immutable point-in-time snapshot of compliance state
+ */
+const generateComplianceSnapshots = async () => {
+    console.log('[Cron Service] Starting daily compliance snapshot generation...');
+
+    try {
+        const agencies = await prisma.agency.findMany({
+            where: { isActive: true }
+        });
+
+        console.log(`[Cron Service] Found ${agencies.length} active agencies to snapshot.`);
+
+        let snapshotCount = 0;
+
+        for (const agency of agencies) {
+            try {
+                // Fetch all workers with compliance data
+                const workers = await prisma.worker.findMany({
+                    where: { agencyId: agency.id },
+                    include: {
+                        complianceDocuments: {
+                            include: { documentType: true }
+                        }
+                    }
+                });
+
+                // Fetch required document types
+                const requiredDocTypes = await prisma.documentType.findMany({
+                    where: { agencyId: agency.id, isRequired: true }
+                });
+
+                // Build snapshot data
+                const snapshotData = {
+                    agencyId: agency.id,
+                    agencyName: agency.name,
+                    asOfDate: new Date().toISOString(),
+                    workerCount: workers.length,
+                    requiredDocumentTypes: requiredDocTypes.map(dt => ({ id: dt.id, name: dt.name })),
+                    workers: workers.map(w => {
+                        const requiredIds = requiredDocTypes.map(dt => dt.id);
+                        const requiredDocs = w.complianceDocuments.filter(d => requiredIds.includes(d.documentTypeId));
+                        const approvedCount = requiredDocs.filter(d => d.status === 'APPROVED').length;
+                        const complianceScore = requiredDocTypes.length > 0
+                            ? Math.round((approvedCount / requiredDocTypes.length) * 100)
+                            : 100;
+
+                        return {
+                            id: w.id,
+                            name: `${w.firstName} ${w.lastName}`,
+                            email: w.email,
+                            jobTitle: w.jobTitle,
+                            status: w.status,
+                            complianceScore,
+                            documents: w.complianceDocuments.map(d => ({
+                                id: d.id,
+                                typeId: d.documentTypeId,
+                                typeName: d.documentType.name,
+                                status: d.status,
+                                expiryDate: d.expiryDate,
+                                uploadedAt: d.uploadedAt
+                            }))
+                        };
+                    }),
+                    summary: {
+                        totalWorkers: workers.length,
+                        compliantWorkers: workers.filter(w => {
+                            const requiredIds = requiredDocTypes.map(dt => dt.id);
+                            const requiredDocs = w.complianceDocuments.filter(d => requiredIds.includes(d.documentTypeId));
+                            const approvedCount = requiredDocs.filter(d => d.status === 'APPROVED').length;
+                            const score = requiredDocTypes.length > 0 ? Math.round((approvedCount / requiredDocTypes.length) * 100) : 100;
+                            return score >= 80;
+                        }).length
+                    }
+                };
+
+                // Store snapshot
+                const today = new Date();
+                today.setUTCHours(0, 0, 0, 0);
+
+                try {
+                    await prisma.complianceSnapshot.create({
+                        data: {
+                            agencyId: agency.id,
+                            asOfDate: today,
+                            data: snapshotData
+                        }
+                    });
+                    console.log(`[Cron Service] Snapshot created for agency ${agency.name}`);
+                    snapshotCount++;
+                } catch (err) {
+                    // If snapshot for today already exists, update it
+                    if (err.code === 'P2002') {
+                        await prisma.complianceSnapshot.update({
+                            where: {
+                                agencyId_asOfDate: {
+                                    agencyId: agency.id,
+                                    asOfDate: today
+                                }
+                            },
+                            data: { data: snapshotData }
+                        });
+                        console.log(`[Cron Service] Updated existing snapshot for agency ${agency.name}`);
+                        snapshotCount++;
+                    } else {
+                        throw err;
+                    }
+                }
+            } catch (err) {
+                console.error(`[Cron Service] Failed to snapshot agency ${agency.id}:`, err.message);
+                Sentry.captureException(err, {
+                    tags: {
+                        agencyId: agency.id,
+                        context: 'cron-snapshot-failure'
+                    }
+                });
+            }
+        }
+
+        console.log(`[Cron Service] Snapshot generation complete. Created/updated ${snapshotCount} snapshots.`);
+        return { snapshotCount };
+    } catch (err) {
+        console.error('[Cron Service] Global error during snapshot generation:', err);
+        Sentry.captureException(err, {
+            tags: {
+                context: 'cron-snapshot-global-error'
+            }
+        });
+        throw err;
+    }
+};
+
+/**
  * Maps the cronService to specific intervals. Default is 8:00 AM server time.
  */
 const initCronJobs = () => {
     // 0 8 * * * = "At 08:00 every day"
     cron.schedule('0 8 * * *', checkExpiriesAndAlert);
     console.log('[Cron Service] Initialized daily background expiry sweep (08:00 AM)');
-    
+
     // Retry failed alerts every hour
     cron.schedule('0 * * * *', retryFailedAlerts);
     console.log('[Cron Service] Initialized hourly failed alert retry process');
+
+    // Generate compliance snapshots at 9:00 AM daily (after expiry check)
+    cron.schedule('0 9 * * *', generateComplianceSnapshots);
+    console.log('[Cron Service] Initialized daily compliance snapshot generation (09:00 AM)');
 };
 
 module.exports = {
     initCronJobs,
     checkExpiriesAndAlert,
-    retryFailedAlerts
+    retryFailedAlerts,
+    generateComplianceSnapshots
 };

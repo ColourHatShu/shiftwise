@@ -144,4 +144,113 @@ router.patch('/update', requireAgency, requireRole(['OWNER', 'ADMIN']), async (r
     }
 });
 
+// ─── PUT /api/agencies/compliance-thresholds ──────────────────────────────────
+// R-AP-06: Update custom compliance thresholds for the agency
+// thresholds: [ { documentTypeId, warningDays } ]
+router.put('/compliance-thresholds', requireAgency, requireRole(['OWNER', 'ADMIN']), async (req, res) => {
+    try {
+        const { thresholds } = req.body;
+
+        if (!Array.isArray(thresholds)) {
+            return res.status(400).json({ error: 'thresholds must be an array' });
+        }
+
+        // Validate thresholds
+        for (const threshold of thresholds) {
+            if (!threshold.documentTypeId || !Number.isInteger(threshold.warningDays)) {
+                return res.status(400).json({ error: 'Invalid threshold format' });
+            }
+            if (threshold.warningDays < 1 || threshold.warningDays > 365) {
+                return res.status(400).json({ error: 'warningDays must be between 1 and 365' });
+            }
+        }
+
+        // Build thresholds object
+        const thresholdsObj = {};
+        thresholds.forEach(t => {
+            thresholdsObj[t.documentTypeId] = t.warningDays;
+        });
+
+        // Update agency
+        const updated = await prisma.agency.update({
+            where: { id: req.agencyId },
+            data: {
+                complianceThresholds: thresholdsObj,
+                customThresholdEnabled: true
+            }
+        });
+
+        return res.json({
+            message: 'Compliance thresholds updated successfully',
+            data: {
+                agencyId: updated.id,
+                thresholds: thresholdsObj,
+                enabled: updated.customThresholdEnabled
+            }
+        });
+    } catch (error) {
+        console.error('Error updating compliance thresholds:', error);
+        res.status(500).json({ error: 'Failed to update compliance thresholds' });
+    }
+});
+
+// ─── GET /api/agencies/compliance-thresholds ──────────────────────────────────
+// Fetch current compliance thresholds for the agency
+router.get('/compliance-thresholds', requireAgency, async (req, res) => {
+    try {
+        const agency = await prisma.agency.findUnique({
+            where: { id: req.agencyId },
+            select: {
+                complianceThresholds: true,
+                customThresholdEnabled: true
+            }
+        });
+
+        if (!agency) {
+            return res.status(404).json({ error: 'Agency not found' });
+        }
+
+        // Fetch document types with their default values
+        const docTypes = await prisma.documentType.findMany({
+            where: { agencyId: req.agencyId },
+            select: { id: true, name: true, expiryWarningDays: true }
+        });
+
+        // Merge custom thresholds with defaults
+        const thresholds = docTypes.map(dt => ({
+            documentTypeId: dt.id,
+            documentTypeName: dt.name,
+            warningDays: agency.complianceThresholds?.[dt.id] || dt.expiryWarningDays || 30
+        }));
+
+        return res.json({
+            data: {
+                thresholds,
+                customThresholdEnabled: agency.customThresholdEnabled
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching compliance thresholds:', error);
+        res.status(500).json({ error: 'Failed to fetch compliance thresholds' });
+    }
+});
+
+// ─── GET /api/agencies/document-types ──────────────────────────────────────────
+// Fetch all document types for the agency
+router.get('/document-types', requireAgency, async (req, res) => {
+    try {
+        const docTypes = await prisma.documentType.findMany({
+            where: { agencyId: req.agencyId },
+            orderBy: { name: 'asc' }
+        });
+
+        return res.json({
+            data: docTypes
+        });
+    } catch (error) {
+        console.error('Error fetching document types:', error);
+        res.status(500).json({ error: 'Failed to fetch document types' });
+    }
+});
+
 module.exports = router;

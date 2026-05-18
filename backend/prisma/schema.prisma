@@ -24,6 +24,8 @@ model Agency {
   logoUrl     String?
   isActive    Boolean  @default(true)
   isOnboarded Boolean  @default(false)
+  complianceThresholds Json? // Custom thresholds per document type: { docTypeId: warningDays }
+  customThresholdEnabled Boolean @default(false) // Enable custom thresholds
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -39,8 +41,25 @@ model Agency {
   shifts              Shift[]
   workerAvailability  WorkerAvailability[]
   shiftAssignments    ShiftAssignment[]
+  complianceSnapshots ComplianceSnapshot[]
 
   @@map("agencies")
+}
+
+// ─── ComplianceSnapshot (Point-in-time immutable snapshot) ────────────────────
+model ComplianceSnapshot {
+  id        String   @id @default(cuid())
+  agencyId  String
+  asOfDate  DateTime
+  data      Json // Full snapshot data: workers, scores, document statuses
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, asOfDate])
+  @@map("compliance_snapshots")
 }
 
 // ─── User (Staff/Admin of an Agency) ────────────────────────────────────────
