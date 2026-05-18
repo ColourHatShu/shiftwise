@@ -127,11 +127,12 @@ app.use('/api/audit-pack', auditPackRouter);
 
 // Worker self-service routes (auth + documents)
 const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('./routes/worker-auth');
-const { getWorkerDocuments, uploadWorkerDocument } = require('./routes/worker-documents');
+const { getWorkerDocuments, uploadWorkerDocument, getDocumentTypes } = require('./routes/worker-documents');
 
 app.post('/worker-signin', handleWorkerSignin);
 app.post('/worker/verify-code', handleVerifyCode);
 app.get('/worker/documents', workerAuthMiddleware, getWorkerDocuments);
+app.get('/worker/document-types', workerAuthMiddleware, getDocumentTypes);
 app.post('/worker/documents/upload', workerAuthMiddleware, upload.single('file'), uploadWorkerDocument);
 
 // Health Check

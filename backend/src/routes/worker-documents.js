@@ -68,6 +68,8 @@ async function getWorkerDocuments(req, res) {
                 daysUntilExpiry,
                 expiryColor: getExpiryColor(doc.expiryDate),
                 uploadedAt: doc.uploadedAt,
+                rejectionReason: doc.rejectionReason,
+                documentTypeId: doc.documentTypeId,
             };
         });
 
@@ -227,7 +229,46 @@ async function uploadWorkerDocument(req, res) {
     }
 }
 
+/**
+ * GET /worker/document-types
+ * Returns list of document types configured for the worker's agency
+ * Sorted: required first, then optional
+ */
+async function getDocumentTypes(req, res) {
+    try {
+        const { agencyId } = req.worker;
+
+        const docTypes = await prisma.documentType.findMany({
+            where: { agencyId },
+            select: {
+                id: true,
+                name: true,
+                isRequired: true,
+                expiryWarningDays: true,
+                hasExpiry: true,
+            },
+            orderBy: [
+                { isRequired: 'desc' }, // Required first
+                { name: 'asc' }, // Then alphabetical
+            ],
+        });
+
+        res.status(200).json({
+            documentTypes: docTypes,
+            message:
+                docTypes.length === 0 ? 'No document types configured. Contact your coordinator.' : undefined,
+        });
+    } catch (error) {
+        Sentry.captureException(error, {
+            tags: { agencyId: req.worker?.agencyId, context: 'worker.get-document-types' },
+        });
+        console.error('Get document types error:', error);
+        res.status(500).json({ error: 'Failed to fetch document types' });
+    }
+}
+
 module.exports = {
     getWorkerDocuments,
     uploadWorkerDocument,
+    getDocumentTypes,
 };
