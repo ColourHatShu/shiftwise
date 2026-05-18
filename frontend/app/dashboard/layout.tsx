@@ -13,6 +13,7 @@ import {
     LogOut,
     Shield,
     Calendar,
+    Archive,
 } from "lucide-react";
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
     { label: "Documents", href: "/dashboard/documents", icon: FileText },
     { label: "Shifts", href: "/dashboard/shifts", icon: Calendar },
     { label: "Availability", href: "/dashboard/availability", icon: Calendar },
+    { label: "Audit Packs", href: "/dashboard/audit-packs", icon: Archive },
     { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
