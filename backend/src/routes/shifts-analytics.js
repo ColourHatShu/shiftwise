@@ -12,7 +12,7 @@ router.get('/dashboard', async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 
-        const where: any = {
+        const where = {
             agencyId: req.agencyId
         };
 
@@ -44,7 +44,7 @@ router.get('/dashboard', async (req, res) => {
         const totalOpen = totalPositions - totalFilled;
 
         // Group by role
-        const byRole: Record<string, any> = {};
+        const byRole = {};
         shifts.forEach(shift => {
             if (!byRole[shift.role]) {
                 byRole[shift.role] = {
@@ -63,7 +63,7 @@ router.get('/dashboard', async (req, res) => {
         });
 
         // Group by facility
-        const byFacility: Record<string, any> = {};
+        const byFacility = {};
         shifts.forEach(shift => {
             if (!byFacility[shift.facilityName]) {
                 byFacility[shift.facilityName] = {
@@ -115,7 +115,7 @@ router.get('/heatmap', async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 
-        const where: any = {
+        const where = {
             agencyId: req.agencyId
         };
 

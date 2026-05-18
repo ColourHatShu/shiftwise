@@ -13,9 +13,9 @@ router.post('/upload', async (req, res) => {
     try {
         const { csvData } = req.body;
 
-        if (!csvData) {
+        if (!csvData || !csvData.trim()) {
             return res.status(400).json({
-                error: 'Missing csvData field'
+                error: 'CSV is empty'
             });
         }
 
