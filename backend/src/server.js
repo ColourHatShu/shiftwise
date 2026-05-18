@@ -123,10 +123,13 @@ const shiftAssignmentsRouter = require('./routes/shift-assignments');
 app.use('/api/shifts/:shiftId/assign', shiftAssignmentsRouter);
 
 const auditPackRouter = require('./routes/audit-pack');
-app.use('/api/audit-pack', auditPackRouter);
+app.use('/api/agency/audit-pack', auditPackRouter);
 
 const complianceRouter = require('./routes/compliance');
 app.use('/api/agency/compliance', complianceRouter);
+
+const complianceChecklistRouter = require('./routes/compliance-checklist');
+app.use('/api/agency/compliance', complianceChecklistRouter);
 
 // Worker self-service routes (auth + documents)
 const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('./routes/worker-auth');

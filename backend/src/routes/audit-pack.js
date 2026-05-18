@@ -1,227 +1,210 @@
 const express = require('express');
-const { createWriteStream, mkdirSync, existsSync } = require('fs');
-const { join } = require('path');
-const archiver = require('archiver');
+const Sentry = require('@sentry/node');
 const prisma = require('../lib/prisma');
 const { requireAgency, requireRole } = require('../lib/auth');
-const { sendEmail } = require('../services/emailService');
+const {
+  generateAuditPack,
+  generateComplianceReport,
+  generateSnapshot,
+  bulkExport,
+  downloadAuditPack,
+  cleanupExpiredPacks
+} = require('../lib/audit-pack-service');
 
 const router = express.Router();
 
-// Only OWNER/ADMIN can export audit packs
+// Only OWNER/ADMIN can export audit packs and reports
 router.use(requireAgency);
 router.use(requireRole(['OWNER', 'ADMIN']));
 
-// ─── POST /api/audit-pack/export - Generate and email audit pack ────────────
-router.post('/export', async (req, res) => {
+/**
+ * POST /api/agency/audit-pack/{workerId}
+ * R-AP-01: Generate single-worker audit pack (ZIP)
+ * <10s generation, contains docs + audit log + compliance summary
+ */
+router.post('/:workerId', async (req, res) => {
   try {
-    const { dateFrom, dateTo } = req.body;
+    const { workerId } = req.params;
+    const { agencyId } = req;
 
-    if (!dateFrom || !dateTo) {
-      return res.status(400).json({ error: 'Missing required fields: dateFrom, dateTo' });
-    }
-
-    const startDate = new Date(dateFrom);
-    const endDate = new Date(dateTo);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: 'Invalid date format. Use ISO 8601 format.' });
-    }
-
-    // Query audit logs for the date range
-    const auditLogs = await prisma.auditLog.findMany({
-      where: {
-        agencyId: req.agencyId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate
-        }
-      },
-      include: {
-        user: {
-          select: { id: true, email: true, firstName: true, lastName: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
+    // Validate worker exists and belongs to agency
+    const worker = await prisma.worker.findFirst({
+      where: { id: workerId, agencyId }
     });
 
-    // Query workers and their documents
-    const workers = await prisma.worker.findMany({
-      where: { agencyId: req.agencyId },
-      include: {
-        complianceDocuments: {
-          include: { documentType: true }
-        },
-        expiryAlerts: {
-          where: {
-            createdAt: {
-              gte: startDate,
-              lte: endDate
-            }
-          }
-        }
+    if (!worker) {
+      return res.status(404).json({ error: 'Worker not found' });
+    }
+
+    // Generate audit pack
+    const pack = await generateAuditPack(workerId, agencyId);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        packId: pack.packId,
+        filePath: pack.filePath,
+        fileSize: pack.fileSize,
+        duration: pack.duration,
+        expiresAt: pack.expiresAt,
+        docCount: pack.docCount,
+        logCount: pack.logCount,
+        downloadUrl: `/api/agency/audit-pack/download/${pack.packId}`
       }
     });
-
-    // Get agency info
-    const agency = await prisma.agency.findUnique({
-      where: { id: req.agencyId }
-    });
-
-    // Create temp directory for ZIP
-    const tempDir = join(process.cwd(), 'backend', 'uploads', 'audit-packs');
-    if (!existsSync(tempDir)) {
-      mkdirSync(tempDir, { recursive: true });
-    }
-
-    const packId = `audit-pack-${Date.now()}`;
-    const zipPath = join(tempDir, `${packId}.zip`);
-
-    // Create ZIP file
-    return new Promise((resolve, reject) => {
-      const output = createWriteStream(zipPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      output.on('close', async () => {
-        try {
-          // Send email with download link
-          const downloadLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/audit-packs/${packId}`;
-          const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-          await sendEmail({
-            to: req.user.email,
-            subject: `Audit Pack Export - ${agency.name}`,
-            html: `
-              <h2>Audit Pack Export Ready</h2>
-              <p>Your audit pack for ${agency.name} (${startDate.toDateString()} to ${endDate.toDateString()}) is ready.</p>
-              <p><a href="${downloadLink}">Download Audit Pack</a></p>
-              <p>This link expires on ${expiryDate.toDateString()} at ${expiryDate.toTimeString()}.</p>
-            `
-          });
-
-          res.status(201).json({
-            data: {
-              id: packId,
-              agencyId: req.agencyId,
-              dateFrom: startDate,
-              dateTo: endDate,
-              auditLogCount: auditLogs.length,
-              workerCount: workers.length,
-              downloadLink,
-              expiresAt: expiryDate
-            }
-          });
-
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      });
-
-      output.on('error', reject);
-      archive.on('error', reject);
-
-      archive.pipe(output);
-
-      // Add audit log CSV
-      const csvLines = [
-        'Timestamp,Action,Entity,EntityId,UserId,UserEmail,Changes',
-        ...auditLogs.map((log) =>
-          [
-            log.createdAt.toISOString(),
-            log.action,
-            log.entityType,
-            log.entityId,
-            log.userId,
-            log.user?.email || 'N/A',
-            JSON.stringify(log.changes || {})
-          ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',')
-        )
-      ].join('\n');
-
-      archive.append(Buffer.from(csvLines), { name: 'audit-log.csv' });
-
-      // Add metadata
-      const metadata = {
-        exportDate: new Date().toISOString(),
-        agencyId: req.agencyId,
-        agencyName: agency.name,
-        dateFrom: startDate.toISOString(),
-        dateTo: endDate.toISOString(),
-        auditLogCount: auditLogs.length,
-        workerCount: workers.length,
-        exportedBy: req.user.id
-      };
-
-      archive.append(Buffer.from(JSON.stringify(metadata, null, 2)), { name: 'metadata.json' });
-
-      // Add worker files
-      workers.forEach((worker) => {
-        const workerData = {
-          id: worker.id,
-          firstName: worker.firstName,
-          lastName: worker.lastName,
-          email: worker.email,
-          jobTitle: worker.jobTitle,
-          status: worker.status,
-          documents: worker.complianceDocuments.map((doc) => ({
-            id: doc.id,
-            type: doc.documentType.name,
-            status: doc.status,
-            expiryDate: doc.expiryDate,
-            uploadedAt: doc.createdAt
-          })),
-          alerts: worker.expiryAlerts.map((alert) => ({
-            documentType: alert.documentTypeId,
-            daysUntilExpiry: alert.daysUntilExpiry,
-            alertedAt: alert.createdAt
-          }))
-        };
-
-        const filename = `workers/${worker.id}-${worker.firstName.toLowerCase()}-${worker.lastName.toLowerCase()}.json`;
-        archive.append(Buffer.from(JSON.stringify(workerData, null, 2)), { name: filename });
-      });
-
-      archive.finalize();
-    });
   } catch (error) {
-    console.error('Error exporting audit pack:', error);
-    res.status(500).json({ error: 'Failed to export audit pack' });
+    console.error('Error generating audit pack:', error);
+    Sentry.captureException(error, {
+      tags: { context: 'auditPackGenerate' }
+    });
+    res.status(500).json({ error: error.message || 'Failed to generate audit pack' });
   }
 });
 
-// ─── GET /api/audit-pack/:packId - Download audit pack ───────────────────────
-router.get('/:packId', async (req, res) => {
+/**
+ * POST /api/agency/audit-pack/bulk
+ * R-AP-07: Bulk export for multiple workers
+ * <10s for 10+ workers, clear ZIP structure
+ */
+router.post('/bulk/export', async (req, res) => {
   try {
-    const { packId } = req.params;
+    const { workerIds } = req.body;
+    const { agencyId } = req;
 
-    const tempDir = join(process.cwd(), 'backend', 'uploads', 'audit-packs');
-    const zipPath = join(tempDir, `${packId}.zip`);
-
-    // Check if file exists
-    const { existsSync, statSync } = require('fs');
-    if (!existsSync(zipPath)) {
-      return res.status(404).json({ error: 'Audit pack not found or expired' });
+    if (!Array.isArray(workerIds) || workerIds.length === 0) {
+      return res.status(400).json({ error: 'workerIds array required' });
     }
 
-    // Check file age (7 days = 604800000 ms)
-    const fileAge = Date.now() - statSync(zipPath).mtimeMs;
-    const expiryMs = 7 * 24 * 60 * 60 * 1000;
-
-    if (fileAge > expiryMs) {
-      return res.status(410).json({ error: 'Audit pack has expired' });
+    if (workerIds.length > 100) {
+      return res.status(400).json({ error: 'Maximum 100 workers per bulk export' });
     }
 
-    // Send file
-    res.download(zipPath, `audit-pack-${packId}.zip`, (err) => {
-      if (err && !res.headersSent) {
-        console.error('Error sending file:', err);
-        res.status(500).json({ error: 'Failed to download audit pack' });
+    // Generate bulk export
+    const pack = await bulkExport(agencyId, workerIds);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        packId: pack.packId,
+        fileSize: pack.fileSize,
+        duration: pack.duration,
+        expiresAt: pack.expiresAt,
+        workerCount: pack.workerCount,
+        downloadUrl: `/api/agency/audit-pack/download/${pack.packId}`
       }
     });
   } catch (error) {
+    console.error('Error generating bulk export:', error);
+    Sentry.captureException(error, {
+      tags: { context: 'bulkExportGenerate' }
+    });
+    res.status(500).json({ error: error.message || 'Failed to generate bulk export' });
+  }
+});
+
+/**
+ * POST /api/agency/compliance-report
+ * R-AP-02: Generate agency-wide compliance report (PDF)
+ * <5s for 200 workers, includes all workers + scores
+ */
+router.post('/report/generate', async (req, res) => {
+  try {
+    const { agencyId } = req;
+
+    // Generate report
+    const result = await generateComplianceReport(agencyId);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="compliance-report-${new Date().toISOString().split('T')[0]}.pdf"`
+    );
+
+    res.send(result.buffer);
+  } catch (error) {
+    console.error('Error generating compliance report:', error);
+    Sentry.captureException(error, {
+      tags: { context: 'complianceReportGenerate' }
+    });
+    res.status(500).json({ error: error.message || 'Failed to generate report' });
+  }
+});
+
+/**
+ * GET /api/agency/compliance-snapshot
+ * R-AP-04: Get compliance snapshot (immutable point-in-time state)
+ * Returns JSON snapshot with worker list, scores, document statuses
+ */
+router.get('/snapshot', async (req, res) => {
+  try {
+    const { agencyId } = req;
+
+    // Generate snapshot
+    const snapshot = await generateSnapshot(agencyId);
+
+    res.status(200).json({
+      success: true,
+      data: snapshot
+    });
+  } catch (error) {
+    console.error('Error generating snapshot:', error);
+    Sentry.captureException(error, {
+      tags: { context: 'snapshotGenerate' }
+    });
+    res.status(500).json({ error: error.message || 'Failed to generate snapshot' });
+  }
+});
+
+/**
+ * GET /api/agency/audit-pack/download/:packId
+ * Download an audit pack file
+ * Expires after 7 days
+ */
+router.get('/download/:packId', async (req, res) => {
+  try {
+    const { packId } = req.params;
+
+    const pack = await downloadAuditPack(packId);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${pack.fileName}"`);
+
+    pack.stream.pipe(res);
+  } catch (error) {
     console.error('Error downloading audit pack:', error);
-    res.status(500).json({ error: 'Failed to download audit pack' });
+    Sentry.captureException(error, {
+      tags: { context: 'auditPackDownload' }
+    });
+    res.status(error.message.includes('not found') ? 404 : 500).json({
+      error: error.message || 'Failed to download audit pack'
+    });
+  }
+});
+
+/**
+ * POST /api/agency/audit-pack/cleanup
+ * Manual cleanup of expired audit packs
+ * (Normally done by cron, but exposed for admin use)
+ */
+router.post('/cleanup/expired', async (req, res) => {
+  try {
+    const { agencyId } = req;
+
+    const result = await cleanupExpiredPacks(168); // 7 days
+
+    res.status(200).json({
+      success: true,
+      data: {
+        deletedCount: result.deletedCount,
+        message: `Cleaned up ${result.deletedCount} expired audit packs`
+      }
+    });
+  } catch (error) {
+    console.error('Error cleaning up expired packs:', error);
+    Sentry.captureException(error, {
+      tags: { context: 'cleanupExpiredPacks' }
+    });
+    res.status(500).json({ error: error.message || 'Failed to cleanup expired packs' });
   }
 });
 
