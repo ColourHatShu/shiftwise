@@ -95,6 +95,9 @@ initCronJobs();
 const workersRouter = require('./routes/workers');
 app.use('/api/workers', workersRouter);
 
+const workerAvailabilityRouter = require('./routes/worker-availability');
+app.use('/api/workers/:workerId/availability', workerAvailabilityRouter);
+
 const agenciesRouter = require('./routes/agencies');
 app.use('/api/agencies', agenciesRouter);
 
