@@ -13,6 +13,7 @@ import {
     ChevronDown,
     Clock
 } from "lucide-react";
+import WorkerDetailModal from "./WorkerDetailModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -53,6 +54,8 @@ export default function ComplianceDashboard() {
     const [alerts, setAlerts] = useState<AlertsSummary | null>(null);
     const [loading, setLoading] = useState(true);
     const [exporting, setExporting] = useState(false);
+    const [selectedWorker, setSelectedWorker] = useState<any>(null);
+    const [modalOpen, setModalOpen] = useState(false);
 
     // Filters
     const [search, setSearch] = useState("");
@@ -187,6 +190,102 @@ export default function ComplianceDashboard() {
         setStatusFilter(null);
         setSortBy('name');
         setPage(1);
+    };
+
+    const handleOpenWorkerModal = async (workerId: string) => {
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/workers/${workerId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const workerData = await res.json();
+                // Also fetch documents
+                const docsRes = await fetch(`${API_URL}/api/documents?workerId=${workerId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                let documents = [];
+                if (docsRes.ok) {
+                    const docsData = await docsRes.json();
+                    documents = docsData.data || [];
+                }
+                setSelectedWorker({
+                    ...workerData.data,
+                    documents,
+                    complianceScore: workers.find(w => w.id === workerId)?.complianceScore || 0,
+                    complianceStatus: workers.find(w => w.id === workerId)?.complianceStatus || 'red',
+                    completedDocs: workers.find(w => w.id === workerId)?.completedDocs || 0,
+                    totalRequiredDocs: workers.find(w => w.id === workerId)?.totalRequiredDocs || 0
+                });
+                setModalOpen(true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch worker details:', err);
+        }
+    };
+
+    const handleApproveDocument = async (documentId: string) => {
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/agency/compliance/document/${documentId}/approve`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                alert('Document approved');
+                fetchData(); // Refresh data
+                if (selectedWorker) {
+                    handleOpenWorkerModal(selectedWorker.id); // Refresh modal
+                }
+            }
+        } catch (err) {
+            console.error('Failed to approve document:', err);
+            alert('Failed to approve document');
+        }
+    };
+
+    const handleRejectDocument = async (documentId: string, reason: string) => {
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/agency/compliance/document/${documentId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason })
+            });
+            if (res.ok) {
+                alert('Document rejected');
+                fetchData(); // Refresh data
+                if (selectedWorker) {
+                    handleOpenWorkerModal(selectedWorker.id); // Refresh modal
+                }
+            }
+        } catch (err) {
+            console.error('Failed to reject document:', err);
+            alert('Failed to reject document');
+        }
+    };
+
+    const handleDeactivateWorker = async () => {
+        if (!selectedWorker) return;
+        try {
+            const token = await getToken();
+            const res = await fetch(`${API_URL}/api/agency/compliance/worker/${selectedWorker.id}/deactivate`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                alert('Worker deactivated');
+                setModalOpen(false);
+                setSelectedWorker(null);
+                fetchData(); // Refresh data
+            }
+        } catch (err) {
+            console.error('Failed to deactivate worker:', err);
+            alert('Failed to deactivate worker');
+        }
     };
 
     return (
@@ -458,12 +557,12 @@ export default function ComplianceDashboard() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <Link
-                                                    href={`/dashboard/workers/${worker.id}`}
+                                                <button
+                                                    onClick={() => handleOpenWorkerModal(worker.id)}
                                                     className="text-[#003087] hover:text-[#003087]/80 font-medium text-sm"
                                                 >
-                                                    View
-                                                </Link>
+                                                    Review
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -511,6 +610,19 @@ export default function ComplianceDashboard() {
                     </>
                 )}
             </div>
+
+            {/* Worker Detail Modal */}
+            <WorkerDetailModal
+                isOpen={modalOpen}
+                worker={selectedWorker}
+                onClose={() => {
+                    setModalOpen(false);
+                    setSelectedWorker(null);
+                }}
+                onApprove={handleApproveDocument}
+                onReject={handleRejectDocument}
+                onDeactivate={handleDeactivateWorker}
+            />
         </div>
     );
 }
