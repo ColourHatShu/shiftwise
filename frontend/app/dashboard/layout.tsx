@@ -22,6 +22,7 @@ const navItems = [
     { label: "Documents", href: "/dashboard/documents", icon: FileText },
     { label: "Shifts", href: "/dashboard/shifts", icon: Calendar },
     { label: "Availability", href: "/dashboard/availability", icon: Calendar },
+    { label: "Audit Log", href: "/dashboard/audit-log", icon: FileText },
     { label: "Audit Packs", href: "/dashboard/audit-packs", icon: Archive },
     { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -75,16 +76,16 @@ export default function DashboardLayout({
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F9FB] flex">
-            {/* ── Professional Sidebar ── */}
-            <aside className="w-[220px] shrink-0 flex flex-col bg-white border-r border-[#E5E7EB] sticky top-0 h-screen">
+        <div className="min-h-screen bg-[#F5F7FA] flex">
+            {/* ── Professional White Sidebar with Royal Blue Accents ── */}
+            <aside className="w-[220px] shrink-0 flex flex-col bg-white border-r border-[#DDE3EE] sticky top-0 h-screen shadow-sm">
                 {/* Logo */}
-                <div className="px-5 py-5 border-b border-[#E5E7EB]">
+                <div className="px-5 py-5 border-b border-[#DDE3EE]">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#0F2647] flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-[#003087] flex items-center justify-center">
                             <span className="text-white font-semibold text-sm">SW</span>
                         </div>
-                        <span className="text-lg font-medium text-[#1A1A2E] tracking-tight">
+                        <span className="text-lg font-medium text-[#0A1628] tracking-tight">
                             ShiftWise
                         </span>
                     </div>
@@ -96,16 +97,16 @@ export default function DashboardLayout({
                         const active = isActive(href);
                         return (
                             <Link
-                                key={href} 
+                                key={href}
                                 href={href}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 group ${active
-                                    ? "bg-[#EEF2FF] text-[#0F2647]"
-                                    : "text-[#6B7280] hover:text-[#1A1A2E] hover:bg-[#F8F9FB]"
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 group relative border-l-3 ${active
+                                    ? "bg-[#E6EDF8] text-[#003087] border-l-[#003087]"
+                                    : "text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] border-l-transparent"
                                 }`}
                             >
                                 <Icon
                                     size={18}
-                                    className={`shrink-0 ${active ? "text-[#0F2647]" : "text-[#6B7280] group-hover:text-[#1A1A2E]"}`}
+                                    className={`shrink-0 ${active ? "text-[#003087]" : "text-[#5B6E8C] group-hover:text-[#0A1628]"}`}
                                 />
                                 {label}
                             </Link>
@@ -114,10 +115,10 @@ export default function DashboardLayout({
                 </nav>
 
                 {/* User & Sign Out */}
-                <div className="px-3 py-4 border-t border-[#E5E7EB]">
+                <div className="px-3 py-4 border-t border-[#DDE3EE]">
                     <SignOutButton redirectUrl="/sign-in">
-                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#6B7280] hover:text-[#1A1A2E] hover:bg-[#F8F9FB] transition-all duration-150 group">
-                            <LogOut size={18} className="shrink-0 text-[#6B7280] group-hover:text-[#1A1A2E]" />
+                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] transition-all duration-150 group border-l-3 border-l-transparent">
+                            <LogOut size={18} className="shrink-0 text-[#5B6E8C] group-hover:text-[#0A1628]" />
                             Sign Out
                         </button>
                     </SignOutButton>
