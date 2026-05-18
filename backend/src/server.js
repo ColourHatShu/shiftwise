@@ -122,6 +122,12 @@ app.use('/api/shifts', shiftsRouter);
 const shiftAssignmentsRouter = require('./routes/shift-assignments');
 app.use('/api/shifts/:shiftId/assign', shiftAssignmentsRouter);
 
+const shiftsBulkRouter = require('./routes/shifts-bulk');
+app.use('/api/shifts/bulk', shiftsBulkRouter);
+
+const shiftsAnalyticsRouter = require('./routes/shifts-analytics');
+app.use('/api/shifts/analytics', shiftsAnalyticsRouter);
+
 const auditPackRouter = require('./routes/audit-pack');
 app.use('/api/agency/audit-pack', auditPackRouter);
 

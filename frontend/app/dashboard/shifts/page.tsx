@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Check, X, Edit, Trash2 } from 'lucide-react';
+import { AlertCircle, Check, X, Edit, Trash2, BarChart3, Upload } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ShiftCalendar from './components/ShiftCalendar';
 import ShiftModal from './components/ShiftModal';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import BulkUploadModal from './components/BulkUploadModal';
+import ShiftAnalytics from './components/ShiftAnalytics';
 
 interface Shift {
   id: string;
@@ -45,6 +47,8 @@ export default function ShiftsPage() {
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Shift | null>(null);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   useEffect(() => {
     fetchShifts();
@@ -131,24 +135,49 @@ export default function ShiftsPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Shift Management</h1>
-        <p className="text-gray-600 mt-1">Create and manage shifts, view assignments and compliance gaps</p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Shift Management</h1>
+          <p className="text-gray-600 mt-1">Create and manage shifts, view assignments and compliance gaps</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowAnalytics(!showAnalytics)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+          >
+            <BarChart3 className="w-5 h-5" /> Analytics
+          </button>
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+          >
+            <Upload className="w-5 h-5" /> Bulk Upload
+          </button>
+        </div>
       </div>
 
+      {/* Analytics View */}
+      {showAnalytics && (
+        <div className="mb-8">
+          <ShiftAnalytics />
+        </div>
+      )}
+
       {/* Calendar View */}
-      <ShiftCalendar
-        shifts={shifts}
-        onSelectShift={(shift) => {
-          setSelectedShift(shift);
-          setShowEditModal(true);
-        }}
-        onCreateClick={() => {
-          setSelectedShift(null);
-          setShowNewShiftModal(true);
-        }}
-        loading={loading}
-      />
+      {!showAnalytics && (
+        <ShiftCalendar
+          shifts={shifts}
+          onSelectShift={(shift) => {
+            setSelectedShift(shift);
+            setShowEditModal(true);
+          }}
+          onCreateClick={() => {
+            setSelectedShift(null);
+            setShowNewShiftModal(true);
+          }}
+          loading={loading}
+        />
+      )}
 
       {/* Details Panel */}
       {selectedShift && (
@@ -270,6 +299,15 @@ export default function ShiftsPage() {
         onCancel={() => {
           setShowDeleteModal(false);
           setDeleteTarget(null);
+        }}
+      />
+
+      <BulkUploadModal
+        isOpen={showBulkUpload}
+        onClose={() => setShowBulkUpload(false)}
+        onSuccess={() => {
+          fetchShifts();
+          setShowBulkUpload(false);
         }}
       />
     </div>
