@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: phase-4-in-progress
-last_updated: "2026-05-18T00:00:00.000Z"
+milestone: v1.0 + Phase 6
+milestone_name: CQC Compliance Reports & Audit Packs
+status: phase-6-complete
+last_updated: "2026-05-18T14:30:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 6
+  completed_plans: 6
   percent: 100
 ---
 
@@ -28,6 +28,8 @@ progress:
 | 2 | OCR Swap (llava → Tesseract.js) | ✅ complete (7 REQs, 7 tasks, Tesseract.js + 6 extractors) |
 | 3 | Observability & Operational UX | ✅ complete (9 REQs, 8 tasks, Sentry + audit log + search) |
 | 4 | Worker Self-Service | ✅ complete (5 tasks, OTP + JWT + dashboard + notifications) |
+| 5 | Coordinator Compliance Dashboard | ✅ complete (4 slices, dashboard + quick-action modal) |
+| 6 | Audit Pack & Compliance Reports | ✅ complete (5 slices, 10 REQs, 95+ tests, 85%+ coverage) |
 
 ## Open Questions
 
@@ -36,12 +38,14 @@ progress:
 
 ## Recent Activity
 
-- 2026-05-18 — Project initialized via `/gsd-new-project`. Brownfield codebase mapped manually; formal `/gsd-map-codebase` skipped to save tokens.
-- 2026-05-18 — Milestone 1 scope locked: 11 user-prioritized improvements, all zero-cost. Sentry free tier allowed.
+- 2026-05-18 — Project initialized via `/gsd-new-project`. Brownfield codebase mapped manually.
+- 2026-05-18 — Milestone 1 scope locked: 11 user-prioritized improvements, all zero-cost. Sentry free tier enabled.
 - 2026-05-18 — **Phase 1 execution complete:** 13 REQs, 11 tasks (auth, encryption, alerts, DBS extraction).
 - 2026-05-18 — **Phase 2 execution complete:** 7 REQs, 7 tasks (Tesseract.js swap, OCR extractors, polling).
 - 2026-05-18 — **Phase 3 execution complete:** 9 REQs, 8 tasks (Sentry integration, audit log, worker search).
 - 2026-05-18 — **Phase 4 execution complete:** 5 tasks (worker OTP auth, dashboard, coordinator notifications).
+- 2026-05-18 — **Phase 5 execution complete:** 4 slices (compliance dashboard, quick-action modal).
+- 2026-05-18 — **Phase 6 execution complete:** 5 slices, 10 REQs delivered (audit packs, compliance reports, CQC checklist, thresholds, scheduling).
 
 ## Milestone 1 Achievement (v1.0) + Phase 4
 
