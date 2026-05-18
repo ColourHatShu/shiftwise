@@ -125,6 +125,9 @@ app.use('/api/shifts/:shiftId/assign', shiftAssignmentsRouter);
 const auditPackRouter = require('./routes/audit-pack');
 app.use('/api/audit-pack', auditPackRouter);
 
+const complianceRouter = require('./routes/compliance');
+app.use('/api/agency/compliance', complianceRouter);
+
 // Worker self-service routes (auth + documents)
 const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('./routes/worker-auth');
 const { getWorkerDocuments, uploadWorkerDocument, getDocumentTypes } = require('./routes/worker-documents');
