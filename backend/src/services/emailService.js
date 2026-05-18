@@ -113,6 +113,119 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
     }
 };
 
+/**
+ * Sends a worker-friendly pre-expiry notification email.
+ *
+ * @param {string} workerEmail The worker's email address
+ * @param {string} workerFirstName The worker's first name
+ * @param {string} documentType The type of document expiring (e.g., DBS Check)
+ * @param {Date|string} expiryDate The date the document expires
+ * @param {number} daysUntilExpiry Number of days remaining
+ */
+const sendWorkerExpiryAlert = async (workerEmail, workerFirstName, documentType, expiryDate, daysUntilExpiry) => {
+    console.log(`[Email Service] Attempting to send Worker Expiry Alert email to ${workerEmail} for ${documentType}`);
+
+    // Skip if Resend key not configured
+    if (!process.env.RESEND_API_KEY) {
+        console.warn(`[WARN] Skipping Worker Expiry Alert email to ${workerEmail} because RESEND_API_KEY is not defined in .env`);
+        return null;
+    }
+
+    const formattedDate = new Date(expiryDate).toLocaleDateString('en-GB');
+    const portalUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    const urgencyText = daysUntilExpiry === 0
+        ? 'Your document has EXPIRED TODAY'
+        : `Your ${documentType} expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`;
+
+    const subjectLine = daysUntilExpiry === 0
+        ? `[URGENT] Your ${documentType} has expired`
+        : `[Action Required] Your ${documentType} expires in ${daysUntilExpiry} days`;
+
+    const emailHtml = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8fafc; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; }
+            .content { padding: 20px 0; }
+            .cta-button {
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #2563eb;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: bold;
+                margin: 20px 0;
+            }
+            .footer { font-size: 12px; color: #999; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+            .urgency-red { color: #dc2626; }
+            .urgency-yellow { color: #ea580c; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>ShiftWise Compliance Reminder</h1>
+            </div>
+
+            <div class="content">
+                <p>Hi ${workerFirstName},</p>
+
+                <p class="${daysUntilExpiry === 0 ? 'urgency-red' : 'urgency-yellow'}">
+                    <strong>${urgencyText}</strong>
+                </p>
+
+                <p>
+                    Your <strong>${documentType}</strong> expires on <strong>${formattedDate}</strong>.
+                    ${daysUntilExpiry === 0
+                        ? 'You must upload a renewal immediately to continue working on shifts.'
+                        : `You have ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''} to renew this document.`
+                    }
+                </p>
+
+                <div style="text-align: center;">
+                    <a href="${portalUrl}/worker/dashboard" class="cta-button">View Your Compliance Status</a>
+                </div>
+
+                <p>
+                    If you have any questions, please contact your coordinator.
+                </p>
+            </div>
+
+            <div class="footer">
+                <p>
+                    This is an automated message from ShiftWise.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    try {
+        console.log(`[Email Service] Calling Resend API for worker email...`);
+        const response = await resend.emails.send({
+            from: 'onboarding@resend.dev',
+            to: [workerEmail],
+            subject: subjectLine,
+            html: emailHtml,
+        });
+
+        console.log(`[Email Service] Worker alert sent successfully to ${workerEmail}`);
+        return response;
+    } catch (error) {
+        console.error(`[Email Service] Failed to send worker expiry alert to ${workerEmail}:`, error);
+        throw error;
+    }
+};
+
 module.exports = {
-    sendExpiryAlert
+    sendExpiryAlert,
+    sendWorkerExpiryAlert
 };

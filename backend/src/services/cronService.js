@@ -1,9 +1,9 @@
 const cron = require('node-cron');
 const Sentry = require('@sentry/node');
 const prisma = require('../lib/prisma');
-const { sendExpiryAlert } = require('./emailService');
+const { sendExpiryAlert, sendWorkerExpiryAlert } = require('./emailService');
 
-const TARGET_DAYS_UNTIL_EXPIRY = [30, 14, 7];
+const TARGET_DAYS_UNTIL_EXPIRY = [90, 60, 30, 14, 7, 3, 1, 0];
 const MAX_RETRY_ATTEMPTS = 3;
 
 /**
@@ -188,8 +188,8 @@ const checkExpiriesAndAlert = async () => {
         for (const doc of activeDocuments) {
             const daysRemaining = getDaysDiff(doc.expiryDate);
 
-            // We now trigger alerts for ANY document expiring in 30 days or less
-            if (daysRemaining > 30 || daysRemaining < 0) continue;
+            // Check if this document hits one of our target milestones
+            if (!TARGET_DAYS_UNTIL_EXPIRY.includes(daysRemaining)) continue;
 
             // Check if an alert was ALREADY sent today for this exact document
             // Dedup at database level: the unique constraint on (complianceDocumentId, daysUntilExpiry, alertDateOnly)
@@ -199,7 +199,7 @@ const checkExpiriesAndAlert = async () => {
             alertDateToday.setUTCHours(0, 0, 0, 0);  // Normalize to UTC midnight
 
             try {
-                // Attempt to create the alert. If it already exists for today, Prisma will throw P2002.
+                // Send coordinator notification email
                 await sendExpiryAlert(
                     doc.agency.email,
                     fullWorkerName,
@@ -207,6 +207,23 @@ const checkExpiriesAndAlert = async () => {
                     doc.expiryDate,
                     daysRemaining
                 );
+
+                // NEW: Send worker notification email at each milestone
+                try {
+                    await sendWorkerExpiryAlert(
+                        doc.worker.email,
+                        doc.worker.firstName,
+                        doc.documentType.name,
+                        doc.expiryDate,
+                        daysRemaining
+                    );
+                } catch (workerEmailErr) {
+                    console.warn(`[Cron Service] Failed to send worker alert for ${fullWorkerName}:`, workerEmailErr.message);
+                    Sentry.captureException(workerEmailErr, {
+                        tags: { documentId: doc.id, context: 'worker-expiry-alert' }
+                    });
+                    // Don't fail coordinator alert if worker email fails
+                }
 
                 // Email sent successfully. Now record the alert in the database.
                 try {
@@ -233,7 +250,7 @@ const checkExpiriesAndAlert = async () => {
                     throw err;
                 }
 
-                // Write identical audit log record dynamically for compliance
+                // Write audit log records for both coordinator and worker alerts
                 await prisma.auditLog.create({
                     data: {
                         agencyId: doc.agencyId,
@@ -244,7 +261,25 @@ const checkExpiriesAndAlert = async () => {
                             workerName: fullWorkerName,
                             documentType: doc.documentType.name,
                             daysRemaining: daysRemaining,
-                            recipient: doc.agency.email
+                            recipient: doc.agency.email,
+                            recipientType: 'coordinator'
+                        }
+                    }
+                });
+
+                // Audit log for worker alert
+                await prisma.auditLog.create({
+                    data: {
+                        agencyId: doc.agencyId,
+                        userId: null,
+                        action: 'alert.worker_expiry_warning_sent',
+                        entity: 'ComplianceDocument',
+                        entityId: doc.id,
+                        metadata: {
+                            workerName: fullWorkerName,
+                            documentType: doc.documentType.name,
+                            daysRemaining: daysRemaining,
+                            recipient: doc.worker.email
                         }
                     }
                 });
