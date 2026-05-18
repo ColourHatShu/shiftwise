@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
 
 interface WorkerAvailability {
   id: string;
@@ -102,10 +101,8 @@ export default function AvailabilityPage() {
   const days = Array.from({ length: firstDay }, (_, i) => null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
+    <div>
+      <div className="p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Your Availability</h1>
             <p className="text-gray-600 mt-1">Mark your availability for upcoming shifts</p>
@@ -203,7 +200,6 @@ export default function AvailabilityPage() {
               </div>
             </div>
           </div>
-        </div>
       </div>
     </div>
   );

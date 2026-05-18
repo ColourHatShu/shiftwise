@@ -12,12 +12,15 @@ import {
     Settings,
     LogOut,
     Shield,
+    Calendar,
 } from "lucide-react";
 
 const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Workers", href: "/dashboard/workers", icon: Users },
     { label: "Documents", href: "/dashboard/documents", icon: FileText },
+    { label: "Shifts", href: "/dashboard/shifts", icon: Calendar },
+    { label: "Availability", href: "/dashboard/availability", icon: Calendar },
     { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

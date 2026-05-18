@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Calendar, Plus, AlertCircle, Check, X } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
 
 interface Shift {
   id: string;
@@ -59,10 +58,8 @@ export default function ShiftsPage() {
   if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
+    <div>
+      <div className="p-8">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Shift Management</h1>
@@ -161,7 +158,6 @@ export default function ShiftsPage() {
               </tbody>
             </table>
           </div>
-        </div>
       </div>
 
       {/* Modals would go here */}
