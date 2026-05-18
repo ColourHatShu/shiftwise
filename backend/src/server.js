@@ -116,6 +116,9 @@ app.use('/api/audit-log', auditLogRouter);
 const shiftsRouter = require('./routes/shifts');
 app.use('/api/shifts', shiftsRouter);
 
+const shiftAssignmentsRouter = require('./routes/shift-assignments');
+app.use('/api/shifts/:shiftId/assign', shiftAssignmentsRouter);
+
 // Worker self-service routes (auth + documents)
 const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('./routes/worker-auth');
 const { getWorkerDocuments, uploadWorkerDocument } = require('./routes/worker-documents');

@@ -22,12 +22,18 @@ describe('Shift Assignment Endpoints', () => {
     let app;
 
     beforeEach(() => {
+        jest.clearAllMocks();
+
         app = express();
         app.use(express.json());
-        app.use('/api/shifts/:shiftId/assign', shiftAssignmentsRouter);
 
-        // Setup prisma mocks
-        jest.clearAllMocks();
+        // Setup prisma mocks BEFORE mounting router
+        prisma.shift = {
+            findFirst: jest.fn()
+        };
+        prisma.worker = {
+            findFirst: jest.fn()
+        };
         prisma.shiftAssignment = {
             create: jest.fn(),
             findMany: jest.fn(),
@@ -40,12 +46,29 @@ describe('Shift Assignment Endpoints', () => {
         prisma.documentType = {
             findMany: jest.fn()
         };
+
+        // Mount router at the correct path
+        app.use('/api/shifts/:shiftId/assign', shiftAssignmentsRouter);
     });
 
     describe('POST /api/shifts/:shiftId/assign - Assign worker to shift with compliance check', () => {
         it('should assign worker to shift with passing compliance check', async () => {
             const shiftId = 'shift-1';
             const workerId = 'worker-1';
+
+            // Setup shift and worker mocks
+            prisma.shift.findFirst.mockResolvedValue({
+                id: shiftId,
+                facilityName: 'Hospital',
+                agencyId: 'test-agency-1'
+            });
+
+            prisma.worker.findFirst.mockResolvedValue({
+                id: workerId,
+                firstName: 'John',
+                lastName: 'Doe',
+                agencyId: 'test-agency-1'
+            });
 
             prisma.complianceDocument.findMany.mockResolvedValue([
                 {
@@ -104,6 +127,20 @@ describe('Shift Assignment Endpoints', () => {
             const shiftId = 'shift-1';
             const workerId = 'worker-2';
 
+            // Setup shift and worker mocks
+            prisma.shift.findFirst.mockResolvedValue({
+                id: shiftId,
+                facilityName: 'Hospital',
+                agencyId: 'test-agency-1'
+            });
+
+            prisma.worker.findFirst.mockResolvedValue({
+                id: workerId,
+                firstName: 'Jane',
+                lastName: 'Smith',
+                agencyId: 'test-agency-1'
+            });
+
             prisma.complianceDocument.findMany.mockResolvedValue([
                 {
                     id: 'doc-1',
@@ -156,18 +193,42 @@ describe('Shift Assignment Endpoints', () => {
             const shiftId = 'shift-1';
             const workerId = 'worker-3';
 
+            // Setup shift and worker mocks
+            prisma.shift.findFirst.mockResolvedValue({
+                id: shiftId,
+                facilityName: 'Hospital',
+                agencyId: 'test-agency-1'
+            });
+
+            prisma.worker.findFirst.mockResolvedValue({
+                id: workerId,
+                firstName: 'Bob',
+                lastName: 'Johnson',
+                agencyId: 'test-agency-1'
+            });
+
             prisma.complianceDocument.findMany.mockResolvedValue([
                 {
                     id: 'doc-1',
                     documentTypeId: 'dbs-type',
                     status: 'APPROVED',
-                    expiryDate: new Date('2025-01-01') // Expired
+                    expiryDate: new Date('2025-01-01'), // Expired
+                    documentType: {
+                        id: 'dbs-type',
+                        name: 'DBS Check',
+                        isRequired: true
+                    }
                 },
                 {
                     id: 'doc-2',
                     documentTypeId: 'rtw-type',
                     status: 'APPROVED',
-                    expiryDate: new Date('2028-06-30')
+                    expiryDate: new Date('2028-06-30'),
+                    documentType: {
+                        id: 'rtw-type',
+                        name: 'Right to Work',
+                        isRequired: true
+                    }
                 }
             ]);
 
@@ -213,6 +274,20 @@ describe('Shift Assignment Endpoints', () => {
             const shiftId = 'shift-1';
             const workerId = 'worker-1';
 
+            // Setup shift and worker mocks
+            prisma.shift.findFirst.mockResolvedValueOnce({
+                id: shiftId,
+                facilityName: 'Hospital',
+                agencyId: 'test-agency-1'
+            });
+
+            prisma.worker.findFirst.mockResolvedValue({
+                id: workerId,
+                firstName: 'John',
+                lastName: 'Doe',
+                agencyId: 'test-agency-1'
+            });
+
             prisma.shiftAssignment.findFirst.mockResolvedValue({
                 id: 'assign-1',
                 shiftId,
@@ -243,6 +318,13 @@ describe('Shift Assignment Endpoints', () => {
         it('should list all assignments for a shift', async () => {
             const shiftId = 'shift-1';
 
+            // Setup shift mock
+            prisma.shift.findFirst.mockResolvedValue({
+                id: shiftId,
+                facilityName: 'Hospital',
+                agencyId: 'test-agency-1'
+            });
+
             prisma.shiftAssignment.findMany.mockResolvedValue([
                 {
                     id: 'assign-1',
@@ -262,7 +344,7 @@ describe('Shift Assignment Endpoints', () => {
             ]);
 
             const res = await request(app)
-                .get(`/api/shifts/${shiftId}/assignments`);
+                .get(`/api/shifts/${shiftId}/assign`);
 
             expect(res.status).toBe(200);
             expect(res.body.data).toHaveLength(1);
