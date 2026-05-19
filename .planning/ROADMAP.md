@@ -122,8 +122,9 @@ All 29 v1 REQ-IDs from `REQUIREMENTS.md` are mapped to exactly one phase:
 **Goal:** Enable coordinators to post shifts at care facilities. By end of phase: coordinators can create shifts (date, time, location, role, required headcount), specify compliance requirements, and manage shift details. Workers see available shifts matching their qualifications.
 **Mode:** mvp
 **UI hint:** yes (shifts view)
-**Requirements:** (to be defined in spec phase)
-**Success Criteria:** (to be defined in spec phase)
+**Requirements:** R-SM-01 through R-SM-10
+**Plans:** 5 slices (CRUD + UI + bulk upload + analytics + tests)
+**Status:** ✅ COMPLETE
 
 ---
 
@@ -131,11 +132,22 @@ All 29 v1 REQ-IDs from `REQUIREMENTS.md` are mapped to exactly one phase:
 **Goal:** Assign workers to shifts only if compliant. By end of phase: coordinators can bulk-assign compliant workers to shifts, system prevents assigning non-compliant workers (missing docs or expired), and workers can view their assigned shifts with confirmation workflow.
 **Mode:** mvp
 **UI hint:** yes (assignment workflow)
-**Requirements:** (to be defined in spec phase)
-**Success Criteria:** (to be defined in spec phase)
+**Requirements:** R-SA-01 through R-SA-10 (10 requirements)
+**Plans:** 5 slices:
+- [ ] 08-01-PLAN.md — Backend Compliance Assignment Service (compliance validation, bulk assign API, tests)
+- [ ] 08-02-PLAN.md — Coordinator Quick-Assign UI (modal, search, checkboxes, assignment list)
+- [ ] 08-03-PLAN.md — Worker Shift Confirmation Workflow (confirm/decline, AuditLog)
+- [ ] 08-04-PLAN.md — Assignment Notifications & Dashboard (email, templates, metrics, cron)
+- [ ] 08-05-PLAN.md — Testing & Verification (35+ tests, >80% coverage, E2E workflow)
 
 ---
 
 ## Build order rationale
 
 Phase 7 (Shift Management) before Phase 8 (Assignments) because assignments depend on shift infrastructure. Both depend on Phases 1-6 (auth, compliance tracking, dashboards).
+
+**Phase 8 dependencies:**
+- Phase 7: Shift model, ShiftAssignment model (extended with complianceSnapshot, workerConfirmation, workerNote)
+- Phase 5/6: Compliance scoring, AuditLog infrastructure, email templates
+- Phase 4: Worker portal structure, OTP auth
+- Phase 1: Auth middleware (requireRole), encryption infrastructure
