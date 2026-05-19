@@ -140,15 +140,17 @@ app.use('/api/agency/compliance', complianceRouter);
 const complianceChecklistRouter = require('./routes/compliance-checklist');
 app.use('/api/agency/compliance', complianceChecklistRouter);
 
-// Worker self-service routes (auth + documents)
+// Worker self-service routes (auth + documents + assignments)
 const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('./routes/worker-auth');
 const { getWorkerDocuments, uploadWorkerDocument, getDocumentTypes } = require('./routes/worker-documents');
+const workerAssignmentsRouter = require('./routes/worker-assignments');
 
 app.post('/worker-signin', handleWorkerSignin);
 app.post('/worker/verify-code', handleVerifyCode);
 app.get('/worker/documents', workerAuthMiddleware, getWorkerDocuments);
 app.get('/worker/document-types', workerAuthMiddleware, getDocumentTypes);
 app.post('/worker/documents/upload', workerAuthMiddleware, upload.single('file'), uploadWorkerDocument);
+app.use('/api/worker-assignments', workerAssignmentsRouter);
 
 // Health Check
 app.get('/api/health', async (req, res) => {
