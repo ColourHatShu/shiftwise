@@ -331,6 +331,10 @@ model ShiftAssignment {
   complianceCheckPassed  Boolean  @default(false)
   complianceCheckDetails Json? // e.g. { missingDocs: ["DBS", "Right to Work"] }
   notes                  String?  @db.Text
+  // Phase 8: Compliance-based assignment fields
+  complianceSnapshot     Json? // Immutable snapshot of worker's compliance at assignment time
+  workerConfirmation     String   @default("pending") // pending, confirmed, declined
+  workerNote             String?  @db.VarChar(200) // Worker's optional reason for decline (max 200 chars)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 

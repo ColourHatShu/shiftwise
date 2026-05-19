@@ -1,11 +1,274 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
-const { requireAgency } = require('../lib/auth');
+const { requireAgency, requireRole } = require('../lib/auth');
+const { validateComplianceAtTime } = require('../lib/compliance-assignment');
 
 const router = express.Router({ mergeParams: true });
 
 // Middleware to ensure user is authorized for their agency
 router.use(requireAgency);
+
+// ─── POST /api/shifts/:shiftId/assign-bulk - Bulk assign workers (Phase 8) ───────
+router.post('/assign-bulk', requireRole(['OWNER', 'ADMIN']), async (req, res) => {
+    try {
+        const { shiftId } = req.params;
+        const { workerIds, assignmentType = 'automatic' } = req.body;
+
+        // Validation
+        if (!Array.isArray(workerIds) || workerIds.length === 0) {
+            return res.status(400).json({
+                error: 'workerIds must be a non-empty array'
+            });
+        }
+
+        if (workerIds.length > 100) {
+            return res.status(400).json({
+                error: 'Maximum 100 workers per bulk assignment request'
+            });
+        }
+
+        // Verify shift exists and belongs to agency
+        const shift = await prisma.shift.findFirst({
+            where: {
+                id: shiftId,
+                agencyId: req.agencyId
+            }
+        });
+
+        if (!shift) {
+            return res.status(404).json({ error: 'Shift not found' });
+        }
+
+        // Get existing assignments for this shift
+        const existingAssignments = await prisma.shiftAssignment.findMany({
+            where: { shiftId }
+        });
+
+        const toAssign = [];
+        const toSkip = [];
+
+        // Phase 1: Validate compliance for all workers
+        for (const workerId of workerIds) {
+            // Check if worker exists
+            const worker = await prisma.worker.findFirst({
+                where: { id: workerId, agencyId: req.agencyId }
+            });
+
+            if (!worker) {
+                toSkip.push({ workerId, reason: 'Worker not found' });
+                continue;
+            }
+
+            // Check if already assigned
+            if (existingAssignments.some(a => a.workerId === workerId)) {
+                toSkip.push({ workerId, reason: 'Already assigned to this shift' });
+                continue;
+            }
+
+            // Validate compliance at assignment time
+            const complianceValidation = await validateComplianceAtTime(workerId, shiftId, req.agencyId);
+
+            if (!complianceValidation.isCompliant) {
+                toSkip.push({ workerId, reason: complianceValidation.reason });
+            } else {
+                toAssign.push({
+                    workerId,
+                    snapshot: complianceValidation.snapshot,
+                    score: complianceValidation.snapshot.complianceScore
+                });
+            }
+        }
+
+        // Phase 2: Atomic assignment creation
+        const assigned = [];
+        const assignmentErrors = [];
+
+        for (const { workerId, snapshot, score } of toAssign) {
+            try {
+                const assignment = await prisma.shiftAssignment.create({
+                    data: {
+                        shiftId,
+                        workerId,
+                        agencyId: req.agencyId,
+                        complianceSnapshot: snapshot,
+                        workerConfirmation: 'pending',
+                        complianceCheckPassed: true,
+                        assignedAt: new Date()
+                    },
+                    include: {
+                        worker: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true,
+                                email: true
+                            }
+                        }
+                    }
+                });
+
+                // Create audit log entry
+                await prisma.auditLog.create({
+                    data: {
+                        agencyId: req.agencyId,
+                        userId: req.user?.id,
+                        action: 'shift.assigned',
+                        entity: 'ShiftAssignment',
+                        entityId: assignment.id,
+                        metadata: {
+                            shiftId,
+                            workerId,
+                            complianceScore: score,
+                            assignmentType
+                        },
+                        ipAddress: req.ip,
+                        userAgent: req.get('user-agent')
+                    }
+                });
+
+                assigned.push({
+                    workerId,
+                    shiftId,
+                    status: 'assigned',
+                    complianceScore: score
+                });
+            } catch (error) {
+                if (error.code === 'P2002') {
+                    // Unique constraint violation - worker already assigned
+                    toSkip.push({ workerId, reason: 'Already assigned to this shift' });
+                } else {
+                    assignmentErrors.push({ workerId, error: error.message });
+                    toSkip.push({ workerId, reason: 'Assignment failed: ' + error.message });
+                }
+            }
+        }
+
+        // Calculate summary stats
+        const complianceScores = assigned.map(a => a.complianceScore).filter(s => s !== undefined);
+        const summary = {
+            total: workerIds.length,
+            assigned: assigned.length,
+            skipped: toSkip.length,
+            complianceScores: complianceScores.length > 0 ? {
+                mean: Math.round(complianceScores.reduce((a, b) => a + b, 0) / complianceScores.length),
+                min: Math.min(...complianceScores),
+                max: Math.max(...complianceScores)
+            } : { mean: 0, min: 0, max: 0 }
+        };
+
+        return res.status(200).json({
+            assigned,
+            skipped: toSkip,
+            summary
+        });
+    } catch (error) {
+        console.error('Error bulk assigning workers:', error);
+        res.status(500).json({ error: 'Failed to bulk assign workers' });
+    }
+});
+
+// ─── GET /api/shifts/:shiftId/assignable-workers - Get compliant workers (Phase 8) ──
+router.get('/assignable-workers', requireRole(['OWNER', 'ADMIN']), async (req, res) => {
+    try {
+        const { shiftId } = req.params;
+        const { page = 1, limit = 25, search = '' } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 25));
+        const skip = (pageNum - 1) * limitNum;
+
+        // Verify shift exists
+        const shift = await prisma.shift.findFirst({
+            where: { id: shiftId, agencyId: req.agencyId }
+        });
+
+        if (!shift) {
+            return res.status(404).json({ error: 'Shift not found' });
+        }
+
+        // Get already-assigned workers
+        const assignedWorkers = await prisma.shiftAssignment.findMany({
+            where: { shiftId },
+            select: { workerId: true }
+        });
+
+        const assignedIds = new Set(assignedWorkers.map(a => a.workerId));
+
+        // Build search filter
+        const searchFilter = search ? {
+            OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } }
+            ]
+        } : {};
+
+        // Get all active workers not yet assigned, matching search
+        const workers = await prisma.worker.findMany({
+            where: {
+                agencyId: req.agencyId,
+                isActive: true,
+                ...searchFilter
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                updatedAt: true
+            },
+            orderBy: { firstName: 'asc' },
+            skip,
+            take: limitNum
+        });
+
+        // Filter out already assigned and validate compliance
+        const compliantWorkers = [];
+
+        for (const worker of workers) {
+            if (assignedIds.has(worker.id)) continue;
+
+            const validation = await validateComplianceAtTime(worker.id, shiftId, req.agencyId);
+
+            if (validation.isCompliant) {
+                compliantWorkers.push({
+                    id: worker.id,
+                    firstName: worker.firstName,
+                    lastName: worker.lastName,
+                    email: worker.email,
+                    complianceScore: validation.snapshot.complianceScore,
+                    complianceStatus: validation.snapshot.status,
+                    lastUpdated: worker.updatedAt
+                });
+            }
+        }
+
+        // Get total count for pagination (all workers in agency, not assigned)
+        const totalWorkers = await prisma.worker.count({
+            where: {
+                agencyId: req.agencyId,
+                isActive: true,
+                ...searchFilter,
+                NOT: {
+                    id: { in: Array.from(assignedIds) }
+                }
+            }
+        });
+
+        return res.json({
+            workers: compliantWorkers,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: totalWorkers,
+                pages: Math.ceil(totalWorkers / limitNum)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching assignable workers:', error);
+        res.status(500).json({ error: 'Failed to fetch assignable workers' });
+    }
+});
 
 // ─── Helper: Check compliance for a worker ────────────────────────────────────
 async function checkWorkerCompliance(workerId, agencyId) {
@@ -61,8 +324,8 @@ async function checkWorkerCompliance(workerId, agencyId) {
     }
 }
 
-// ─── POST /api/shifts/:shiftId/assign - Assign worker to shift ────────────────
-router.post('/', async (req, res) => {
+// ─── POST /api/shifts/:shiftId/assign - Assign single worker to shift ───────────
+router.post('/assign', async (req, res) => {
     try {
         const { shiftId } = req.params;
         const { workerId, notes } = req.body;
@@ -152,7 +415,7 @@ router.post('/', async (req, res) => {
 });
 
 // ─── GET /api/shifts/:shiftId/assignments - List assignments for shift ────────
-router.get('/', async (req, res) => {
+router.get('/assignments', async (req, res) => {
     try {
         const { shiftId } = req.params;
 
@@ -195,7 +458,7 @@ router.get('/', async (req, res) => {
 });
 
 // ─── GET /api/shifts/:shiftId/assignments/:assignmentId - Get specific assignment
-router.get('/:assignmentId', async (req, res) => {
+router.get('/assignments/:assignmentId', async (req, res) => {
     try {
         const { shiftId, assignmentId } = req.params;
 
@@ -241,7 +504,7 @@ router.get('/:assignmentId', async (req, res) => {
 });
 
 // ─── DELETE /api/shifts/:shiftId/assignments/:assignmentId - Unassign worker ──
-router.delete('/:assignmentId', async (req, res) => {
+router.delete('/assignments/:assignmentId', async (req, res) => {
     try {
         const { shiftId, assignmentId } = req.params;
 

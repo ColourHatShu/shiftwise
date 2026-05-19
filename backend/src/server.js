@@ -120,7 +120,10 @@ const shiftsRouter = require('./routes/shifts');
 app.use('/api/shifts', shiftsRouter);
 
 const shiftAssignmentsRouter = require('./routes/shift-assignments');
-app.use('/api/shifts/:shiftId/assign', shiftAssignmentsRouter);
+// Mount shift-assignments router with :shiftId param for Phase 8 endpoints
+// Routes within the router use paths like /assign-bulk, /assignable-workers, etc.
+// They're accessed as /api/shifts/:shiftId/assign-bulk, etc.
+app.use('/api/shifts/:shiftId', shiftAssignmentsRouter);
 
 const shiftsBulkRouter = require('./routes/shifts-bulk');
 app.use('/api/shifts/bulk', shiftsBulkRouter);
