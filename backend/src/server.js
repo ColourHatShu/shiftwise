@@ -125,6 +125,9 @@ const shiftAssignmentsRouter = require('./routes/shift-assignments');
 // They're accessed as /api/shifts/:shiftId/assign-bulk, etc.
 app.use('/api/shifts/:shiftId', shiftAssignmentsRouter);
 
+const shiftRequirementsRouter = require('./routes/shift-requirements');
+app.use('/api/shift-requirements', shiftRequirementsRouter);
+
 const shiftsBulkRouter = require('./routes/shifts-bulk');
 app.use('/api/shifts/bulk', shiftsBulkRouter);
 
