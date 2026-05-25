@@ -117,10 +117,10 @@ async function getWorkersWithScores(agencyId, options = {}) {
                 }
             },
             orderBy: sortBy === 'name'
-                ? { firstName: sortOrder as 'asc' | 'desc' }
+                ? { firstName: sortOrder }
                 : sortBy === 'score'
                 ? { id: 'asc' } // Will sort in-memory
-                : { updatedAt: sortOrder as 'asc' | 'desc' },
+                : { updatedAt: sortOrder },
             skip,
             take: limit
         });
@@ -332,13 +332,10 @@ async function generatePDF(agencyId, agencyName = 'Agency', options = {}) {
             doc.moveDown();
         });
 
-        doc.end();
-
         return new Promise((resolve, reject) => {
-            doc.on('finish', () => {
-                resolve(Buffer.concat(buffers));
-            });
+            doc.on('end', () => resolve(Buffer.concat(buffers)));
             doc.on('error', reject);
+            doc.end();
         });
     } catch (error) {
         console.error('Error generating PDF:', error);

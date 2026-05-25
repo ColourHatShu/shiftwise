@@ -214,7 +214,7 @@ export default function WorkerDashboardPage() {
             if (!navigator.onLine) {
                 // Queue for retry
                 const queueId = queueUpload(file, docTypeId);
-                toast.info('Offline: Upload queued and will retry when online');
+                toast('Offline: Upload queued and will retry when online', { icon: '📡' });
                 setError('');
             } else {
                 setError(err.message || 'Upload failed. Please try again.');

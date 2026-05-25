@@ -1,71 +1,77 @@
 const express = require('express');
 const { checkExpiriesAndAlert } = require('../services/cronService');
 const prisma = require('../lib/prisma');
+const { requireAgency, requireRole } = require('../lib/auth');
 
 const router = express.Router();
 
+// All alert admin endpoints require an authenticated OWNER/ADMIN (BLOCKER-fix: previously unauthenticated, cross-tenant deletes).
+router.use(requireAgency);
+router.use(requireRole(['OWNER', 'ADMIN']));
+
+// Block in production unless explicitly enabled — these are developer test utilities only.
+const isDevMode = () =>
+    process.env.NODE_ENV !== 'production' || process.env.ALLOW_ALERT_TEST_ENDPOINTS === 'true';
+
 // ─── GET /api/alerts/test ───────────────────────────────────────────────────
-// Intended for admin/developer testing. 
-// Manually triggers the automated expiry checker and returns exactly what was sent.
+// Manually triggers the automated expiry checker. Restricted to the caller's agency.
 router.get('/test', async (req, res) => {
+    if (!isDevMode()) {
+        return res.status(403).json({ error: 'Test endpoints are disabled in production.' });
+    }
     try {
-        console.log("Triggering manual alerts check via API");
-        const { alertsSent, triggeredDocuments } = await checkExpiriesAndAlert();
+        console.log(`Manual alerts check triggered by user=${req.userId} agency=${req.agencyId}`);
+        const { alertsSent, triggeredDocuments } = await checkExpiriesAndAlert({ agencyId: req.agencyId });
 
         res.json({
-            message: "Expiry scan completed successfully.",
+            message: 'Expiry scan completed successfully.',
             alertsSent,
-            triggeredDocuments
+            triggeredDocuments,
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Trigger failed internally." });
+        res.status(500).json({ error: 'Trigger failed internally.' });
     }
 });
 
 // ─── DELETE /api/alerts/reset-test ──────────────────────────────────────────
-// Development utility to clear today's alerts so the cron job can trigger again.
+// Clears today's alerts for the CALLER'S agency only (BLOCKER-fix: previously cross-tenant).
 router.delete('/reset-test', async (req, res) => {
+    if (!isDevMode()) {
+        return res.status(403).json({ error: 'Test endpoints are disabled in production.' });
+    }
     try {
-        console.log("Triggering manual alerts reset via API");
+        console.log(`Manual alerts reset triggered by user=${req.userId} agency=${req.agencyId}`);
         const todayStart = new Date();
         todayStart.setUTCHours(0, 0, 0, 0);
-
         const todayEnd = new Date();
         todayEnd.setUTCHours(23, 59, 59, 999);
 
-        // Delete Expiry Alerts logged today
         const alertsDeleted = await prisma.expiryAlert.deleteMany({
             where: {
-                createdAt: {
-                    gte: todayStart,
-                    lte: todayEnd,
-                }
-            }
+                createdAt: { gte: todayStart, lte: todayEnd },
+                complianceDocument: { agencyId: req.agencyId },
+            },
         });
 
-        // Delete Audit Logs for alert.expiry_warning_sent today
         const logsDeleted = await prisma.auditLog.deleteMany({
             where: {
                 action: 'alert.expiry_warning_sent',
-                createdAt: {
-                    gte: todayStart,
-                    lte: todayEnd,
-                }
-            }
+                createdAt: { gte: todayStart, lte: todayEnd },
+                agencyId: req.agencyId,
+            },
         });
 
         res.json({
-            message: "Successfully reset today's alert history.",
+            message: "Successfully reset today's alert history for your agency.",
             deletedRecords: {
                 expiryAlerts: alertsDeleted.count,
-                auditLogs: logsDeleted.count
-            }
+                auditLogs: logsDeleted.count,
+            },
         });
-
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Reset failed internally." });
+        res.status(500).json({ error: 'Reset failed internally.' });
     }
 });
 
