@@ -16,7 +16,7 @@ export default function CompliancePackPage() {
   const handleGenerateReport = async () => {
     try {
       setReportGenerating(true);
-      const res = await fetch('/api/agency/compliance-report', {
+      const res = await fetch('/api/agency/audit-pack/report/generate', {
         method: 'POST'
       });
 

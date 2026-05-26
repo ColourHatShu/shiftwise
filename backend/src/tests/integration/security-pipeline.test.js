@@ -35,7 +35,7 @@ const mockPrisma = {
   $transaction: jest.fn((ops) => Promise.all(ops)),
 };
 
-jest.mock('../lib/prisma', () => mockPrisma);
+jest.mock('../../lib/prisma', () => mockPrisma);
 
 // Import the documents router after mocking
 describe('🔒 Security & Resilience Integration Tests - Document Pipeline', () => {

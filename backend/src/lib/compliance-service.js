@@ -294,7 +294,7 @@ async function generatePDF(agencyId, agencyName = 'Agency', options = {}) {
             .text(`Total Workers: ${workers.length}`)
             .text(`Compliant (≥80%): ${compliantCount}`)
             .text(`Non-Compliant: ${nonCompliantCount}`)
-            .text(`Overall Compliance: ${Math.round((compliantCount / workers.length) * 100)}%`);
+            .text(`Overall Compliance: ${workers.length > 0 ? Math.round((compliantCount / workers.length) * 100) : 0}%`);
         doc.moveDown();
 
         // Workers Table
@@ -374,6 +374,7 @@ async function aggregateAlerts(agencyId) {
                         id: true,
                         status: true,
                         expiryDate: true,
+                        documentTypeId: true,
                         documentType: { select: { name: true } }
                     }
                 }

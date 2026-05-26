@@ -12,6 +12,10 @@ export interface Document {
   daysUntilExpiry: number | null;
   expiryColor: 'green' | 'yellow' | 'red' | 'gray';
   uploadedAt: string;
+  rejectionReason?: string;
+  // Optional in the offline-cache shape because legacy cached entries
+  // may not have it; required in the live API consumer.
+  documentTypeId?: string;
 }
 
 /**

@@ -3,18 +3,10 @@
 import { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import type { ShiftFormData } from '../types';
 
-interface Shift {
-  id?: string;
-  facilityName: string;
-  shiftDate: string;
-  startTime: string;
-  endTime: string;
-  role: string;
-  requiredCount: number;
-  complianceCheckup?: boolean;
-  notes?: string;
-}
+// Local alias for clarity within this file; the shared canonical type lives in ../types.ts.
+type Shift = ShiftFormData;
 
 interface ShiftModalProps {
   isOpen: boolean;

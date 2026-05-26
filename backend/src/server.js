@@ -89,7 +89,8 @@ app.use('/api/agencies', authLimiter);
 app.use('/api/documents', authLimiter);
 
 // ─── Cron Scheduler ────────────────────────────────────────────────────────────
-initCronJobs();
+// NOTE: initCronJobs() is invoked inside startServer() AFTER prisma.$connect()
+// to prevent jobs from firing before the DB connection is ready (#test-report-2026-05-26).
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 const workersRouter = require('./routes/workers');
@@ -217,6 +218,9 @@ async function startServer() {
 
         await prisma.$connect();
         console.log('✅ Database connected');
+        // Register cron jobs only AFTER the DB is up so early ticks have a live connection.
+        initCronJobs();
+        console.log('✅ Cron jobs registered');
         app.listen(PORT, () => {
             console.log(`🚀 ShiftWise API running at http://localhost:${PORT}`);
             console.log(`🩺 Health check: http://localhost:${PORT}/api/health`);

@@ -32,7 +32,7 @@ export default function AuditPacksPage() {
 
     setExporting(true);
     try {
-      const res = await fetch('/api/audit-pack/export', {
+      const res = await fetch('/api/agency/audit-pack/bulk/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

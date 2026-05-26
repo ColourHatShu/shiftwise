@@ -176,6 +176,8 @@ model ComplianceDocument {
   expiryAlerts ExpiryAlert[]
   failedAlerts FailedAlert[]
 
+  @@index([agencyId, workerId, documentTypeId])
+  @@index([expiryDate])
   @@map("compliance_documents")
 }
 
@@ -277,6 +279,8 @@ model AuditLog {
   agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([agencyId, createdAt])
+  @@index([agencyId, action])
   @@map("audit_logs")
 }
 
@@ -299,6 +303,7 @@ model Shift {
   agency       Agency              @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   assignments  ShiftAssignment[]
 
+  @@index([agencyId, shiftDate])
   @@map("shifts")
 }
 

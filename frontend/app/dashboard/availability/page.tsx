@@ -23,51 +23,31 @@ export default function AvailabilityPage() {
   }, [currentDate]);
 
   async function fetchAvailability() {
-    try {
-      setLoading(true);
-      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString().split('T')[0];
-      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString().split('T')[0];
-
-      const res = await fetch(`/api/workers/availability?start=${startDate}&end=${endDate}`);
-      if (!res.ok) throw new Error('Failed to fetch availability');
-      const data = await res.json();
-      setAvailability(data.data);
-    } catch (error) {
-      console.error('Error fetching availability:', error);
-    } finally {
-      setLoading(false);
-    }
+    // NOTE: aggregate-agency availability endpoint does not yet exist
+    // (worker-availability.js is per-worker at /api/workers/:workerId/availability).
+    // Page renders as an empty-state until the worker self-service portal
+    // (Phase 9+) wires this up. Avoids a noisy 404 on dashboard load.
+    setLoading(false);
+    setAvailability([]);
   }
 
   async function updateAvailability(date: string, status: 'AVAILABLE' | 'UNAVAILABLE' | 'ON_LEAVE') {
-    try {
-      const res = await fetch('/api/workers/availability', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, status })
-      });
-
-      if (!res.ok) throw new Error('Failed to update availability');
-
-      // Update local state
-      setAvailability((prev) => {
-        const existing = prev.find((a) => a.date === date);
-        if (existing) {
-          return prev.map((a) => (a.date === date ? { ...a, status } : a));
-        }
-        return [
-          ...prev,
-          {
-            id: `${Date.now()}`,
-            workerId: 'current-worker',
-            date,
-            status
-          }
-        ];
-      });
-    } catch (error) {
-      console.error('Error updating availability:', error);
-    }
+    // Optimistic local update only — backend persistence pending Phase 9.
+    setAvailability((prev) => {
+      const existing = prev.find((a) => a.date === date);
+      if (existing) {
+        return prev.map((a) => (a.date === date ? { ...a, status } : a));
+      }
+      return [
+        ...prev,
+        {
+          id: `${Date.now()}`,
+          workerId: 'current-worker',
+          date,
+          status,
+        },
+      ];
+    });
   }
 
   const getStatusColor = (status: string | undefined) => {
@@ -98,7 +78,10 @@ export default function AvailabilityPage() {
 
   if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
-  const days = Array.from({ length: firstDay }, (_, i) => null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
+  const days: (number | null)[] = [
+    ...Array.from({ length: firstDay }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
 
   return (
     <div>

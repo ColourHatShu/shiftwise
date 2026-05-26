@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import {
     Search,
     Download,
@@ -136,7 +137,7 @@ export default function ComplianceDashboard() {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
             } else {
-                alert('Export failed. Please try again.');
+                toast.error('Export failed. Please try again.');
             }
         } catch (err) {
             console.error('Export error:', err);
@@ -201,7 +202,7 @@ export default function ComplianceDashboard() {
             if (res.ok) {
                 const workerData = await res.json();
                 // Also fetch documents
-                const docsRes = await fetch(`${API_URL}/api/documents?workerId=${workerId}`, {
+                const docsRes = await fetch(`${API_URL}/api/documents/worker/${workerId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 let documents = [];
@@ -232,7 +233,7 @@ export default function ComplianceDashboard() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
-                alert('Document approved');
+                toast.success('Document approved');
                 fetchData(); // Refresh data
                 if (selectedWorker) {
                     handleOpenWorkerModal(selectedWorker.id); // Refresh modal
@@ -240,7 +241,7 @@ export default function ComplianceDashboard() {
             }
         } catch (err) {
             console.error('Failed to approve document:', err);
-            alert('Failed to approve document');
+            toast.error('Failed to approve document');
         }
     };
 
@@ -256,7 +257,7 @@ export default function ComplianceDashboard() {
                 body: JSON.stringify({ reason })
             });
             if (res.ok) {
-                alert('Document rejected');
+                toast.success('Document rejected');
                 fetchData(); // Refresh data
                 if (selectedWorker) {
                     handleOpenWorkerModal(selectedWorker.id); // Refresh modal
@@ -264,7 +265,7 @@ export default function ComplianceDashboard() {
             }
         } catch (err) {
             console.error('Failed to reject document:', err);
-            alert('Failed to reject document');
+            toast.error('Failed to reject document');
         }
     };
 
@@ -277,14 +278,14 @@ export default function ComplianceDashboard() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
-                alert('Worker deactivated');
+                toast.success('Worker deactivated');
                 setModalOpen(false);
                 setSelectedWorker(null);
                 fetchData(); // Refresh data
             }
         } catch (err) {
             console.error('Failed to deactivate worker:', err);
-            alert('Failed to deactivate worker');
+            toast.error('Failed to deactivate worker');
         }
     };
 

@@ -1,6 +1,9 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-instantiate the Resend client so module load never crashes in environments
+// (tests, local dev without `.env`) where RESEND_API_KEY isn't set. The send
+// functions below already short-circuit when the key is missing.
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 /**
  * Sends an HTML formatted email alert to an agency coordinator about an expiring worker document.

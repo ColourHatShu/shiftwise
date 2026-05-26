@@ -8,36 +8,7 @@ import ShiftModal from './components/ShiftModal';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import BulkUploadModal from './components/BulkUploadModal';
 import ShiftAnalytics from './components/ShiftAnalytics';
-
-interface Shift {
-  id: string;
-  facilityName: string;
-  shiftDate: string;
-  startTime: string;
-  endTime: string;
-  role: string;
-  requiredCount: number;
-  status?: 'OPEN' | 'FILLED' | 'CANCELLED';
-  assignments?: ShiftAssignment[];
-  complianceCheckup?: boolean;
-  notes?: string;
-}
-
-interface ShiftAssignment {
-  id: string;
-  workerId: string;
-  worker: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  complianceCheckPassed: boolean;
-  complianceCheckDetails?: {
-    missingDocs: string[];
-    expiredDocs: string[];
-  };
-}
+import type { Shift, ShiftAssignment, ShiftFormData } from './types';
 
 export default function ShiftsPage() {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -69,7 +40,7 @@ export default function ShiftsPage() {
     }
   }
 
-  async function handleCreateShift(data: Shift) {
+  async function handleCreateShift(data: ShiftFormData) {
     try {
       const res = await fetch('/api/shifts', {
         method: 'POST',
@@ -89,7 +60,7 @@ export default function ShiftsPage() {
     }
   }
 
-  async function handleUpdateShift(data: Shift) {
+  async function handleUpdateShift(data: ShiftFormData) {
     if (!selectedShift) return;
 
     try {

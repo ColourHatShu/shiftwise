@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 import { Loader2, Check, X } from 'lucide-react';
-import { formatDate, formatTime } from '@/lib/date-utils';
+import { formatDate, formatTime, durationHours } from '@/lib/date-utils';
 import ConfirmModal from './components/ConfirmModal';
 
 interface ShiftAssignment {
@@ -178,12 +178,7 @@ export default function AssignedShiftsPage() {
                   <div>
                     <div className="text-gray-600">Duration</div>
                     <div className="font-medium">
-                      {(() => {
-                        const start = parseInt(assignment.shift.startTime);
-                        const end = parseInt(assignment.shift.endTime);
-                        const hours = end - start;
-                        return `${hours} hours`;
-                      })()}
+                      {durationHours(assignment.shift.startTime, assignment.shift.endTime)} hours
                     </div>
                   </div>
                 </div>

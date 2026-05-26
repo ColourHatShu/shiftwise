@@ -84,7 +84,7 @@ export default function AssignModal({
       setWorkers(data.workers);
       setTotalPages(data.pagination.pages);
       setPage(pageNum);
-      setSelectedWorkers(new Set()); // Clear selection on new page
+      // Preserve selection across pages so coordinators can multi-page select.
     } catch (err) {
       setError('Failed to load workers');
       console.error(err);
@@ -209,7 +209,9 @@ export default function AssignModal({
                   <Badge className={getComplianceBadgeColor(worker.complianceScore)}>
                     {worker.complianceScore}%
                   </Badge>
-                  <Badge variant="outline">Compliant</Badge>
+                  <Badge variant={worker.complianceStatus === 'compliant' ? 'success' : 'destructive'}>
+                    {worker.complianceStatus === 'compliant' ? 'Compliant' : 'Non-compliant'}
+                  </Badge>
                 </label>
               ))}
             </>

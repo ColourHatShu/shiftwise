@@ -135,8 +135,13 @@ async function uploadWorkerDocument(req, res) {
         const iv = encrypted.iv;
         const authTag = encrypted.authTag;
 
-        // Upload to R2
-        const key = `${agencyId}/workers/${workerId}/documents/${Date.now()}-${file.originalname}`;
+        // Upload to R2 — sanitize the original filename to prevent path-traversal in the object key
+        const safeName = file.originalname
+            .replace(/[\\\/]/g, '_')        // strip path separators
+            .replace(/\.\./g, '_')         // strip parent-dir refs
+            .replace(/[^a-zA-Z0-9._-]/g, '_') // keep only safe chars
+            .slice(0, 100);
+        const key = `${agencyId}/workers/${workerId}/documents/${Date.now()}-${safeName}`;
         const fileUrl = await uploadToR2(encryptedBuffer, key, file.mimetype);
 
         // Create document record

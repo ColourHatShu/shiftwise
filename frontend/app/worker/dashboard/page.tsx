@@ -65,7 +65,10 @@ export default function WorkerDashboardPage() {
                 } else {
                     const cached = getOfflineDocuments();
                     if (cached) {
-                        setDocuments(cached);
+                        // Cached entries may lack documentTypeId (older schema); coerce to '' so
+                        // typing matches the live API shape — compliance scoring will treat
+                        // these as "unmatched" rather than crash.
+                        setDocuments(cached.map((d) => ({ ...d, documentTypeId: d.documentTypeId ?? '' })));
                         setIsOffline(true);
                     }
                 }
@@ -74,7 +77,7 @@ export default function WorkerDashboardPage() {
                 // Fallback to cache if available
                 const cached = getOfflineDocuments();
                 if (cached) {
-                    setDocuments(cached);
+                    setDocuments(cached.map((d) => ({ ...d, documentTypeId: d.documentTypeId ?? '' })));
                     setIsOffline(true);
                     setError('');
                 } else {

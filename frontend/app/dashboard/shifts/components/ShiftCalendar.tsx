@@ -3,29 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { addMonths, subMonths, format, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
-
-interface Shift {
-  id: string;
-  facilityName: string;
-  shiftDate: string;
-  startTime: string;
-  endTime: string;
-  role: string;
-  requiredCount: number;
-  assignments?: ShiftAssignment[];
-  complianceCheckup?: boolean;
-}
-
-interface ShiftAssignment {
-  id: string;
-  workerId: string;
-  worker: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  complianceCheckPassed: boolean;
-}
+import type { Shift } from '../types';
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   'Nurse': { bg: 'bg-blue-50', text: 'text-blue-900', border: 'border-blue-300' },
