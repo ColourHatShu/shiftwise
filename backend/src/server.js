@@ -39,6 +39,15 @@ if (SENTRY_DSN) {
 // ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(helmet());
 
+// Request-ID middleware — attaches a stable correlation ID to every request so logs
+// and Sentry exceptions can be tied back to a single user action. Forwarded via the
+// X-Request-Id response header so a frontend session can quote it in bug reports.
+app.use((req, res, next) => {
+    req.requestId = req.headers['x-request-id'] || require('crypto').randomUUID();
+    res.setHeader('X-Request-Id', req.requestId);
+    next();
+});
+
 // Sentry request handler middleware (must be early)
 if (SENTRY_DSN) {
     app.use(Sentry.Handlers.requestHandler());
@@ -149,8 +158,17 @@ const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('
 const { getWorkerDocuments, uploadWorkerDocument, getDocumentTypes } = require('./routes/worker-documents');
 const workerAssignmentsRouter = require('./routes/worker-assignments');
 
-app.post('/worker-signin', handleWorkerSignin);
-app.post('/worker/verify-code', handleVerifyCode);
+// Strict per-IP rate limit on worker OTP endpoints to block enumeration + brute force.
+// 10 attempts / 15 min is generous for a real worker but ruinous for an attacker.
+const workerOtpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many sign-in attempts. Please try again in 15 minutes.' },
+});
+app.post('/worker-signin', workerOtpLimiter, handleWorkerSignin);
+app.post('/worker/verify-code', workerOtpLimiter, handleVerifyCode);
 app.get('/worker/documents', workerAuthMiddleware, getWorkerDocuments);
 app.get('/worker/document-types', workerAuthMiddleware, getDocumentTypes);
 app.post('/worker/documents/upload', workerAuthMiddleware, upload.single('file'), uploadWorkerDocument);
@@ -189,21 +207,27 @@ if (SENTRY_DSN) {
     app.use(Sentry.Handlers.errorHandler());
 }
 
-// Global error handler
+// Global error handler — never leak err.message in production responses (it can contain
+// Prisma error text, file paths, stack snippets). Keep details server-side / in Sentry.
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    const requestId = req.requestId || 'unknown';
+    console.error(`[req=${requestId}]`, err.stack || err);
 
-    // Log to Sentry if initialized
     if (SENTRY_DSN) {
         Sentry.captureException(err, {
             tags: {
                 userId: req.user?.id,
-                agencyId: req.agencyId
-            }
+                agencyId: req.agencyId,
+                requestId,
+            },
         });
     }
 
-    res.status(500).json({ error: 'Internal server error', message: err.message });
+    const body = { error: 'Internal server error', requestId };
+    if (process.env.NODE_ENV !== 'production') {
+        body.message = err.message;
+    }
+    res.status(err.status || 500).json(body);
 });
 
 // ─── Start Server ─────────────────────────────────────────────────────────────

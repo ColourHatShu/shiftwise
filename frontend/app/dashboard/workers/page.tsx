@@ -57,14 +57,16 @@ export default function WorkersPage() {
             });
             if (!response.ok) throw new Error("Failed to fetch workers");
             const data = await response.json();
-            // Add mock compliance data for demonstration
-            const workersWithCompliance = (data.data || []).map((w: Worker) => ({
+            // Hydrate compliance fields from the backend if present; otherwise leave them
+            // undefined so the UI renders an "—" placeholder rather than a fake score.
+            // (The previous Math.random() fixtures showed fictional RAG status to coordinators.)
+            const workersFromApi = (data.data || []).map((w: Worker & { complianceScore?: number; documentsUploaded?: number; documentsTotal?: number }) => ({
                 ...w,
-                complianceScore: Math.floor(Math.random() * 40) + 60, // Random score 60-100
-                documentsUploaded: Math.floor(Math.random() * 5) + 3,
-                documentsTotal: 8
+                complianceScore: typeof w.complianceScore === 'number' ? w.complianceScore : undefined,
+                documentsUploaded: typeof w.documentsUploaded === 'number' ? w.documentsUploaded : undefined,
+                documentsTotal: typeof w.documentsTotal === 'number' ? w.documentsTotal : undefined,
             }));
-            setWorkers(workersWithCompliance);
+            setWorkers(workersFromApi);
             setTotalPages(data.pagination?.totalPages || 1);
             setTotalWorkers(data.pagination?.total || 0);
         } catch (err: any) {
@@ -280,13 +282,15 @@ export default function WorkersPage() {
                                                     {/* Compliance Progress Bar */}
                                                     <div className="flex-1 max-w-[120px]">
                                                         <div className="flex justify-between text-xs mb-1">
-                                                            <span className="text-[#5B6E8C]">{worker.complianceScore}%</span>
+                                                            <span className="text-[#5B6E8C]">
+                                                                {typeof worker.complianceScore === 'number' ? `${worker.complianceScore}%` : '—'}
+                                                            </span>
                                                             <span className={`font-medium ${colors.text}`}>{rag.label}</span>
                                                         </div>
                                                         <div className="w-full bg-[#F5F7FA] rounded-full h-1.5">
-                                                            <div 
+                                                            <div
                                                                 className={`h-1.5 rounded-full ${colors.bar}`}
-                                                                style={{ width: `${worker.complianceScore}%` }}
+                                                                style={{ width: `${worker.complianceScore ?? 0}%` }}
                                                             />
                                                         </div>
                                                     </div>
@@ -294,7 +298,9 @@ export default function WorkersPage() {
                                                     <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
                                                 </div>
                                                 <p className="text-xs text-[#5B6E8C] mt-1">
-                                                    {worker.documentsUploaded} of {worker.documentsTotal} documents
+                                                    {typeof worker.documentsUploaded === 'number' && typeof worker.documentsTotal === 'number'
+                                                        ? `${worker.documentsUploaded} of ${worker.documentsTotal} documents`
+                                                        : 'Documents not yet calculated'}
                                                 </p>
                                             </td>
                                             <td className="px-6 py-4 text-right">

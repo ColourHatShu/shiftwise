@@ -6,6 +6,22 @@ const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 /**
+ * Escape user-controlled strings before embedding them in HTML email bodies.
+ * Worker names, document types, and rejection reasons all flow through user input —
+ * without this, a worker could plant `<script>` or `<img onerror>` payloads that
+ * fire when a coordinator opens the alert (#xss-email).
+ */
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
  * Sends an HTML formatted email alert to an agency coordinator about an expiring worker document.
  * 
  * @param {string} coordinatorEmail The agency recipient's email
@@ -31,6 +47,10 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
         day: 'numeric'
     });
 
+    // Escape user-controlled fields before HTML interpolation (#xss-email).
+    const safeWorkerName = escapeHtml(workerName);
+    const safeDocumentType = escapeHtml(documentType);
+
     const emailHtml = `
     <!DOCTYPE html>
     <html>
@@ -50,7 +70,7 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
                     <h2 style="color: #0f172a; margin: 0 0 24px 0; font-size: 20px; font-weight: 600;">Action Required: Document Expiring Soon</h2>
                     
                     <p style="color: #475569; font-size: 16px; line-height: 24px; margin: 0 0 24px 0;">
-                        This is an automated notice that a compliance document for <strong>${workerName}</strong> requires your immediate attention.
+                        This is an automated notice that a compliance document for <strong>${safeWorkerName}</strong> requires your immediate attention.
                     </p>
 
                     <!-- Alert Box -->
@@ -58,7 +78,7 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
                         <tr>
                             <td style="padding: 24px;">
                                 <p style="margin: 0; color: #9a3412; font-size: 16px; font-weight: 500;">
-                                    The <strong>${documentType}</strong> on file expires in exactly <span style="font-weight: 700; color: #ea580c;">${daysUntilExpiry} days</span>.
+                                    The <strong>${safeDocumentType}</strong> on file expires in exactly <span style="font-weight: 700; color: #ea580c;">${daysUntilExpiry} days</span>.
                                 </p>
                                 <p style="margin: 12px 0 0 0; color: #9a3412; font-size: 15px;">
                                     <strong>Expiry Date:</strong> ${formattedDate}
@@ -104,7 +124,7 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
         const response = await resend.emails.send({
             from: 'onboarding@resend.dev', // User must configure verified sending domain in production later
             to: [coordinatorEmail],
-            subject: `Action Required: ${workerName}'s ${documentType} expires in ${daysUntilExpiry} days`,
+            subject: `Action Required: ${workerName}'s ${documentType} expires in ${daysUntilExpiry} days`, // subject is plain text — escape not needed
             html: emailHtml,
         });
 
@@ -137,9 +157,13 @@ const sendWorkerExpiryAlert = async (workerEmail, workerFirstName, documentType,
     const formattedDate = new Date(expiryDate).toLocaleDateString('en-GB');
     const portalUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+    // Escape user-controlled fields before HTML interpolation (#xss-email).
+    const safeWorkerFirstName = escapeHtml(workerFirstName);
+    const safeDocumentType = escapeHtml(documentType);
+
     const urgencyText = daysUntilExpiry === 0
         ? 'Your document has EXPIRED TODAY'
-        : `Your ${documentType} expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`;
+        : `Your ${safeDocumentType} expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`;
 
     const subjectLine = daysUntilExpiry === 0
         ? `[URGENT] Your ${documentType} has expired`
@@ -178,14 +202,14 @@ const sendWorkerExpiryAlert = async (workerEmail, workerFirstName, documentType,
             </div>
 
             <div class="content">
-                <p>Hi ${workerFirstName},</p>
+                <p>Hi ${safeWorkerFirstName},</p>
 
                 <p class="${daysUntilExpiry === 0 ? 'urgency-red' : 'urgency-yellow'}">
                     <strong>${urgencyText}</strong>
                 </p>
 
                 <p>
-                    Your <strong>${documentType}</strong> expires on <strong>${formattedDate}</strong>.
+                    Your <strong>${safeDocumentType}</strong> expires on <strong>${formattedDate}</strong>.
                     ${daysUntilExpiry === 0
                         ? 'You must upload a renewal immediately to continue working on shifts.'
                         : `You have ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''} to renew this document.`

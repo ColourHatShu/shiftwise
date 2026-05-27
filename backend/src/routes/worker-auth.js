@@ -18,7 +18,16 @@ const Sentry = require('@sentry/node');
 const OTP_EXPIRY_MINUTES = 10;
 const OTP_LENGTH = 6;
 const JWT_EXPIRY = '7d';
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-dev-secret';
+// JWT_SECRET MUST be set. The previous fallback to 'fallback-dev-secret' meant that
+// if the env var was missing in production, anyone could forge worker tokens —
+// total auth bypass for the worker portal. Refuse to start if it isn't configured.
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'fallback-dev-secret') {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT_SECRET environment variable must be set (and not the dev fallback) in production.');
+    }
+    console.warn('⚠ JWT_SECRET not set — using ephemeral dev secret. Set JWT_SECRET in .env before production.');
+}
+const JWT_SECRET = process.env.JWT_SECRET || require('crypto').randomBytes(32).toString('hex');
 
 /**
  * Generate a random 6-digit OTP
@@ -49,8 +58,11 @@ async function handleWorkerSignin(req, res) {
         });
 
         if (!worker) {
-            // Don't reveal if worker exists (security: prevent enumeration)
-            return res.status(401).json({ error: 'Worker not found or inactive' });
+            // Same response shape + status as the success path below so an attacker can't
+            // tell whether the email exists in the system (anti-enumeration).
+            return res.status(200).json({
+                message: `If an account exists for that email, an OTP has been sent. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
+            });
         }
 
         // Generate OTP

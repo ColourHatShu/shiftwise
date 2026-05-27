@@ -13,6 +13,7 @@ import {
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import EditWorkerModal from '../components/EditWorkerModal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { downloadDocument, getDocumentStatus, pollDocumentStatus } from "@/lib/api/documents";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -386,6 +387,7 @@ export default function WorkerProfilePage() {
     const [uploadTarget, setUploadTarget] = useState<any>(null);
     const [analysisTarget, setAnalysisTarget] = useState<any>(null);
     const [editTarget, setEditTarget] = useState<boolean>(false);
+    const [pendingConfirm, setPendingConfirm] = useState<null | { kind: 'deactivate' | 'delete'; busy: boolean }>(null);
 
     const fetchAll = async () => {
         if (!isLoaded || !isSignedIn || !workerId) return;
@@ -409,11 +411,14 @@ export default function WorkerProfilePage() {
         }
     };
 
-    const handleDeactivate = async () => {
+    const handleDeactivate = () => {
         if (!worker) return;
-        const confirmMsg = `Are you sure you want to deactivate ${worker.firstName} ${worker.lastName}? They will no longer appear in active searches.`;
-        if (!window.confirm(confirmMsg)) return;
+        setPendingConfirm({ kind: 'deactivate', busy: false });
+    };
 
+    const performDeactivate = async () => {
+        if (!worker) return;
+        setPendingConfirm((p) => p && { ...p, busy: true });
         try {
             const token = await getToken();
             const res = await fetch(`${API_URL}/api/workers/${workerId}/deactivate`, {
@@ -422,9 +427,11 @@ export default function WorkerProfilePage() {
             });
             if (!res.ok) throw new Error("Failed to deactivate worker");
             toast.success("Worker deactivated");
+            setPendingConfirm(null);
             fetchAll();
         } catch (err: any) {
             toast.error(err.message);
+            setPendingConfirm(null);
         }
     };
 
@@ -445,11 +452,14 @@ export default function WorkerProfilePage() {
         }
     };
 
-    const handleDeleteWorker = async () => {
+    const handleDeleteWorker = () => {
         if (!worker) return;
-        const confirmMsg = `This will permanently delete ${worker.firstName} ${worker.lastName} and all their documents. This cannot be undone.`;
-        if (!window.confirm(confirmMsg)) return;
+        setPendingConfirm({ kind: 'delete', busy: false });
+    };
 
+    const performDeleteWorker = async () => {
+        if (!worker) return;
+        setPendingConfirm((p) => p && { ...p, busy: true });
         try {
             const token = await getToken();
             const res = await fetch(`${API_URL}/api/workers/${workerId}`, {
@@ -461,6 +471,7 @@ export default function WorkerProfilePage() {
             router.push("/dashboard/workers");
         } catch (err: any) {
             toast.error(err.message);
+            setPendingConfirm(null);
         }
     };
 
@@ -504,6 +515,21 @@ export default function WorkerProfilePage() {
                     onSuccess={() => { setEditTarget(false); setIsLoading(true); fetchAll(); }}
                 />
             )}
+            <ConfirmDialog
+                open={!!pendingConfirm}
+                busy={!!pendingConfirm?.busy}
+                title={pendingConfirm?.kind === 'delete' ? 'Delete worker permanently?' : 'Deactivate worker?'}
+                message={
+                    pendingConfirm?.kind === 'delete'
+                        ? `This will permanently delete ${worker.firstName} ${worker.lastName} and all their documents. This cannot be undone.`
+                        : `Are you sure you want to deactivate ${worker.firstName} ${worker.lastName}? They will no longer appear in active searches.`
+                }
+                confirmLabel={pendingConfirm?.kind === 'delete' ? 'Delete permanently' : 'Deactivate'}
+                variant="destructive"
+                onConfirm={() => (pendingConfirm?.kind === 'delete' ? performDeleteWorker() : performDeactivate())}
+                onCancel={() => setPendingConfirm(null)}
+            />
+
 
             {/* Back */}
             <Link href="/dashboard/workers" className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors">

@@ -8,6 +8,10 @@ import toast from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+// Module-scope cache — previously declared inside the component which meant it
+// was re-instantiated on every render and never actually cached anything.
+const CACHE: Record<string, any> = {};
+
 export default function ReportsPage() {
     const { getToken } = useAuth();
 
@@ -16,8 +20,6 @@ export default function ReportsPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState<string | null>(null);
     const [expiringDaysFilter, setExpiringDaysFilter] = useState(30);
-
-    const CACHE: any = {};
 
     const fetchReportData = async (type: string, param?: number) => {
         setIsLoading(true);

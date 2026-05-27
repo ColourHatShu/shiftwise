@@ -48,7 +48,7 @@ describe('🔒 Security & Resilience Integration Tests - Document Pipeline', () 
     app.use(express.json());
     
     // Mount the documents router
-    const documentsRouter = require('../routes/documents');
+    const documentsRouter = require('../../routes/documents');
     app.use('/api/documents', documentsRouter);
     
     // Error handler
