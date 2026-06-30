@@ -34,7 +34,7 @@
 - [x] Worker availability calendar — revived `/dashboard/availability` as a real, light-themed coordinator page (worker picker + month calendar) that **persists** AVAILABLE/UNAVAILABLE/ON_LEAVE via the existing `/api/workers/:id/availability` API; re-added the sidebar nav item
 - [x] Re-theme the worker detail page (`dashboard/workers/[id]/page.tsx`) from dark (slate/white) to the light design system — converted ~100 className lines (cards→white/`#DDE3EE`, text→`#0A1628`/`#5B6E8C`, translucent-on-dark accents→light `*-50/*-700`), logic untouched. ⚠️ Needs a human visual pass (re-themed blind; build + grep verified, but not eyeballed).
 - [x] Shift templates — **entity + backend API** slice: `ShiftTemplate` model (pushed to Supabase), `routes/shift-templates.js` CRUD (list/create/delete, agency-scoped) mounted at `/api/shift-templates`, +7 passing tests
-- [ ] Shift templates — **frontend slice:** templates management UI (list/create/delete) + "create shift from template" action (prefill the shift create form / POST `/api/shifts` from a chosen template)
+- [x] Shift templates — **frontend slice:** new `/dashboard/shifts/templates` page (list/create/delete via `useApi` → `/api/shift-templates`) + per-template "pick a date → Create shift" action (POST `/api/shifts`); linked from the Shifts page header
 - [ ] Shift templates — **recurring auto-poster:** schedule a template to auto-create shifts on a cadence (own slice; needs a cron/scheduler design — likely a council decision)
 - [ ] Worker earnings dashboard (read-only summary of completed/assigned shifts)
 

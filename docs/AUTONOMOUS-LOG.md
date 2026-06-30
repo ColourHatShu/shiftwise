@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 12:12 — Shift templates: frontend (slice 2)
+- **Item:** Shift templates — frontend slice (templates UI + create-from-template)
+- **Outcome:** shipped
+- **Changes:** new `frontend/app/dashboard/shifts/templates/page.tsx` — light design-system page: list templates, create (form), delete (ConfirmDialog), and a per-template "pick a date → Create shift" action; all via `useApi` (`/api/shift-templates` + `POST /api/shifts`). Added a "Templates" link to the Shifts page header (`dashboard/shifts/page.tsx`).
+- **Verify:** build ✅ (25/25 — new route at 5.31 kB), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only; API tested in slice 1)
+- **Commit:** see git — 🛡️ feat(shifts): shift templates UI + create-from-template
+- **Notes / decisions:** Used `useApi` (Clerk bearer) rather than the bare relative `/api` calls the legacy shifts page uses — that's the proven path for `requireAgency` backend routes. create-from-template reuses the existing `POST /api/shifts` (no new endpoint). Shift templates feature is now usable end-to-end (define a template → one-click dated shift). Remaining slice: the recurring auto-poster (needs a scheduler design).
+
 ## 2026-06-30 12:03 — Shift templates: entity + backend API (slice 1)
 - **Item:** Shift templates — start with the template entity + create-from-template flow
 - **Outcome:** shipped (slice 1 of 3: entity + API)

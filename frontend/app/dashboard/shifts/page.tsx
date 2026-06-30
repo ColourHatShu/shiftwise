@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Check, X, Edit, Trash2, BarChart3, Upload } from 'lucide-react';
+import Link from 'next/link';
+import { AlertCircle, Check, X, Edit, Trash2, BarChart3, Upload, LayoutTemplate } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ShiftCalendar from './components/ShiftCalendar';
 import ShiftModal from './components/ShiftModal';
@@ -112,6 +113,12 @@ export default function ShiftsPage() {
           <p className="text-gray-600 mt-1">Create and manage shifts, view assignments and compliance gaps</p>
         </div>
         <div className="flex gap-3">
+          <Link
+            href="/dashboard/shifts/templates"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+          >
+            <LayoutTemplate className="w-5 h-5" /> Templates
+          </Link>
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
