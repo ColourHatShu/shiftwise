@@ -48,14 +48,27 @@ interface WorkerHit {
     email: string;
 }
 
-// Flat, keyboard-navigable item — either a static command or a live worker hit.
-type Item = { kind: "command"; cmd: Command } | { kind: "worker"; worker: WorkerHit };
+interface ShiftHit {
+    id: string;
+    facility: string;
+    meta: string;
+}
+
+// Flat, keyboard-navigable item — a static command, a live worker, or a live shift.
+type Item =
+    | { kind: "command"; cmd: Command }
+    | { kind: "worker"; worker: WorkerHit }
+    | { kind: "shift"; shift: ShiftHit };
 
 /**
  * CommandPalette — ⌘K / Ctrl+K command palette. Mounted once in the dashboard
  * layout. Filters static navigation/actions client-side AND searches live worker
- * data (debounced, via the backend). Opens on ⌘K, on Ctrl+K, or when any element
- * dispatches the OPEN_COMMAND_PALETTE_EVENT (e.g. the sidebar "Search…" button).
+ * + shift data (debounced, in parallel, via the backend). Opens on ⌘K, on Ctrl+K,
+ * or when any element dispatches OPEN_COMMAND_PALETTE_EVENT (the sidebar button).
+ *
+ * Documents are intentionally not searched: there's no document search endpoint
+ * or detail route, and document hits would have no deep-link target distinct from
+ * worker search.
  */
 export function CommandPalette() {
     const router = useRouter();
@@ -64,7 +77,8 @@ export function CommandPalette() {
     const [query, setQuery] = useState("");
     const [active, setActive] = useState(0);
     const [workers, setWorkers] = useState<WorkerHit[]>([]);
-    const [loadingWorkers, setLoadingWorkers] = useState(false);
+    const [shifts, setShifts] = useState<ShiftHit[]>([]);
+    const [loading, setLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Open via ⌘K / Ctrl+K (toggle) or the custom event; Esc closes.
@@ -91,6 +105,7 @@ export function CommandPalette() {
         if (!open) return;
         setQuery("");
         setWorkers([]);
+        setShifts([]);
         const t = setTimeout(() => inputRef.current?.focus(), 0);
         return () => clearTimeout(t);
     }, [open]);
@@ -101,23 +116,29 @@ export function CommandPalette() {
         return COMMANDS.filter((c) => `${c.label} ${c.keywords ?? ""}`.toLowerCase().includes(q));
     }, [query]);
 
-    // Debounced live worker search (only while open + with a query).
+    // Debounced live search of workers + shifts in parallel (only while open).
     useEffect(() => {
         if (!open) return;
         const q = query.trim();
         if (!q) {
             setWorkers([]);
-            setLoadingWorkers(false);
+            setShifts([]);
+            setLoading(false);
             return;
         }
         let cancelled = false;
-        setLoadingWorkers(true);
+        setLoading(true);
         const t = setTimeout(async () => {
+            const [wRes, sRes] = await Promise.allSettled([
+                apiFetch(`/api/workers?search=${encodeURIComponent(q)}&limit=5`),
+                apiFetch(`/api/shifts?facilityName=${encodeURIComponent(q)}`),
+            ]);
+            if (cancelled) return;
+
+            // Workers
             try {
-                const res = await apiFetch(`/api/workers?search=${encodeURIComponent(q)}&limit=5`);
-                if (!res.ok) throw new Error("search failed");
-                const data = await res.json();
-                if (!cancelled) {
+                if (wRes.status === "fulfilled" && wRes.value.ok) {
+                    const data = await wRes.value.json();
                     setWorkers(
                         (data.data || []).map((w: { id: string; firstName: string; lastName: string; email: string }) => ({
                             id: w.id,
@@ -125,12 +146,36 @@ export function CommandPalette() {
                             email: w.email,
                         }))
                     );
+                } else {
+                    setWorkers([]);
                 }
             } catch {
-                if (!cancelled) setWorkers([]);
-            } finally {
-                if (!cancelled) setLoadingWorkers(false);
+                setWorkers([]);
             }
+
+            // Shifts (cap at 5 client-side; endpoint has no limit param)
+            try {
+                if (sRes.status === "fulfilled" && sRes.value.ok) {
+                    const data = await sRes.value.json();
+                    setShifts(
+                        (data.data || [])
+                            .slice(0, 5)
+                            .map((s: { id: string; facilityName: string; role: string; shiftDate: string }) => ({
+                                id: s.id,
+                                facility: s.facilityName,
+                                meta: [s.role, s.shiftDate ? new Date(s.shiftDate).toLocaleDateString("en-GB") : null]
+                                    .filter(Boolean)
+                                    .join(" · "),
+                            }))
+                    );
+                } else {
+                    setShifts([]);
+                }
+            } catch {
+                setShifts([]);
+            }
+
+            if (!cancelled) setLoading(false);
         }, 250);
         return () => {
             cancelled = true;
@@ -138,26 +183,29 @@ export function CommandPalette() {
         };
     }, [query, open, apiFetch]);
 
-    // Unified flat list for keyboard navigation.
+    // Unified flat list for keyboard navigation: commands, then workers, then shifts.
     const items: Item[] = useMemo(
         () => [
             ...filteredCommands.map((cmd) => ({ kind: "command" as const, cmd })),
             ...workers.map((worker) => ({ kind: "worker" as const, worker })),
+            ...shifts.map((shift) => ({ kind: "shift" as const, shift })),
         ],
-        [filteredCommands, workers]
+        [filteredCommands, workers, shifts]
     );
 
     // Keep the highlighted row valid as the result set changes.
     useEffect(() => {
         setActive(0);
-    }, [query, workers.length]);
+    }, [query, workers.length, shifts.length]);
 
     if (!open) return null;
 
     const run = (item?: Item) => {
         if (!item) return;
         setOpen(false);
-        router.push(item.kind === "command" ? item.cmd.href : `/dashboard/workers/${item.worker.id}`);
+        if (item.kind === "command") router.push(item.cmd.href);
+        else if (item.kind === "worker") router.push(`/dashboard/workers/${item.worker.id}`);
+        else router.push("/dashboard/shifts");
     };
 
     const onInputKey = (e: React.KeyboardEvent) => {
@@ -174,7 +222,14 @@ export function CommandPalette() {
     };
 
     const commandCount = filteredCommands.length;
-    const nothing = items.length === 0 && !loadingWorkers;
+    const workerStart = commandCount;
+    const shiftStart = commandCount + workers.length;
+    const nothing = items.length === 0 && !loading;
+
+    const rowClass = (isActive: boolean) =>
+        `flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+            isActive ? "bg-[#E6EDF8] text-[#003087]" : "text-[#0A1628] hover:bg-[#F5F7FA]"
+        }`;
 
     return (
         <div
@@ -196,11 +251,11 @@ export function CommandPalette() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={onInputKey}
-                        placeholder="Search pages, actions, and workers…"
-                        aria-label="Search pages, actions, and workers"
+                        placeholder="Search pages, actions, workers, shifts…"
+                        aria-label="Search pages, actions, workers, and shifts"
                         className="w-full bg-transparent py-3.5 text-sm text-[#0A1628] placeholder-[#5B6E8C] focus:outline-none"
                     />
-                    {loadingWorkers && <Loader2 size={16} className="shrink-0 animate-spin text-[#5B6E8C]" />}
+                    {loading && <Loader2 size={16} className="shrink-0 animate-spin text-[#5B6E8C]" />}
                 </div>
 
                 {/* Results */}
@@ -223,9 +278,7 @@ export function CommandPalette() {
                                         type="button"
                                         onMouseEnter={() => setActive(i)}
                                         onClick={() => run({ kind: "command", cmd })}
-                                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
-                                            isActive ? "bg-[#E6EDF8] text-[#003087]" : "text-[#0A1628] hover:bg-[#F5F7FA]"
-                                        }`}
+                                        className={rowClass(isActive)}
                                     >
                                         <Icon size={16} className={isActive ? "text-[#003087]" : "text-[#5B6E8C]"} />
                                         <span className="flex-1">{cmd.label}</span>
@@ -242,21 +295,40 @@ export function CommandPalette() {
                                 </p>
                             )}
                             {workers.map((worker, j) => {
-                                const flatIndex = commandCount + j;
-                                const isActive = flatIndex === active;
+                                const isActive = workerStart + j === active;
                                 return (
                                     <button
                                         key={worker.id}
                                         type="button"
-                                        onMouseEnter={() => setActive(flatIndex)}
+                                        onMouseEnter={() => setActive(workerStart + j)}
                                         onClick={() => run({ kind: "worker", worker })}
-                                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
-                                            isActive ? "bg-[#E6EDF8] text-[#003087]" : "text-[#0A1628] hover:bg-[#F5F7FA]"
-                                        }`}
+                                        className={rowClass(isActive)}
                                     >
                                         <User size={16} className={isActive ? "text-[#003087]" : "text-[#5B6E8C]"} />
                                         <span className="flex-1 truncate">{worker.name}</span>
                                         <span className="max-w-[45%] truncate text-[11px] text-[#5B6E8C]">{worker.email}</span>
+                                    </button>
+                                );
+                            })}
+
+                            {shifts.length > 0 && (
+                                <p className="px-4 pb-1 pt-3 text-[11px] font-medium uppercase tracking-wide text-[#5B6E8C]">
+                                    Shifts
+                                </p>
+                            )}
+                            {shifts.map((shift, k) => {
+                                const isActive = shiftStart + k === active;
+                                return (
+                                    <button
+                                        key={shift.id}
+                                        type="button"
+                                        onMouseEnter={() => setActive(shiftStart + k)}
+                                        onClick={() => run({ kind: "shift", shift })}
+                                        className={rowClass(isActive)}
+                                    >
+                                        <Calendar size={16} className={isActive ? "text-[#003087]" : "text-[#5B6E8C]"} />
+                                        <span className="flex-1 truncate">{shift.facility}</span>
+                                        <span className="max-w-[45%] truncate text-[11px] text-[#5B6E8C]">{shift.meta}</span>
                                     </button>
                                 );
                             })}

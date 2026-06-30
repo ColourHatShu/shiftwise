@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 11:24 — Cmd+K: live shift search (workers + shifts in parallel)
+- **Item:** Extend Cmd+K live search to shifts and documents
+- **Outcome:** shipped (shifts done; documents deliberately deferred)
+- **Changes:** `components/ui/command-palette.tsx` — the debounced search now fetches **workers + shifts in parallel** (`Promise.allSettled` so one failing doesn't kill the other) via `/api/workers?search=` and `/api/shifts?facilityName=`; results render in three keyboard-navigable groups (Pages & actions / Workers / Shifts) with a single loading flag. Shift hits navigate to `/dashboard/shifts`.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ feat(web): ⌘K live shift search
+- **Notes / decisions:** **Documents intentionally NOT searched** — checked the backend: `/api/documents/agency` has no search param, and there's no document detail route, so doc hits would have no deep-link target distinct from worker search (and would require fetching the whole agency doc tree per keystroke). Recorded that rationale in the plan rather than building a low-value path. Shift hits land on the Shifts page (there's no per-shift route). Refactored worker+shift fetch into one parallel debounced effect; unified flat keyboard index across all three groups.
+
 ## 2026-06-30 11:11 — Cmd+K: visible affordance + live worker search
 - **Item:** Cmd+K follow-ups — visible search affordance + live data search
 - **Outcome:** shipped
