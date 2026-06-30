@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 16:32 — Unit-test fetchWithRetry (+ pin a contract quirk)
+- **Item:** Unit tests for `lib/fetchWithRetry.js`
+- **Outcome:** shipped
+- **Changes:** new `backend/src/tests/unit/fetchWithRetry.test.js` — 8 tests (mock `global.fetch`, `maxRetries:1` so the real 1s backoff keeps it quick): success-first-try, non-retryable 404 (no retry), 5xx→retry→success, thrown network error→retry→success, 429 retryable, `maxRetries:0` single attempt, and both exhaustion paths.
+- **Verify:** file **8/8**; `npm run test:ci` = **20 suites / 185 tests, 0 failing**.
+- **Commit:** see git — 🛡️ test(lib): cover fetchWithRetry retry/backoff + contract
+- **Notes / decisions:** Writing the tests surfaced a real **contract quirk** (not a bug, but easy to misuse): on a **persistent 5xx** the helper *returns* the final non-ok response, but on a **persistent thrown/network error** it *re-throws* (with `.attempts`). So callers must BOTH check `.ok` and `try/catch`. Tests now pin both behaviors. Chose this clean, zero-dep, fully-verifiable item over the frontend test runner (P7) — the runner needs new npm devDeps + `next build`/`lint`/CI integration and deserves its own careful firing (and likely founder sign-off on the deps). npm registry IS reachable here (confirmed `npm view vitest` → 4.1.9), so the runner is feasible when prioritized.
+
 ## 2026-06-30 16:22 — Identity-mismatch audit (fraud/compliance signal)
 - **Item:** Identity-mismatch audit
 - **Outcome:** shipped
