@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 15:32 — Empty-state component + adoption (workers, audit-log)
+- **Item:** Empty-state consistency
+- **Outcome:** shipped (component + 2 key pages; remaining pages split into a follow-up)
+- **Changes:** new `frontend/components/ui/empty-state.tsx` — `<EmptyState icon title message action>` (icon tile + title + message + optional CTA, design-system styled, `aria-hidden` icon). Adopted on the **workers** table empty (distinct "no match" vs "none added yet" + "Add your first worker" CTA) and the **audit-log** empty (which was off-theme gray `text-gray-500` → now consistent).
+- **Verify:** build ✅ (✓ Compiled successfully), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only).
+- **Commit:** see git — 🛡️ feat(ui): reusable EmptyState + adopt on workers/audit-log
+- **Notes / decisions:** Established the shared pattern rather than blitzing every page blind (can't visually verify without localhost). Split the remaining adopters (documents, compliance, reports, shifts detail, templates) into a follow-up item — mechanical, build-verifiable. This was the last clean P5 item; the buildable backlog is now thin (mostly decision-gated or larger), so the next firing will likely run an ideation pass.
+
 ## 2026-06-30 15:22 — Startup env validation (+ reclassify security-pipeline)
 - **Item:** Harden startup env validation (and triage the last 2 "broken suites")
 - **Outcome:** shipped (env validation) + planning (security-pipeline reclassified)

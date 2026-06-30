@@ -9,6 +9,7 @@ import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight,
 import EditWorkerModal from './components/EditWorkerModal';
 import WorkerBulkUploadModal from './components/WorkerBulkUploadModal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useApi } from '@/lib/use-api';
 
@@ -348,22 +349,25 @@ export default function WorkersPage() {
                         <tbody className="divide-y divide-[#DDE3EE]">
                             {workers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center justify-center space-y-3">
-                                            <div className="bg-[#F5F7FA] p-3 rounded-lg">
-                                                <User size={24} className="text-[#5B6E8C]" />
-                                            </div>
-                                            {searchInputValue || selectedStatus ? (
-                                                <p className="text-[#5B6E8C]">No workers match your filters</p>
-                                            ) : (
-                                                <>
-                                                    <p className="text-[#5B6E8C]">No workers added yet.</p>
+                                    <td colSpan={5} className="p-0">
+                                        {searchInputValue || selectedStatus ? (
+                                            <EmptyState
+                                                icon={User}
+                                                title="No workers match your filters"
+                                                message="Try adjusting your search or status filter."
+                                            />
+                                        ) : (
+                                            <EmptyState
+                                                icon={User}
+                                                title="No workers added yet"
+                                                message="Add your healthcare staff to start tracking their compliance."
+                                                action={
                                                     <Link href="/dashboard/workers/new" className="text-[#003087] hover:text-[#003087]/80 font-medium text-sm transition-colors">
                                                         Add your first worker
                                                     </Link>
-                                                </>
-                                            )}
-                                        </div>
+                                                }
+                                            />
+                                        )}
                                     </td>
                                 </tr>
                             ) : (

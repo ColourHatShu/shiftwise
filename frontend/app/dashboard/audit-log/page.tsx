@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useApi } from "@/lib/use-api";
 import { format } from "date-fns";
-import { Search, ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ChevronDown, X, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface AuditLogEntry {
     id: string;
@@ -307,9 +308,11 @@ export default function AuditLogPage() {
                         </div>
                     </div>
                 ) : entries.length === 0 ? (
-                    <div className="text-center p-12">
-                        <p className="text-gray-500">No audit log entries found</p>
-                    </div>
+                    <EmptyState
+                        icon={FileText}
+                        title="No audit log entries found"
+                        message="Actions across your agency will appear here as they happen."
+                    />
                 ) : (
                     <>
                         <div className="overflow-x-auto">
