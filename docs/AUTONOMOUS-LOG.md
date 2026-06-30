@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 14:22 — Bulk worker CSV import: upload modal (slice 2 — feature complete)
+- **Item:** Bulk worker CSV import — frontend slice
+- **Outcome:** shipped (feature complete end-to-end)
+- **Changes:** new `frontend/app/dashboard/workers/components/WorkerBulkUploadModal.tsx` — file upload (FileReader→text) + paste textarea + "Download template" + a results view (succeeded/failed + per-row errors), all via `useApi` (`/api/workers/bulk/upload` + `/template`), rendered through the canonical `<Modal>`. Wired a "Bulk import" button into the Workers page header (`workers/page.tsx`) + refreshes the list on success.
+- **Verify:** build ✅ (✓ Compiled successfully; workers route 5.52 kB), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only; API tested in slice 1).
+- **Commit:** see git — 🛡️ feat(workers): bulk import upload modal
+- **Notes / decisions:** Design-system themed (matches the Workers page) rather than copying the shifts modal's generic gray look; used `useApi` (Clerk token) since the backend route is `requireAgency`. Coordinators can now import many workers from a CSV with clear per-row error feedback. Couldn't visually verify (no localhost) — build/lint pass; founder to eyeball.
+
 ## 2026-06-30 14:12 — Bulk worker CSV import: backend (slice 1)
 - **Item:** Bulk worker CSV import — backend slice
 - **Outcome:** shipped (slice 1 of 2: API; upload modal next)

@@ -5,8 +5,9 @@ import React from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight, Upload } from "lucide-react";
 import EditWorkerModal from './components/EditWorkerModal';
+import WorkerBulkUploadModal from './components/WorkerBulkUploadModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useApi } from '@/lib/use-api';
@@ -52,6 +53,7 @@ export default function WorkersPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalWorkers, setTotalWorkers] = useState(0);
+    const [showBulkImport, setShowBulkImport] = useState(false);
 
     // Debounce for search input
     const [searchInputValue, setSearchInputValue] = useState("");
@@ -251,13 +253,22 @@ export default function WorkersPage() {
                     <h1 className="text-2xl font-medium text-[#0A1628]">Workers</h1>
                     <p className="text-[#5B6E8C] mt-1">Manage your agency's healthcare staff</p>
                 </div>
-                <Link
-                    href="/dashboard/workers/new"
-                    className="flex items-center gap-2 bg-[#003087] hover:bg-[#003087]/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-                >
-                    <Plus size={18} />
-                    Add Worker
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowBulkImport(true)}
+                        className="flex items-center gap-2 border border-[#DDE3EE] text-[#003087] hover:bg-[#F5F7FA] px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        <Upload size={18} />
+                        Bulk import
+                    </button>
+                    <Link
+                        href="/dashboard/workers/new"
+                        className="flex items-center gap-2 bg-[#003087] hover:bg-[#003087]/90 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        <Plus size={18} />
+                        Add Worker
+                    </Link>
+                </div>
             </div>
 
             {error && (
@@ -370,6 +381,12 @@ export default function WorkersPage() {
                     onSuccess={() => { setEditingWorker(null); fetchWorkers(page); }}
                 />
             )}
+
+            <WorkerBulkUploadModal
+                isOpen={showBulkImport}
+                onClose={() => setShowBulkImport(false)}
+                onSuccess={() => fetchWorkers(1, searchQuery, selectedStatus)}
+            />
 
             {/* Pagination */}
             {totalPages > 1 && (
