@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 13:52 — Manage Document Types: backend CRUD (slice 1)
+- **Item:** Manage Document Types (core compliance config) — backend slice
+- **Outcome:** shipped (slice 1 of 2: API; Settings UI next)
+- **Changes:** new `backend/src/routes/document-types.js` — GET/POST/PATCH/DELETE for `DocumentType` (agency-scoped; name required; sensible defaults isRequired/hasExpiry/warningDays; **409 on duplicate name**; **409 on delete when complianceDocuments still use the type**). Mounted at `/api/document-types`. New `tests/routes/document-types.test.js` (8 tests).
+- **Verify:** route `require()` loads ✅; `node --check src/server.js` ✅; new test **8/8**; full backend suite **139 passed / 27 failed** (was 131/27 — **+8 new, zero new failures**).
+- **Commit:** see git — 🛡️ feat(documents): document-types CRUD API
+- **Notes / decisions:** Only a list endpoint existed before (`/api/agencies/document-types`); no way to create/edit/delete the required-document config — core to a compliance product. Added a dedicated RESTful router; the existing agencies GET is left in place (still used elsewhere). Delete is intentionally blocked when documents reference the type (FK-safe + clear message). Queued the **Settings UI** as slice 2. Skipped the gated items (£ earnings, CSP, DB-less integration suites).
+
 ## 2026-06-30 13:42 — Fix buggy role test (shift-assignments)
 - **Item:** Fix the buggy `should reject non-OWNER/ADMIN users` test (+ DB-less integration suites — split off)
 - **Outcome:** shipped (test fix); the DB-less-integration half is queued as its own item

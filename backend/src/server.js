@@ -116,6 +116,9 @@ app.use('/api/dashboard', dashboardRouter);
 const documentsRouter = require('./routes/documents');
 app.use('/api/documents', documentsRouter);
 
+const documentTypesRouter = require('./routes/document-types');
+app.use('/api/document-types', documentTypesRouter);
+
 const alertsRouter = require('./routes/alerts');
 app.use('/api/alerts', alertsRouter);
 
