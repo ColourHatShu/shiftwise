@@ -28,8 +28,9 @@ disciplined: **one shippable item per firing.**
 
 - **Repo root:** `C:\Users\HP\Desktop\ShiftWise\shiftwise`
 - **Remote:** `origin` → `https://github.com/ColourHatShu/shiftwise.git`
-- **Work branch:** **`knight-autonomous`** — the Knight commits and pushes here
-  **only**. **Never commit to `master`.** The human reviews/merges via PR.
+- **Work branch:** **`main`** — the repo's default branch. The Knight commits and
+  pushes directly to `main` (the human asked for this on 2026-06-30). There is no
+  separate Knight branch anymore.
 - **Playbook (this file):** `docs/AUTONOMOUS-KNIGHT.md`
 - **Backlog:** `docs/AUTONOMOUS-PLAN.md`
 - **Log (newest on top):** `docs/AUTONOMOUS-LOG.md`
@@ -46,14 +47,12 @@ errors. See `CLAUDE.md` and `.planning/` for deep context.
 
 ### Step 1 — Sync
 1. `cd` to the repo root.
-2. `git checkout knight-autonomous` (create it from `master` if it doesn't exist:
-   `git checkout -b knight-autonomous`). **Never work on `master`.**
+2. `git checkout main`.
 3. `git status` — if the working tree is dirty from an aborted prior run, inspect
    it. If it's leftover Knight work with no commit, `git stash` or `git checkout
    -- .` to get clean (never discard a human's uncommitted work — if it looks
    human-authored, log it and **stop**).
-4. `git pull --rebase origin knight-autonomous` (skip gracefully if the branch
-   isn't on the remote yet or you're offline; log it).
+4. `git pull --rebase origin main` (skip gracefully if offline; log it).
 
 ### Step 2 — Acquire the lock
 The lock prevents overlapping firings from colliding.
@@ -137,8 +136,8 @@ plan, write a log entry explaining the blocker, release the lock, and stop.
    Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
    ```
    `<type>` ∈ feat | fix | perf | refactor | docs | test | chore.
-3. `git push origin knight-autonomous`. If push fails (offline/auth), keep the
-   local commit, log "committed locally, push deferred", and continue to Step 8.
+3. `git push origin main`. If push fails (offline/auth), keep the local commit,
+   log "committed locally, push deferred", and continue to Step 8.
 
 ### Step 8 — Record
 1. **Tick the item** `[x]` in `AUTONOMOUS-PLAN.md` (or `[blocked] — reason`).
