@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 14:12 — Bulk worker CSV import: backend (slice 1)
+- **Item:** Bulk worker CSV import — backend slice
+- **Outcome:** shipped (slice 1 of 2: API; upload modal next)
+- **Changes:** new `backend/src/routes/workers-bulk.js` mirroring shifts-bulk — `POST /api/workers/bulk/upload` (parses CSV via `csv-parse/sync`, validates firstName/lastName/email per row + email format + optional startDate, creates workers, returns `{ results: {total, succeeded, failed, errors[]} }`, dup-email → per-row error) and `GET /api/workers/bulk/template` (CSV template). Mounted at `/api/workers/bulk` **before** the generic `/api/workers` router so `/:id` can't swallow it. +5 tests.
+- **Verify:** route `require()` loads ✅; `node --check src/server.js` ✅; new test **5/5**; full backend suite **144 passed / 27 failed** (was 139/27 — **+5 new, zero new failures**).
+- **Commit:** see git — 🛡️ feat(workers): bulk CSV import API
+- **Notes / decisions:** Mirrored the proven shifts-bulk shape (incl. `{ csvData }` body + per-row error reporting) for consistency. Mounted before `/api/workers` to avoid the `/:id` route capturing `/bulk` (defensive even though fall-through would also work). Queued the **upload modal** (Workers page) as slice 2. Skipped gated items (£ earnings, CSP, DB-less integration suites).
+
 ## 2026-06-30 14:02 — Manage Document Types: Settings UI (slice 2 — feature complete)
 - **Item:** Manage Document Types — frontend slice
 - **Outcome:** shipped (feature now complete end-to-end)

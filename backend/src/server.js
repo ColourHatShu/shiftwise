@@ -101,6 +101,11 @@ app.use('/api/documents', authLimiter);
 // to prevent jobs from firing before the DB connection is ready (#test-report-2026-05-26).
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
+// Mounted before the generic /api/workers router so /api/workers/bulk/* isn't
+// captured by a /:id route.
+const workersBulkRouter = require('./routes/workers-bulk');
+app.use('/api/workers/bulk', workersBulkRouter);
+
 const workersRouter = require('./routes/workers');
 app.use('/api/workers', workersRouter);
 
