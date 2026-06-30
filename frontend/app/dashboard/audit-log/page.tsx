@@ -6,6 +6,7 @@ import { useApi } from "@/lib/use-api";
 import { format } from "date-fns";
 import { Search, ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AuditLogEntry {
     id: string;
@@ -141,10 +142,48 @@ export default function AuditLogPage() {
 
     if (!isLoaded) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="text-center">
-                    <div className="inline-block w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
+            <div role="status" className="space-y-6">
+                <span className="sr-only">Loading…</span>
+
+                {/* Header */}
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <Skeleton className="h-8 w-48 mb-3" />
+                    <Skeleton className="h-4 w-96 max-w-full" />
+                </div>
+
+                {/* Filter Bar */}
+                <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+                    <Skeleton className="h-6 w-24" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i}>
+                                <Skeleton className="h-4 w-20 mb-2" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                        <Skeleton className="h-10 w-28" />
+                        <Skeleton className="h-10 w-28" />
+                    </div>
+                </div>
+
+                {/* Audit Log Table */}
+                <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+                    <div className="flex gap-4">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <Skeleton key={i} className="h-4 flex-1" />
+                        ))}
+                    </div>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="flex gap-4">
+                            <Skeleton className="h-6 flex-1" />
+                            <Skeleton className="h-6 flex-1" />
+                            <Skeleton className="h-6 flex-1" />
+                            <Skeleton className="h-6 flex-1" />
+                            <Skeleton className="h-6 flex-1" />
+                        </div>
+                    ))}
                 </div>
             </div>
         );

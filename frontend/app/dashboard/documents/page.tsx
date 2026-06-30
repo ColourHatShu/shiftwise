@@ -7,6 +7,7 @@ import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle, Search } f
 import { downloadDocument } from "@/lib/api/documents";
 import { useApi } from "@/lib/use-api";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Worker, ComplianceDocument } from "@/types/api";
 import toast from "react-hot-toast";
 
@@ -36,8 +37,53 @@ export default function DocumentsPage() {
 
     if (!isLoaded || isLoading) {
         return (
-            <div className="flex h-[50vh] items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003087]" />
+            <div role="status" className="space-y-6">
+                <span className="sr-only">Loading…</span>
+                {/* Header */}
+                <div>
+                    <Skeleton className="h-8 w-40" />
+                    <Skeleton className="h-4 w-64 mt-2" />
+                </div>
+
+                {/* Summary Stats */}
+                <div className="grid sm:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                            <Skeleton className="h-3 w-28" />
+                            <Skeleton className="h-8 w-12 mt-2" />
+                        </div>
+                    ))}
+                </div>
+
+                {/* Worker cards */}
+                <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+                            {/* Worker header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA]">
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="h-10 w-10 rounded-lg" />
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-4 w-36" />
+                                        <Skeleton className="h-3 w-24" />
+                                    </div>
+                                </div>
+                                <Skeleton className="h-7 w-16 rounded-lg" />
+                            </div>
+                            {/* Document rows */}
+                            <div className="p-4 space-y-3">
+                                {[...Array(3)].map((_, j) => (
+                                    <div key={j} className="flex items-center justify-between">
+                                        <Skeleton className="h-4 w-44" />
+                                        <Skeleton className="h-4 w-20" />
+                                        <Skeleton className="h-4 w-24" />
+                                        <Skeleton className="h-4 w-20" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

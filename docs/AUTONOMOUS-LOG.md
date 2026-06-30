@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 13:12 — Extend skeleton loaders (documents + audit-log)
+- **Item:** Extend skeleton loaders to remaining full-page spinners
+- **Outcome:** shipped
+- **Changes:** replaced the full-page centered spinners on `dashboard/documents/page.tsx` (header + 3 summary cards + worker cards w/ doc rows) and `dashboard/audit-log/page.tsx` (header + filter card + table header/rows) with layout-matching `<Skeleton>` loaders (each wrapped in `role="status"` + an `sr-only` "Loading…"). Added the `Skeleton` import to both.
+- **Verify:** build ✅ (✓ Compiled successfully, 25/25), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only). Confirmed Skeleton imported in both + the documents full-page `animate-spin` removed.
+- **Commit:** see git — 🛡️ feat(ui): skeleton loaders for documents + audit-log
+- **Notes / decisions:** Ran a 5-agent workflow; `audit-packs`, `compliance`, and the worker dashboard were correctly left unchanged — they have **no full-page spinner** (they render immediately with inline/per-section loading), so forcing a skeleton there would be wrong. **Deferred the Helmet CSP item** (the next P4 item): an enforcing CSP is risky to ship blind (can break Clerk/Sentry/Next at runtime; unverifiable without a browser). Recorded a Report-Only-first recommendation in the plan for when the founder greenlights it.
+
 ## 2026-06-30 13:03 — Memoize workers table rows
 - **Item:** Add useMemo/useCallback + debounced search to heavy tables (stop re-rendering on keystroke)
 - **Outcome:** shipped
