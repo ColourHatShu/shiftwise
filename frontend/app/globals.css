@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Royal Blue Professional Design System */
+  --primary: #003087;
+  --primary-dark: #002266;
+  --primary-light: #E6EDF8;
+  --primary-mid: #1A4BA0;
+  --accent: #16A34A;
+  --accent-light: #EAF3DE;
+  --warning: #D97706;
+  --warning-light: #FEF3C7;
+  --danger: #DC2626;
+  --danger-light: #FEE2E2;
+  --background: #F5F7FA;
+  --surface: #FFFFFF;
+  --text-primary: #0A1628;
+  --text-secondary: #5B6E8C;
+  --border: #DDE3EE;
+  --border-light: #EBEEF5;
+
+  /* Badge Colors */
+  --badge-green-bg: #DCFCE7;
+  --badge-green-text: #166534;
+  --badge-amber-bg: #FEF3C7;
+  --badge-amber-text: #92400E;
+  --badge-red-bg: #FEE2E2;
+  --badge-red-text: #991B1B;
+  --badge-gray-bg: #F3F4F6;
+  --badge-gray-text: #4B5563;
+}
+
+body {
+  color: var(--text-primary);
+  background: var(--background);
+  font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

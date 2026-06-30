@@ -1,0 +1,357 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Runtime connection — use Supabase's Transaction pooler (port 6543).
+  url       = env("DATABASE_URL")
+  // Migrations / introspection — Supabase's direct connection (port 5432).
+  // Required so `prisma migrate` bypasses the pgBouncer-pooled runtime URL.
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Agency (Tenant) ────────────────────────────────────────────────────────
+model Agency {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  email       String   @unique
+  phone       String?
+  address     String?
+  city        String?
+  postcode    String?
+  agencyType  String?
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  isOnboarded Boolean  @default(false)
+  complianceThresholds Json? // Custom thresholds per document type: { docTypeId: warningDays }
+  customThresholdEnabled Boolean @default(false) // Enable custom thresholds
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users               User[]
+  workers             Worker[]
+  documentTypes       DocumentType[]
+  complianceDocuments ComplianceDocument[]
+  expiryAlerts        ExpiryAlert[]
+  failedAlerts        FailedAlert[]
+  auditLogs           AuditLog[]
+  workerSessions      WorkerSession[]
+  shifts              Shift[]
+  workerAvailability  WorkerAvailability[]
+  shiftAssignments    ShiftAssignment[]
+  complianceSnapshots ComplianceSnapshot[]
+
+  @@map("agencies")
+}
+
+// ─── ComplianceSnapshot (Point-in-time immutable snapshot) ────────────────────
+model ComplianceSnapshot {
+  id        String   @id @default(cuid())
+  agencyId  String
+  asOfDate  DateTime
+  data      Json // Full snapshot data: workers, scores, document statuses
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, asOfDate])
+  @@map("compliance_snapshots")
+}
+
+// ─── User (Staff/Admin of an Agency) ────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique // Clerk Auth user ID
+  agencyId  String
+  email     String
+  firstName String
+  lastName  String
+  role      UserRole @default(STAFF)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency    Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
+
+  @@unique([agencyId, email])
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+// ─── Worker (Healthcare Staff managed by an Agency) ─────────────────────────
+model Worker {
+  id          String       @id @default(cuid())
+  agencyId    String
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  dateOfBirth DateTime?
+  niNumber    String? // National Insurance Number (UK)
+  jobTitle    String?
+  startDate   DateTime?
+  notes       String?      @db.Text
+  status      WorkerStatus @default(ACTIVE)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  agency              Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  complianceDocuments ComplianceDocument[]
+  expiryAlerts        ExpiryAlert[]
+  failedAlerts        FailedAlert[]
+  sessions            WorkerSession[]
+  availability        WorkerAvailability[]
+  shiftAssignments    ShiftAssignment[]
+
+  @@unique([agencyId, email])
+  @@map("workers")
+}
+
+enum WorkerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ─── DocumentType (Template for compliance docs e.g. DBS, Right to Work) ───
+model DocumentType {
+  id                String   @id @default(cuid())
+  agencyId          String
+  name              String // e.g. "DBS Check", "Right to Work"
+  description       String?
+  isRequired        Boolean  @default(true)
+  expiryWarningDays Int      @default(30) // Warn N days before expiry
+  hasExpiry         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  agency              Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  complianceDocuments ComplianceDocument[]
+
+  @@unique([agencyId, name])
+  @@map("document_types")
+}
+
+// ─── ComplianceDocument (Actual uploaded doc for a worker) ──────────────────
+model ComplianceDocument {
+  id                  String         @id @default(cuid())
+  agencyId            String
+  workerId            String
+  documentTypeId      String
+  fileUrl             String // Cloudflare R2 URL
+  fileKey             String // R2 object key
+  fileName            String
+  fileSize            Int?
+  mimeType            String?
+  encryptionAlgorithm String         @default("aes-256-cbc") // Algorithm used: aes-256-cbc (legacy) or aes-256-gcm (new)
+  status              DocumentStatus @default(PENDING)
+  issueDate           DateTime?
+  expiryDate          DateTime?
+  notes               String?
+  rejectionReason     String?
+  uploadedAt          DateTime       @default(now())
+  reviewedAt          DateTime?
+  updatedAt           DateTime       @updatedAt
+  analysisResult      Json?
+
+  // Relations
+  agency       Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  worker       Worker        @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  documentType DocumentType  @relation(fields: [documentTypeId], references: [id])
+  expiryAlerts ExpiryAlert[]
+  failedAlerts FailedAlert[]
+
+  @@index([agencyId, workerId, documentTypeId])
+  @@index([expiryDate])
+  @@map("compliance_documents")
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// ─── ExpiryAlert (Notifications for expiring documents) ─────────────────────
+model ExpiryAlert {
+  id                   String    @id @default(cuid())
+  agencyId             String
+  workerId             String
+  complianceDocumentId String
+  alertDate            DateTime
+  alertDateOnly        DateTime  @db.Date // UTC-midnight version of alertDate for dedup
+  daysUntilExpiry      Int
+  isSent               Boolean   @default(false)
+  sentAt               DateTime?
+  createdAt            DateTime  @default(now())
+
+  // Relations
+  agency             Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  worker             Worker             @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  complianceDocument ComplianceDocument @relation(fields: [complianceDocumentId], references: [id], onDelete: Cascade)
+
+  // Race-safe unique constraint: at most one alert per (document, daysUntilExpiry, day)
+  // This prevents duplicate alerts if the cron job runs concurrently
+  @@unique([complianceDocumentId, daysUntilExpiry, alertDateOnly])
+  @@map("expiry_alerts")
+}
+
+// ─── FailedAlert (Dead Letter Queue for failed email notifications) ─────────
+model FailedAlert {
+  id                   String            @id @default(cuid())
+  agencyId             String
+  workerId             String
+  complianceDocumentId String
+  alertDate            DateTime
+  daysUntilExpiry      Int
+  retryCount           Int               @default(0)
+  maxRetries           Int               @default(3)
+  errorMessage         String?
+  errorDetails         String?
+  status               FailedAlertStatus @default(PENDING)
+  lastRetryAt          DateTime?
+  resolvedAt           DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  // Relations
+  agency             Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  worker             Worker             @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  complianceDocument ComplianceDocument @relation(fields: [complianceDocumentId], references: [id], onDelete: Cascade)
+
+  @@map("failed_alerts")
+}
+
+enum FailedAlertStatus {
+  PENDING
+  RETRYING
+  FAILED_PERMANENTLY
+  RESOLVED
+}
+
+// ─── WorkerSession (OTP-based auth sessions for worker self-service) ────────
+model WorkerSession {
+  id        String   @id @default(cuid())
+  workerId  String
+  agencyId  String
+  otp       String   // 6-digit code
+  isUsed    Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@map("worker_sessions")
+}
+
+// ─── AuditLog (Immutable record of actions for compliance purposes) ──────────
+model AuditLog {
+  id        String   @id @default(cuid())
+  agencyId  String
+  userId    String?
+  action    String // e.g. "document.approved", "worker.created"
+  entity    String // e.g. "ComplianceDocument", "Worker"
+  entityId  String
+  metadata  Json? // Extra context (old/new values, etc.)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, createdAt])
+  @@index([agencyId, action])
+  @@map("audit_logs")
+}
+
+// ─── Shift (Work shifts assigned by coordinator) ────────────────────────────
+model Shift {
+  id                String             @id @default(cuid())
+  agencyId          String
+  facilityName      String
+  shiftDate         DateTime           @db.Date
+  startTime         String // HH:mm format
+  endTime           String // HH:mm format
+  role              String // e.g. "Nurse", "Carer", "Support Worker"
+  requiredCount     Int // How many workers needed
+  complianceCheckup Boolean            @default(false) // Require compliance review before assign
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  // Relations
+  agency       Agency              @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  assignments  ShiftAssignment[]
+
+  @@index([agencyId, shiftDate])
+  @@map("shifts")
+}
+
+// ─── WorkerAvailability (Worker marks available/unavailable/on leave) ────────
+model WorkerAvailability {
+  id           String   @id @default(cuid())
+  workerId     String
+  agencyId     String
+  date         DateTime @db.Date
+  status       String   @default("AVAILABLE") // AVAILABLE, UNAVAILABLE, ON_LEAVE
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, date])
+  @@map("worker_availability")
+}
+
+// ─── ShiftAssignment (Assign worker to shift) ────────────────────────────────
+model ShiftAssignment {
+  id                     String   @id @default(cuid())
+  shiftId                String
+  workerId               String
+  agencyId               String
+  assignedAt             DateTime @default(now())
+  complianceCheckPassed  Boolean  @default(false)
+  complianceCheckDetails Json? // e.g. { missingDocs: ["DBS", "Right to Work"] }
+  notes                  String?  @db.Text
+  // Phase 8: Compliance-based assignment fields
+  complianceSnapshot     Json? // Immutable snapshot of worker's compliance at assignment time
+  workerConfirmation     String   @default("pending") // pending, confirmed, declined
+  workerNote             String?  @db.VarChar(200) // Worker's optional reason for decline (max 200 chars)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Relations
+  shift   Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  worker  Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  agency  Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([shiftId, workerId])
+  @@map("shift_assignments")
+}
