@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 10:34 — Replace last native window.confirm() with ConfirmDialog
+- **Item:** Replace remaining native `window.confirm()` destructive actions with `components/ui/confirm-dialog.tsx`
+- **Outcome:** shipped
+- **Changes:** `dashboard/shifts/components/AssignmentList.tsx` — the unassign-worker action used native `confirm('Remove this worker from the shift?')`; now opens the styled `<ConfirmDialog>` (added a `confirmTarget` state; trash button opens it; `onConfirm` performs the DELETE; `busy` reflects the in-flight delete). Added an `aria-label` to the icon-only trash button.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only). Grep confirms zero native `confirm(`/`window.confirm(` left in `app/` + `components/`.
+- **Commit:** see git — 🛡️ refactor(ui): replace last window.confirm with ConfirmDialog
+- **Notes / decisions:** Only one native confirm() remained (the super-ready hardening had already replaced the others). Destructive actions now match the design system and are accessible (ESC/focus). **Blocked the top item** (finish modal consolidation) per the playbook's "Needs the human" path — it requires a canonical-modal-style decision I can't verify visually; recorded my recommendation (make the design-system style canonical) in the plan so the human can unblock with one word. Moved on to ship this item.
+
 ## 2026-06-30 10:20 — Make <Modal> reusable + migrate DeleteConfirmationModal
 - **Item:** Consolidate duplicated modal wrappers into the shared `<Modal>` component
 - **Outcome:** shipped (scoped — see decision)

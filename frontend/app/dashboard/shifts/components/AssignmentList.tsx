@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmationBadge } from '@/components/ui/confirmation-badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -36,6 +37,8 @@ export default function AssignmentList({
   onRefresh
 }: AssignmentListProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Assignment pending removal-confirmation (drives the styled ConfirmDialog).
+  const [confirmTarget, setConfirmTarget] = useState<string | null>(null);
 
   const getComplianceBadge = (score?: number) => {
     if (score === undefined) return null;
@@ -49,8 +52,6 @@ export default function AssignmentList({
   };
 
   const handleUnassign = async (assignmentId: string) => {
-    if (!confirm('Remove this worker from the shift?')) return;
-
     try {
       setDeleting(assignmentId);
       const response = await fetch(
@@ -72,6 +73,7 @@ export default function AssignmentList({
       console.error(err);
     } finally {
       setDeleting(null);
+      setConfirmTarget(null);
     }
   };
 
@@ -84,6 +86,7 @@ export default function AssignmentList({
   }
 
   return (
+    <>
     <div className="border rounded-lg overflow-hidden">
       <table className="w-full">
         <thead className="bg-gray-50 border-b">
@@ -122,8 +125,9 @@ export default function AssignmentList({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleUnassign(assignment.id)}
+                  onClick={() => setConfirmTarget(assignment.id)}
                   disabled={deleting === assignment.id}
+                  aria-label="Remove worker from shift"
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -134,5 +138,16 @@ export default function AssignmentList({
         </tbody>
       </table>
     </div>
+    <ConfirmDialog
+      open={confirmTarget !== null}
+      title="Remove worker"
+      message="Remove this worker from the shift?"
+      confirmLabel="Remove"
+      variant="destructive"
+      busy={deleting !== null && deleting === confirmTarget}
+      onConfirm={() => { if (confirmTarget) handleUnassign(confirmTarget); }}
+      onCancel={() => setConfirmTarget(null)}
+    />
+    </>
   );
 }
