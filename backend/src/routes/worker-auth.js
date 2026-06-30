@@ -163,7 +163,9 @@ async function handleVerifyCode(req, res) {
                 agencyId: worker.agencyId,
             },
             JWT_SECRET,
-            { expiresIn: JWT_EXPIRY, iat: Math.floor(Date.now() / 1000) }
+            // `iat` is set automatically by jsonwebtoken; passing it as an *option*
+            // throws ("iat" is not allowed in "options") and 500s every verify-code.
+            { expiresIn: JWT_EXPIRY }
         );
 
         // Set HTTP-only secure cookie

@@ -1,199 +1,166 @@
 /**
- * Worker Auth Integration Tests (TDD)
+ * Worker self-service auth — real behavioural tests.
  *
- * Tests worker self-service authentication flow:
- * 1. POST /worker-signin - email input, generate OTP
- * 2. POST /worker/verify-code - OTP validation, JWT issuance
- * 3. JWT stored in HTTP-only cookie for subsequent requests
+ * Covers POST /worker-signin (OTP generation + anti-enumeration + email-failure
+ * resilience), POST /worker/verify-code (valid / missing / unknown / wrong /
+ * expired / used OTP), the JWT cookie, and workerAuthMiddleware.
+ *
+ * NOTE: the route reads JWT_SECRET at module load, so it must be set before the
+ * route is required (below).
  */
 
-const prisma = require('../../lib/prisma');
+process.env.JWT_SECRET = 'test-secret';
+
+const request = require('supertest');
+const express = require('express');
+const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 
 jest.mock('../../lib/prisma');
 jest.mock('../../lib/nodemailer');
 
-describe('Worker Authentication Flow (TDD)', () => {
+const prisma = require('../../lib/prisma');
+const { sendWorkerOtpEmail } = require('../../lib/nodemailer');
+const { handleWorkerSignin, handleVerifyCode, workerAuthMiddleware } = require('../../routes/worker-auth');
+
+const WORKER = { id: 'w1', firstName: 'John', lastName: 'Doe', agencyId: 'a1', email: 'john@example.com' };
+
+describe('Worker Authentication Flow', () => {
+    let app;
+
     beforeEach(() => {
         jest.clearAllMocks();
-        process.env.JWT_SECRET = 'test-secret';
+        app = express();
+        app.use(express.json());
+        app.use(cookieParser());
+        prisma.worker = { findFirst: jest.fn() };
+        prisma.workerSession = { create: jest.fn(), findFirst: jest.fn(), update: jest.fn() };
+        app.post('/worker-signin', handleWorkerSignin);
+        app.post('/worker/verify-code', handleVerifyCode);
+        app.get('/worker/me', workerAuthMiddleware, (req, res) => res.json({ worker: req.worker }));
     });
 
     describe('POST /worker-signin', () => {
-        it('should generate a 6-digit OTP for valid worker email', async () => {
-            // Mock worker lookup
-            const mockWorker = {
-                id: 'worker-123',
-                email: 'john@example.com',
-                firstName: 'John',
-                agencyId: 'agency-456',
-            };
-            prisma.worker.findUnique.mockResolvedValue(mockWorker);
-            prisma.workerSession.create.mockResolvedValue({
-                id: 'session-123',
-                workerId: 'worker-123',
-                agencyId: 'agency-456',
-                otp: '123456',
-                expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-            });
+        it('generates an OTP and emails it for a known worker (case-insensitive)', async () => {
+            prisma.worker.findFirst.mockResolvedValue(WORKER);
+            prisma.workerSession.create.mockResolvedValue({ id: 's1' });
+            sendWorkerOtpEmail.mockResolvedValue();
 
-            // Call /worker-signin endpoint (to be implemented)
-            // const response = await app.post('/worker-signin').send({ email: 'john@example.com' });
+            const res = await request(app).post('/worker-signin').send({ email: 'John@Example.com' });
 
-            // EXPECTED BEHAVIOR:
-            // - Worker found in database
-            // - 6-digit OTP generated
-            // - OTP stored in WorkerSession table with 10-min expiry
-            // - Email sent with OTP code (or would be in production)
-            // - Response: 200 OK { message: "OTP sent to email" }
-
-            expect(prisma.worker.findUnique).toBeDefined();
+            expect(res.status).toBe(200);
+            expect(prisma.worker.findFirst).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { email: 'john@example.com' } })
+            );
+            expect(prisma.workerSession.create).toHaveBeenCalled();
+            expect(sendWorkerOtpEmail).toHaveBeenCalledWith('john@example.com', 'John', expect.stringMatching(/^\d{6}$/));
         });
 
-        it('should reject signin if worker not found', async () => {
-            prisma.worker.findUnique.mockResolvedValue(null);
+        it('returns a generic 200 (anti-enumeration) and creates no OTP for an unknown email', async () => {
+            prisma.worker.findFirst.mockResolvedValue(null);
 
-            // EXPECTED BEHAVIOR:
-            // - Response: 404 Not Found or 401 Unauthorized
-            // - Message: "Worker not found"
-            // - No OTP created
+            const res = await request(app).post('/worker-signin').send({ email: 'nobody@example.com' });
 
-            expect(prisma.worker.findUnique).toBeDefined();
+            expect(res.status).toBe(200);
+            expect(prisma.workerSession.create).not.toHaveBeenCalled();
+            expect(sendWorkerOtpEmail).not.toHaveBeenCalled();
         });
 
-        it('should handle email sending errors gracefully', async () => {
-            const mockWorker = {
-                id: 'worker-123',
-                email: 'john@example.com',
-                firstName: 'John',
-                agencyId: 'agency-456',
-            };
-            prisma.worker.findUnique.mockResolvedValue(mockWorker);
-            prisma.workerSession.create.mockResolvedValue({
-                id: 'session-123',
-                otp: '123456',
-                expiresAt: new Date(),
-            });
+        it('400s when email is missing', async () => {
+            const res = await request(app).post('/worker-signin').send({});
+            expect(res.status).toBe(400);
+        });
 
-            // EXPECTED BEHAVIOR:
-            // - OTP created even if email fails
-            // - Response: 200 OK (OTP would be resent later)
-            // - Logged error to Sentry
+        it('still returns 200 when the OTP email fails (OTP already stored)', async () => {
+            prisma.worker.findFirst.mockResolvedValue(WORKER);
+            prisma.workerSession.create.mockResolvedValue({ id: 's1' });
+            sendWorkerOtpEmail.mockRejectedValue(new Error('smtp down'));
 
-            expect(prisma.worker.findUnique).toBeDefined();
+            const res = await request(app).post('/worker-signin').send({ email: 'john@example.com' });
+
+            expect(res.status).toBe(200);
+            expect(prisma.workerSession.create).toHaveBeenCalled();
         });
     });
 
     describe('POST /worker/verify-code', () => {
-        it('should issue JWT token for valid OTP', async () => {
-            const mockSession = {
-                id: 'session-123',
-                workerId: 'worker-123',
-                agencyId: 'agency-456',
-                otp: '123456',
+        it('issues an HTTP-only JWT cookie for a valid OTP and marks the session used', async () => {
+            prisma.worker.findFirst.mockResolvedValue(WORKER);
+            prisma.workerSession.findFirst.mockResolvedValue({
+                id: 's1',
                 isUsed: false,
                 expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-            };
-            const mockWorker = {
-                id: 'worker-123',
-                email: 'john@example.com',
-                firstName: 'John',
-                agencyId: 'agency-456',
-            };
+            });
+            prisma.workerSession.update.mockResolvedValue({});
 
-            prisma.workerSession.findUnique.mockResolvedValue(mockSession);
-            prisma.worker.findUnique.mockResolvedValue(mockWorker);
-            prisma.workerSession.update.mockResolvedValue({ ...mockSession, isUsed: true });
+            const res = await request(app).post('/worker/verify-code').send({ email: 'john@example.com', otp: '123456' });
 
-            // EXPECTED BEHAVIOR:
-            // - Session found and OTP matches
-            // - Session not expired
-            // - Session not already used
-            // - JWT generated with workerId, agencyId, iat, exp
-            // - Token stored in HTTP-only cookie (secure, sameSite)
-            // - Session marked as used
-            // - Response: 200 OK { message: "Signin successful" }
-
-            expect(prisma.workerSession.findUnique).toBeDefined();
+            expect(res.status).toBe(200);
+            expect(prisma.workerSession.update).toHaveBeenCalledWith({ where: { id: 's1' }, data: { isUsed: true } });
+            const setCookie = (res.headers['set-cookie'] || []).join(';');
+            expect(setCookie).toMatch(/worker_token=/);
+            expect(setCookie).toMatch(/HttpOnly/i);
         });
 
-        it('should reject if OTP is incorrect', async () => {
-            prisma.workerSession.findUnique.mockResolvedValue(null);
-
-            // EXPECTED BEHAVIOR:
-            // - Response: 401 Unauthorized
-            // - Message: "Invalid OTP"
-            // - No token issued
-
-            expect(prisma.workerSession.findUnique).toBeDefined();
+        it('400s when email or otp is missing', async () => {
+            const res = await request(app).post('/worker/verify-code').send({ email: 'john@example.com' });
+            expect(res.status).toBe(400);
         });
 
-        it('should reject if OTP has expired', async () => {
-            const expiredSession = {
-                id: 'session-123',
-                workerId: 'worker-123',
-                otp: '123456',
+        it('401s for an unknown worker', async () => {
+            prisma.worker.findFirst.mockResolvedValue(null);
+            const res = await request(app).post('/worker/verify-code').send({ email: 'x@example.com', otp: '123456' });
+            expect(res.status).toBe(401);
+        });
+
+        it('401s when no session matches (wrong OTP)', async () => {
+            prisma.worker.findFirst.mockResolvedValue(WORKER);
+            prisma.workerSession.findFirst.mockResolvedValue(null);
+            const res = await request(app).post('/worker/verify-code').send({ email: 'john@example.com', otp: '000000' });
+            expect(res.status).toBe(401);
+        });
+
+        it('401s when the OTP has expired', async () => {
+            prisma.worker.findFirst.mockResolvedValue(WORKER);
+            prisma.workerSession.findFirst.mockResolvedValue({
+                id: 's1',
                 isUsed: false,
-                expiresAt: new Date(Date.now() - 5 * 60 * 1000), // 5 min ago
-            };
-
-            prisma.workerSession.findUnique.mockResolvedValue(expiredSession);
-
-            // EXPECTED BEHAVIOR:
-            // - Response: 401 Unauthorized
-            // - Message: "OTP has expired"
-            // - No token issued
-
-            expect(prisma.workerSession.findUnique).toBeDefined();
+                expiresAt: new Date(Date.now() - 60 * 1000),
+            });
+            const res = await request(app).post('/worker/verify-code').send({ email: 'john@example.com', otp: '123456' });
+            expect(res.status).toBe(401);
+            expect(res.body.error).toMatch(/expired/i);
         });
 
-        it('should reject if OTP was already used', async () => {
-            const usedSession = {
-                id: 'session-123',
-                workerId: 'worker-123',
-                otp: '123456',
+        it('401s when the OTP was already used', async () => {
+            prisma.worker.findFirst.mockResolvedValue(WORKER);
+            prisma.workerSession.findFirst.mockResolvedValue({
+                id: 's1',
                 isUsed: true,
                 expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-            };
-
-            prisma.workerSession.findUnique.mockResolvedValue(usedSession);
-
-            // EXPECTED BEHAVIOR:
-            // - Response: 401 Unauthorized
-            // - Message: "OTP already used"
-            // - No token issued
-
-            expect(prisma.workerSession.findUnique).toBeDefined();
+            });
+            const res = await request(app).post('/worker/verify-code').send({ email: 'john@example.com', otp: '123456' });
+            expect(res.status).toBe(401);
+            expect(res.body.error).toMatch(/already used/i);
         });
     });
 
-    describe('JWT Cookie Handling', () => {
-        it('should set HTTP-only secure cookie on successful verification', async () => {
-            // EXPECTED BEHAVIOR:
-            // - Cookie name: "worker_token"
-            // - HTTP-only: true
-            // - Secure: true (https only in production)
-            // - SameSite: "strict"
-            // - MaxAge: 7 days (604800 seconds)
-
-            expect(true).toBe(true);
+    describe('workerAuthMiddleware', () => {
+        it('401s without a token', async () => {
+            const res = await request(app).get('/worker/me');
+            expect(res.status).toBe(401);
         });
 
-        it('should decode valid JWT from cookie in subsequent requests', async () => {
-            const token = jwt.sign(
-                { workerId: 'worker-123', agencyId: 'agency-456' },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
+        it('accepts a valid worker_token cookie and attaches worker context', async () => {
+            const token = jwt.sign({ workerId: 'w1', agencyId: 'a1' }, 'test-secret', { expiresIn: '7d' });
+            const res = await request(app).get('/worker/me').set('Cookie', `worker_token=${token}`);
+            expect(res.status).toBe(200);
+            expect(res.body.worker).toEqual({ id: 'w1', agencyId: 'a1' });
+        });
 
-            // EXPECTED BEHAVIOR:
-            // - Middleware decodes JWT from cookie
-            // - Attaches worker context to request
-            // - Middleware rejects expired tokens
-
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            expect(decoded.workerId).toBe('worker-123');
-            expect(decoded.agencyId).toBe('agency-456');
+        it('401s for an invalid token', async () => {
+            const res = await request(app).get('/worker/me').set('Cookie', 'worker_token=garbage');
+            expect(res.status).toBe(401);
         });
     });
 });

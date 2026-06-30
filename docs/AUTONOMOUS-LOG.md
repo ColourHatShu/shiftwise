@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 15:02 — Rewrite worker-auth tests → caught + fixed a P0 (worker login broken)
+- **Item:** Fix the broken backend suites — slice 2 (`worker-auth`)
+- **Outcome:** shipped — **and found/fixed a production P0**
+- **Discovery:** `worker-auth.test.js` was a **placeholder TDD stub** — every test set up mocks but never called the endpoint, only asserting `expect(prisma.worker.findUnique).toBeDefined()`. Stubbing it green would have been false coverage, so I **rewrote it into 13 real behavioural tests** (signin incl. anti-enumeration + email-failure resilience; verify-code valid/missing/unknown/wrong/expired/used; JWT cookie; middleware). The valid-OTP test immediately failed with a **500** → the route's `jwt.sign(payload, secret, { expiresIn, iat: ... })` throws `"iat" is not allowed in "options"`. **Every worker `verify-code` call 500s → workers cannot log in at all.** The placeholder never caught it because it never hit the route.
+- **Changes:** `backend/src/routes/worker-auth.js` — removed the invalid `iat` option (jsonwebtoken sets `iat` automatically). `backend/src/tests/integration/worker-auth.test.js` — full real rewrite (13 tests). Re-added `worker-auth` to `test:ci`.
+- **Verify:** worker-auth file **13/13**; `npm run test:ci` = **15 suites / 149 tests, 0 failing** (worker-auth rejoined); full suite shows only the 3 still-excluded suites failing (worker-dashboard, security-pipeline, worker-e2e). The CI gate is green under `--runInBand`.
+- **Commit:** see git — 🛡️ fix(worker-auth): remove invalid iat jwt option (P0) + real tests
+- **Notes / decisions:** This is the second P0 the Knight has surfaced (after the Sentry v10 crash) — both were latent because the relevant tests/paths were never exercised. **Please smoke-test worker login once a DB/SMTP is wired.** `worker-dashboard` and `security-pipeline` are probably the same placeholder pattern — next firings will rewrite them into real tests (and likely surface more real bugs).
+
 ## 2026-06-30 14:52 — Fix worker-assignments test suite (1 of 5)
 - **Item:** Fix the mock-broken backend suites — slice 1
 - **Outcome:** shipped
