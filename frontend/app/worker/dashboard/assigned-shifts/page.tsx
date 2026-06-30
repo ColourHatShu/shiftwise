@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { ConfirmationBadge } from '@/components/ui/confirmation-badge';
 import { toast } from 'react-hot-toast';
 import { Loader2, Check, X } from 'lucide-react';
 import { formatDate, formatTime, durationHours } from '@/lib/date-utils';
@@ -106,27 +106,6 @@ export default function AssignedShiftsPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return (
-          <Badge className="bg-green-100 text-green-800">
-            <Check className="h-3 w-3 mr-1" />
-            Confirmed
-          </Badge>
-        );
-      case 'declined':
-        return (
-          <Badge className="bg-orange-100 text-orange-800">
-            <X className="h-3 w-3 mr-1" />
-            Declined
-          </Badge>
-        );
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Pending</Badge>;
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -161,7 +140,7 @@ export default function AssignedShiftsPage() {
                     </h3>
                     <p className="text-gray-600">{assignment.shift.role}</p>
                   </div>
-                  {getStatusBadge(assignment.workerConfirmation)}
+                  <ConfirmationBadge status={assignment.workerConfirmation} withIcon />
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-sm">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmationBadge } from '@/components/ui/confirmation-badge';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -35,17 +36,6 @@ export default function AssignmentList({
   onRefresh
 }: AssignmentListProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Badge className="bg-green-100 text-green-800">Confirmed</Badge>;
-      case 'declined':
-        return <Badge className="bg-orange-100 text-orange-800">Declined</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Pending</Badge>;
-    }
-  };
 
   const getComplianceBadge = (score?: number) => {
     if (score === undefined) return null;
@@ -126,7 +116,7 @@ export default function AssignmentList({
                 {getComplianceBadge(assignment.complianceSnapshot?.complianceScore)}
               </td>
               <td className="px-4 py-3">
-                {getStatusBadge(assignment.workerConfirmation)}
+                <ConfirmationBadge status={assignment.workerConfirmation} />
               </td>
               <td className="px-4 py-3">
                 <Button

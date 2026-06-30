@@ -3,6 +3,32 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 📊 Milestone summary — 2026-06-30 (8 items shipped)
+The Knight loop has been running ~10-min firings on `knight-autonomous` (isolated branch, never master). **Shipped so far (most recent first):**
+1. Shared `<ConfirmationBadge>` — deduped shift-confirmation badges (this firing)
+2. Shared `<StatusBadge>` — deduped worker/document status pills (3 sites)
+3. Full `useApi()` migration — 26 fetch sites across 9 files
+4. `useApi()` hook created + adopted on top 3 pages
+5. **perf:** killed N+1 in bulk shift-assign (≈5×N → 4 queries)
+6. Skeleton loaders (workers, shifts calendar, reports) + reusable `<Skeleton>`
+7. a11y: aria-labels on 19 icon-only buttons (12 files)
+8. Responsive mobile sidebar drawer **+ fixed a P0 production build-breaker** (`localStorage` at render time)
+(Plus 1 no-op: request-ID middleware was already done.)
+
+**Queued next:** worker-confirmation/RAG follow-ups (decided against unifying), modal-wrapper consolidation, replace `window.confirm()`, Cmd+K search, availability calendar, shift templates, earnings dashboard, type-safety + perf passes, custom Helmet CSP, extend skeletons.
+
+**⛔ Needs the human:** backend integration test suites (`worker-*`, `security-pipeline`) need a live Postgres to run in the Knight's env; one buggy `shift-assignments` role test (auth mock forces OWNER). Branch is ~10 commits ahead of master, frontend builds green — ready for a review/merge whenever you like.
+
+---
+
+## 2026-06-30 10:04 — Shared <ConfirmationBadge> (shift-confirmation dedup)
+- **Item:** Dedupe the remaining status badges (shift-confirmation vocabulary)
+- **Outcome:** shipped
+- **Changes:** new `frontend/components/ui/confirmation-badge.tsx` (`<ConfirmationBadge status withIcon? />`); removed the identical `getStatusBadge` switch from `dashboard/shifts/components/AssignmentList.tsx` and `worker/dashboard/assigned-shifts/page.tsx` and adopted the shared component (worker portal passes `withIcon` for the check/x icons). Dropped the now-unused `Badge` import from assigned-shifts.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ refactor(ui): shared ConfirmationBadge for shift-confirmation state
+- **Notes / decisions:** Reproduced the exact Tailwind palette + labels → **zero visual change**. Deliberately used a SEPARATE component from `<StatusBadge>` because the vocabularies collide: shift-confirmation "pending" is a gray "Pending" whereas document "PENDING" is an amber "Pending Review" — a single flat status map would conflate them. Decided against forcing the worker-portal doc badges (different uppercase/named-color palette) and the numeric RAG (score→bucket, not a status string) into a shared component; recorded that decision in the plan rather than churning visuals for little benefit.
+
 ## 2026-06-30 09:54 — Shared <StatusBadge> (dedupe status-pill logic)
 - **Item:** Extract duplicated status-badge color logic into a single shared badge component/util
 - **Outcome:** shipped
