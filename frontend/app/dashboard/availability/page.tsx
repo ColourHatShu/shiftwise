@@ -1,191 +1,257 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { useApi } from "@/lib/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface WorkerAvailability {
-  id: string;
-  workerId: string;
-  date: string;
-  status: 'AVAILABLE' | 'UNAVAILABLE' | 'ON_LEAVE';
+type Status = "AVAILABLE" | "UNAVAILABLE" | "ON_LEAVE";
+
+interface WorkerOption {
+    id: string;
+    firstName: string;
+    lastName: string;
+}
+
+interface AvailabilityEntry {
+    date: string; // ISO from the API
+    status: Status;
+}
+
+const STATUS_META: Record<Status, { label: string; idle: string; active: string }> = {
+    AVAILABLE: { label: "Available", idle: "bg-[#F5F7FA] text-[#5B6E8C] hover:bg-[#DCFCE7]", active: "bg-[#16A34A] text-white" },
+    UNAVAILABLE: { label: "Unavailable", idle: "bg-[#F5F7FA] text-[#5B6E8C] hover:bg-[#FEE2E2]", active: "bg-[#DC2626] text-white" },
+    ON_LEAVE: { label: "On Leave", idle: "bg-[#F5F7FA] text-[#5B6E8C] hover:bg-[#FEF3C7]", active: "bg-[#D97706] text-white" },
+};
+
+// Local YYYY-MM-DD (avoids UTC off-by-one from toISOString()).
+function ymd(year: number, month: number, day: number): string {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export default function AvailabilityPage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [availability, setAvailability] = useState<WorkerAvailability[]>([]);
-  const [loading, setLoading] = useState(true);
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
 
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+    const [workers, setWorkers] = useState<WorkerOption[]>([]);
+    const [workerId, setWorkerId] = useState("");
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [availability, setAvailability] = useState<Record<string, Status>>({});
+    const [loadingWorkers, setLoadingWorkers] = useState(true);
+    const [loadingCal, setLoadingCal] = useState(false);
+    const [saving, setSaving] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAvailability();
-  }, [currentDate]);
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstWeekday = new Date(year, month, 1).getDay();
 
-  async function fetchAvailability() {
-    // NOTE: aggregate-agency availability endpoint does not yet exist
-    // (worker-availability.js is per-worker at /api/workers/:workerId/availability).
-    // Page renders as an empty-state until the worker self-service portal
-    // (Phase 9+) wires this up. Avoids a noisy 404 on dashboard load.
-    setLoading(false);
-    setAvailability([]);
-  }
+    // Load the agency's workers for the picker.
+    useEffect(() => {
+        if (!isLoaded || !isSignedIn) return;
+        (async () => {
+            try {
+                const res = await apiFetch(`/api/workers?limit=100`);
+                if (!res.ok) throw new Error("failed");
+                const data = await res.json();
+                setWorkers(data.data || []);
+            } catch {
+                setWorkers([]);
+            } finally {
+                setLoadingWorkers(false);
+            }
+        })();
+    }, [isLoaded, isSignedIn, apiFetch]);
 
-  async function updateAvailability(date: string, status: 'AVAILABLE' | 'UNAVAILABLE' | 'ON_LEAVE') {
-    // Optimistic local update only — backend persistence pending Phase 9.
-    setAvailability((prev) => {
-      const existing = prev.find((a) => a.date === date);
-      if (existing) {
-        return prev.map((a) => (a.date === date ? { ...a, status } : a));
-      }
-      return [
-        ...prev,
-        {
-          id: `${Date.now()}`,
-          workerId: 'current-worker',
-          date,
-          status,
-        },
-      ];
-    });
-  }
-
-  const getStatusColor = (status: string | undefined) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'bg-green-100 text-green-700';
-      case 'UNAVAILABLE':
-        return 'bg-red-100 text-red-700';
-      case 'ON_LEAVE':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getStatusLabel = (status: string | undefined) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return '✓ Available';
-      case 'UNAVAILABLE':
-        return '✗ Unavailable';
-      case 'ON_LEAVE':
-        return '◌ On Leave';
-      default:
-        return 'Not set';
-    }
-  };
-
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-
-  const days: (number | null)[] = [
-    ...Array.from({ length: firstDay }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-
-  return (
-    <div>
-      <div className="p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Your Availability</h1>
-            <p className="text-gray-600 mt-1">Mark your availability for upcoming shifts</p>
-          </div>
-
-          {/* Calendar */}
-          <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
-            {/* Month Navigation */}
-            <div className="flex justify-between items-center mb-6">
-              <button
-                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-                className="p-2 hover:bg-gray-100 rounded"
-                aria-label="Previous month"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <h2 className="text-xl font-semibold">
-                {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </h2>
-              <button
-                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-                className="p-2 hover:bg-gray-100 rounded"
-                aria-label="Next month"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div key={day} className="text-center font-semibold text-gray-600 text-sm py-2">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-2">
-              {days.map((day, i) => {
-                if (!day) return <div key={`empty-${i}`} />;
-
-                const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
-                const dayAvailability = availability.find((a) => a.date === date);
-                const status = dayAvailability?.status;
-
-                return (
-                  <div key={day} className="border rounded p-2 min-h-24 flex flex-col">
-                    <span className="font-semibold text-gray-900 mb-2">{day}</span>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <button
-                        onClick={() => updateAvailability(date, 'AVAILABLE')}
-                        className={`text-xs px-2 py-1 rounded transition-colors ${
-                          status === 'AVAILABLE' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-green-200'
-                        }`}
-                      >
-                        ✓ Available
-                      </button>
-                      <button
-                        onClick={() => updateAvailability(date, 'UNAVAILABLE')}
-                        className={`text-xs px-2 py-1 rounded transition-colors ${
-                          status === 'UNAVAILABLE' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-red-200'
-                        }`}
-                      >
-                        ✗ Unavailable
-                      </button>
-                      <button
-                        onClick={() => updateAvailability(date, 'ON_LEAVE')}
-                        className={`text-xs px-2 py-1 rounded transition-colors ${
-                          status === 'ON_LEAVE' ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-yellow-200'
-                        }`}
-                      >
-                        ◌ On Leave
-                      </button>
-                    </div>
-                  </div>
+    // Load the selected worker's availability for the visible month.
+    useEffect(() => {
+        if (!workerId) {
+            setAvailability({});
+            return;
+        }
+        let cancelled = false;
+        setLoadingCal(true);
+        (async () => {
+            try {
+                const startDate = ymd(year, month, 1);
+                const endDate = ymd(year, month, daysInMonth);
+                const res = await apiFetch(
+                    `/api/workers/${workerId}/availability?startDate=${startDate}&endDate=${endDate}`
                 );
-              })}
-            </div>
-          </div>
+                if (!res.ok) throw new Error("failed");
+                const data = await res.json();
+                if (cancelled) return;
+                const map: Record<string, Status> = {};
+                (data.data || []).forEach((e: AvailabilityEntry) => {
+                    map[e.date.split("T")[0]] = e.status;
+                });
+                setAvailability(map);
+            } catch {
+                if (!cancelled) setAvailability({});
+            } finally {
+                if (!cancelled) setLoadingCal(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [workerId, year, month, daysInMonth, apiFetch]);
 
-          {/* Legend */}
-          <div className="mt-8 bg-white rounded-lg shadow p-6">
-            <h3 className="font-semibold mb-4">Status Legend</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-green-500"></div>
-                <span className="text-sm text-gray-700">Available for shifts</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-red-500"></div>
-                <span className="text-sm text-gray-700">Not available</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-yellow-500"></div>
-                <span className="text-sm text-gray-700">On leave/holiday</span>
-              </div>
+    // Set a status (click the active one again to clear it).
+    async function setStatus(date: string, status: Status) {
+        if (!workerId || saving) return;
+        const current = availability[date];
+        const clearing = current === status;
+        setSaving(date);
+        // Optimistic update
+        setAvailability((prev) => {
+            const next = { ...prev };
+            if (clearing) delete next[date];
+            else next[date] = status;
+            return next;
+        });
+        try {
+            const res = clearing
+                ? await apiFetch(`/api/workers/${workerId}/availability/${date}`, { method: "DELETE" })
+                : await apiFetch(`/api/workers/${workerId}/availability`, {
+                      method: "POST",
+                      body: JSON.stringify({ date, status }),
+                  });
+            if (!res.ok && !(clearing && res.status === 404)) throw new Error("save failed");
+        } catch {
+            // Roll back on failure
+            setAvailability((prev) => {
+                const next = { ...prev };
+                if (clearing) next[date] = current as Status;
+                else if (current) next[date] = current;
+                else delete next[date];
+                return next;
+            });
+        } finally {
+            setSaving(null);
+        }
+    }
+
+    const days: (number | null)[] = useMemo(
+        () => [...Array.from({ length: firstWeekday }, () => null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)],
+        [firstWeekday, daysInMonth]
+    );
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-medium text-[#0A1628]">Availability</h1>
+                    <p className="mt-1 text-[#5B6E8C]">Mark when a worker is available, unavailable, or on leave.</p>
+                </div>
+                {loadingWorkers ? (
+                    <Skeleton className="h-10 w-64 rounded-lg" />
+                ) : (
+                    <select
+                        value={workerId}
+                        onChange={(e) => setWorkerId(e.target.value)}
+                        className="rounded-lg border border-[#DDE3EE] bg-white px-4 py-2.5 text-sm text-[#0A1628] focus:border-[#003087] focus:outline-none focus:ring-1 focus:ring-[#003087]"
+                    >
+                        <option value="">Select a worker…</option>
+                        {workers.map((w) => (
+                            <option key={w.id} value={w.id}>
+                                {w.firstName} {w.lastName}
+                            </option>
+                        ))}
+                    </select>
+                )}
             </div>
-          </div>
-      </div>
-    </div>
-  );
+
+            {!workerId ? (
+                <div className="rounded-xl border border-[#DDE3EE] bg-white p-12 text-center">
+                    <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-[#F5F7FA]">
+                        <CalendarDays size={24} className="text-[#5B6E8C]" />
+                    </div>
+                    <p className="text-[#5B6E8C]">Select a worker to view and edit their availability calendar.</p>
+                </div>
+            ) : (
+                <div className="rounded-xl border border-[#DDE3EE] bg-white p-6">
+                    {/* Month nav */}
+                    <div className="mb-6 flex items-center justify-between">
+                        <button
+                            onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+                            aria-label="Previous month"
+                            className="rounded-lg p-2 text-[#5B6E8C] transition-colors hover:bg-[#F5F7FA] hover:text-[#0A1628]"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        <h2 className="text-lg font-medium text-[#0A1628]">
+                            {currentDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
+                        </h2>
+                        <button
+                            onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+                            aria-label="Next month"
+                            className="rounded-lg p-2 text-[#5B6E8C] transition-colors hover:bg-[#F5F7FA] hover:text-[#0A1628]"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+
+                    {/* Weekday headers */}
+                    <div className="mb-2 grid grid-cols-7 gap-2">
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                            <div key={d} className="py-1 text-center text-[11px] font-medium uppercase tracking-[0.5px] text-[#5B6E8C]">
+                                {d}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Calendar grid */}
+                    {loadingCal ? (
+                        <div className="grid grid-cols-7 gap-2">
+                            {Array.from({ length: 35 }).map((_, i) => (
+                                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-7 gap-2">
+                            {days.map((day, i) => {
+                                if (!day) return <div key={`empty-${i}`} />;
+                                const date = ymd(year, month, day);
+                                const status = availability[date];
+                                return (
+                                    <div key={date} className="flex min-h-24 flex-col rounded-lg border border-[#DDE3EE] p-2">
+                                        <span className="mb-1.5 text-sm font-medium text-[#0A1628]">{day}</span>
+                                        <div className="flex flex-1 flex-col gap-1">
+                                            {(Object.keys(STATUS_META) as Status[]).map((s) => {
+                                                const meta = STATUS_META[s];
+                                                const isActive = status === s;
+                                                return (
+                                                    <button
+                                                        key={s}
+                                                        onClick={() => setStatus(date, s)}
+                                                        disabled={saving === date}
+                                                        className={`rounded px-1.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-60 ${
+                                                            isActive ? meta.active : meta.idle
+                                                        }`}
+                                                    >
+                                                        {meta.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Legend */}
+                    <div className="mt-6 flex flex-wrap gap-6 border-t border-[#DDE3EE] pt-4 text-sm text-[#5B6E8C]">
+                        <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-[#16A34A]" /> Available for shifts</span>
+                        <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-[#DC2626]" /> Not available</span>
+                        <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-[#D97706]" /> On leave / holiday</span>
+                        <span className="text-[#5B6E8C]/70">Tip: click an active status again to clear it.</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }

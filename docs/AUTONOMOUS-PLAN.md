@@ -31,7 +31,8 @@
 - [x] Cmd+K command palette (first slice) — `components/ui/command-palette.tsx`, mounted in the dashboard layout; ⌘K/Ctrl+K, client-side fuzzy filter over navigation + quick actions, full keyboard nav
 - [x] Cmd+K follow-ups: added a visible "Search… ⌘K" sidebar affordance (opens the palette via a custom event) + live **worker** search in the palette (debounced, via `useApi` → `/api/workers?search=`), unified keyboard nav across pages + workers
 - [x] Extend Cmd+K live search to **shifts** (parallel debounced fetch via `/api/shifts?facilityName=`, grouped results). **Documents deliberately not searched** — no document search endpoint or detail route; doc hits would have no deep-link target distinct from worker search. Revisit only if a `/api/documents?search=` endpoint + a doc target are added.
-- [ ] Worker availability calendar (mark available/unavailable days; foundation for rota)
+- [x] Worker availability calendar — revived `/dashboard/availability` as a real, light-themed coordinator page (worker picker + month calendar) that **persists** AVAILABLE/UNAVAILABLE/ON_LEAVE via the existing `/api/workers/:id/availability` API; re-added the sidebar nav item
+- [ ] Re-theme the worker detail page (`dashboard/workers/[id]/page.tsx`) from dark (slate/white) to the light design system — it's the last dark-theme leak in the coordinator app (council finding; only partially fixed)
 - [ ] Shift templates + recurring auto-poster (saves coordinators hours/week) — start with the template entity + create-from-template flow
 - [ ] Worker earnings dashboard (read-only summary of completed/assigned shifts)
 

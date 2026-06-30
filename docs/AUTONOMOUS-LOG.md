@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 11:42 — Worker availability calendar (persistent) — first firing on main
+- **Item:** Worker availability calendar (mark available/unavailable days; foundation for rota)
+- **Outcome:** shipped
+- **Changes:** rewrote `dashboard/availability/page.tsx` — a real, light-themed coordinator page: worker `<select>` picker + month calendar; each day toggles AVAILABLE/UNAVAILABLE/ON_LEAVE and **persists** via the existing API (`GET/POST/DELETE /api/workers/:id/availability`) with optimistic update + rollback; month nav, skeleton loading, legend. Re-added the "Availability" sidebar nav item (now functional) using the `CalendarDays` icon.
+- **Verify:** build ✅ (24/24, route now 3.95 kB), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ feat(web): persistent worker availability calendar
+- **Notes / decisions:** First firing committing **directly to `main`** per the new playbook. The backend availability API is coordinator-scoped (`requireAgency` + `:workerId`), so the calendar is a **per-worker coordinator view** (worker picker), which is why the old generic `/dashboard/availability` stub was dead (no worker context). Used local `ymd()` formatting to avoid UTC off-by-one. **Discovered + queued:** the worker detail page (`workers/[id]`) is still dark-themed (slate/white) — the last dark-theme leak in the coordinator app — so I put the calendar on its own light page rather than there.
+
 ## 2026-06-30 11:24 — Cmd+K: live shift search (workers + shifts in parallel)
 - **Item:** Extend Cmd+K live search to shifts and documents
 - **Outcome:** shipped (shifts done; documents deliberately deferred)
