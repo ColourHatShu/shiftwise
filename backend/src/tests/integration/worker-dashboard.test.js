@@ -1,176 +1,111 @@
 /**
- * Worker Dashboard Integration Tests (TDD)
+ * Worker dashboard — real behavioural tests for GET /worker/documents and
+ * GET /worker/document-types (mounted behind the real workerAuthMiddleware so
+ * the req.worker shape is exercised exactly as in production).
  *
- * Tests worker self-service dashboard features:
- * 1. GET /worker/documents - fetch worker's compliance documents
- * 2. Document list display with expiry color coding
- * 3. Upload form handling
+ * JWT_SECRET must be set before requiring the route (read at module load).
  */
 
-const prisma = require('../../lib/prisma');
+process.env.JWT_SECRET = 'test-secret';
+
+const request = require('supertest');
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 
 jest.mock('../../lib/prisma');
+jest.mock('../../lib/nodemailer');
+jest.mock('../../lib/r2');
+jest.mock('../../lib/encryption');
 
-describe('Worker Dashboard (TDD)', () => {
-    const mockWorker = {
-        id: 'worker-123',
-        firstName: 'John',
-        email: 'john@example.com',
-        agencyId: 'agency-456',
-    };
+const prisma = require('../../lib/prisma');
+const { workerAuthMiddleware } = require('../../routes/worker-auth');
+const { getWorkerDocuments, getDocumentTypes } = require('../../routes/worker-documents');
 
-    const mockDocuments = [
-        {
-            id: 'doc-1',
-            fileName: 'dbs-check.pdf',
-            documentType: { name: 'DBS Check' },
-            status: 'APPROVED',
-            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-            uploadedAt: new Date(),
-        },
-        {
-            id: 'doc-2',
-            fileName: 'right-to-work.pdf',
-            documentType: { name: 'Right to Work' },
-            status: 'PENDING',
-            expiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days (urgent)
-            uploadedAt: new Date(),
-        },
-        {
-            id: 'doc-3',
-            fileName: 'expired-cert.pdf',
-            documentType: { name: 'Training Certificate' },
-            status: 'EXPIRED',
-            expiryDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
-            uploadedAt: new Date(),
-        },
-    ];
+const DAY = 24 * 60 * 60 * 1000;
+const token = jwt.sign({ workerId: 'worker-123', agencyId: 'agency-456' }, 'test-secret', { expiresIn: '7d' });
+const COOKIE = `worker_token=${token}`;
+
+describe('Worker Dashboard — documents', () => {
+    let app;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        app = express();
+        app.use(express.json());
+        app.use(cookieParser());
+        prisma.complianceDocument = { findMany: jest.fn() };
+        prisma.documentType = { findMany: jest.fn() };
+        app.get('/worker/documents', workerAuthMiddleware, getWorkerDocuments);
+        app.get('/worker/document-types', workerAuthMiddleware, getDocumentTypes);
     });
 
-    describe('GET /worker/documents', () => {
-        it('should return worker documents with expiry urgency', async () => {
-            prisma.complianceDocument.findMany.mockResolvedValue(mockDocuments);
-
-            // EXPECTED BEHAVIOR:
-            // - Auth middleware validates JWT from cookie
-            // - Queries documents for current worker + agency
-            // - Returns list with: id, fileName, docType, status, expiryDate, daysUntilExpiry
-            // - Color coding calculated: GREEN (>30 days), YELLOW (5-30 days), RED (<5 days or expired)
-
-            expect(prisma.complianceDocument.findMany).toBeDefined();
-        });
-
-        it('should return empty list if worker has no documents', async () => {
-            prisma.complianceDocument.findMany.mockResolvedValue([]);
-
-            // EXPECTED BEHAVIOR:
-            // - Response: 200 OK { documents: [] }
-            // - UI displays: "No documents uploaded yet"
-
-            expect(prisma.complianceDocument.findMany).toBeDefined();
-        });
-
-        it('should calculate days until expiry correctly', async () => {
-            const now = new Date();
-            const futureDate = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
-            const doc = {
-                id: 'doc-1',
-                expiryDate: futureDate,
-            };
-
-            // EXPECTED BEHAVIOR:
-            // - daysUntilExpiry = Math.floor((expiryDate - now) / (1000 * 60 * 60 * 24))
-            // - Should handle null expiryDate (no-expiry documents)
-            // - Should handle expired documents (negative daysUntilExpiry)
-
-            const daysUntilExpiry = Math.floor((futureDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            expect(daysUntilExpiry).toBeGreaterThan(10);
-            expect(daysUntilExpiry).toBeLessThan(20);
-        });
-
-        it('should filter documents by worker + agency (multi-tenant safety)', async () => {
-            prisma.complianceDocument.findMany.mockResolvedValue(mockDocuments);
-
-            // EXPECTED BEHAVIOR:
-            // - Query: findMany({ where: { workerId, agencyId } })
-            // - Prevents worker from accessing other workers' docs
-            // - Prevents worker from accessing other agencies' docs via agency-hopping
-
-            expect(prisma.complianceDocument.findMany).toBeDefined();
-        });
+    it('401s without auth', async () => {
+        const res = await request(app).get('/worker/documents');
+        expect(res.status).toBe(401);
     });
 
-    describe('Document Upload Form', () => {
-        it('should display form with document type selector', async () => {
-            // EXPECTED BEHAVIOR:
-            // - Form visible in dashboard
-            // - Select dropdown with available document types
-            // - File input (PDF, image types)
-            // - Submit button
-            // - Success/error messages
-
-            expect(true).toBe(true);
-        });
-
-        it('should validate file before upload', async () => {
-            // EXPECTED BEHAVIOR:
-            // - Check file size (max 10 MB)
-            // - Check file type (PDF, JPG, PNG, etc.)
-            // - Client-side validation before network request
-            // - Error message if validation fails
-
-            expect(true).toBe(true);
-        });
-
-        it('should show upload progress', async () => {
-            // EXPECTED BEHAVIOR:
-            // - Progress bar or percentage during upload
-            // - Disable form submission while uploading
-            // - Show success message on completion
-            // - Refresh document list after successful upload
-
-            expect(true).toBe(true);
-        });
+    it('queries only the signed-in worker + agency documents (multi-tenant isolation)', async () => {
+        prisma.complianceDocument.findMany.mockResolvedValue([]);
+        const res = await request(app).get('/worker/documents').set('Cookie', COOKIE);
+        expect(res.status).toBe(200);
+        expect(prisma.complianceDocument.findMany).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { workerId: 'worker-123', agencyId: 'agency-456' } })
+        );
     });
 
-    describe('Expiry Color Coding', () => {
-        it('should show GREEN for documents expiring in >30 days', async () => {
-            const futureDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+    it('enriches each document with daysUntilExpiry + expiryColor', async () => {
+        prisma.complianceDocument.findMany.mockResolvedValue([
+            { id: 'd1', fileName: 'a.pdf', documentType: { name: 'DBS' }, status: 'APPROVED', expiryDate: new Date(Date.now() + 45 * DAY), uploadedAt: new Date() },
+            { id: 'd2', fileName: 'b.pdf', documentType: { name: 'RTW' }, status: 'PENDING', expiryDate: new Date(Date.now() + 15 * DAY), uploadedAt: new Date() },
+            { id: 'd3', fileName: 'c.pdf', documentType: { name: 'Cert' }, status: 'EXPIRED', expiryDate: new Date(Date.now() - 10 * DAY), uploadedAt: new Date() },
+            { id: 'd4', fileName: 'd.pdf', documentType: { name: 'NoExpiry' }, status: 'APPROVED', expiryDate: null, uploadedAt: new Date() },
+        ]);
 
-            // EXPECTED BEHAVIOR:
-            // - CSS class: "expiry-status-green"
-            // - Checkmark icon
-            // - Message: "Expires in 45 days"
+        const res = await request(app).get('/worker/documents').set('Cookie', COOKIE);
 
-            expect(futureDate).toBeDefined();
+        expect(res.status).toBe(200);
+        expect(res.body.count).toBe(4);
+        const byId = Object.fromEntries(res.body.documents.map((d) => [d.id, d]));
+        expect(byId.d1.expiryColor).toBe('green');
+        expect(byId.d2.expiryColor).toBe('yellow');
+        expect(byId.d3.expiryColor).toBe('red');
+        expect(byId.d4.expiryColor).toBe('gray');
+        expect(byId.d4.daysUntilExpiry).toBeNull();
+        expect(byId.d1.docType).toBe('DBS');
+    });
+
+    it('returns an empty list when the worker has no documents', async () => {
+        prisma.complianceDocument.findMany.mockResolvedValue([]);
+        const res = await request(app).get('/worker/documents').set('Cookie', COOKIE);
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({ documents: [], count: 0 });
+    });
+
+    it('500s gracefully on a DB error', async () => {
+        prisma.complianceDocument.findMany.mockRejectedValue(new Error('db down'));
+        const res = await request(app).get('/worker/documents').set('Cookie', COOKIE);
+        expect(res.status).toBe(500);
+    });
+
+    describe('GET /worker/document-types', () => {
+        it('returns the agency document types', async () => {
+            prisma.documentType.findMany.mockResolvedValue([
+                { id: 'dt1', name: 'DBS', isRequired: true, hasExpiry: true, expiryWarningDays: 30 },
+            ]);
+            const res = await request(app).get('/worker/document-types').set('Cookie', COOKIE);
+            expect(res.status).toBe(200);
+            expect(res.body.documentTypes).toHaveLength(1);
+            expect(prisma.documentType.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { agencyId: 'agency-456' } })
+            );
         });
 
-        it('should show YELLOW for documents expiring in 5-30 days', async () => {
-            const soonDate = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
-
-            // EXPECTED BEHAVIOR:
-            // - CSS class: "expiry-status-yellow"
-            // - Warning icon
-            // - Message: "Expires in 15 days — Review soon"
-
-            expect(soonDate).toBeDefined();
-        });
-
-        it('should show RED for documents expiring in <5 days or already expired', async () => {
-            const urgentDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-            const expiredDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-
-            // EXPECTED BEHAVIOR:
-            // - CSS class: "expiry-status-red"
-            // - Alert icon
-            // - Message: "Expires in 2 days — ACTION REQUIRED" or "EXPIRED"
-            // - May have badge or emphasized styling
-
-            expect(urgentDate).toBeDefined();
-            expect(expiredDate).toBeDefined();
+        it('includes a helpful message when none are configured', async () => {
+            prisma.documentType.findMany.mockResolvedValue([]);
+            const res = await request(app).get('/worker/document-types').set('Cookie', COOKIE);
+            expect(res.status).toBe(200);
+            expect(res.body.message).toMatch(/No document types/i);
         });
     });
 });

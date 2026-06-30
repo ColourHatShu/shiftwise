@@ -37,7 +37,10 @@ function getExpiryColor(expiryDate) {
  */
 async function getWorkerDocuments(req, res) {
     try {
-        const { workerId, agencyId } = req.worker;
+        // workerAuthMiddleware sets req.worker = { id, agencyId } — alias id→workerId.
+        // (Was destructuring `workerId`, which is undefined, so Prisma dropped the
+        // workerId filter and returned EVERY worker's documents in the agency.)
+        const { id: workerId, agencyId } = req.worker;
 
         // Fetch documents for this worker + agency
         const documents = await prisma.complianceDocument.findMany({
@@ -93,7 +96,8 @@ async function getWorkerDocuments(req, res) {
  */
 async function uploadWorkerDocument(req, res) {
     try {
-        const { workerId, agencyId } = req.worker;
+        // req.worker = { id, agencyId } — alias id→workerId (see getWorkerDocuments).
+        const { id: workerId, agencyId } = req.worker;
         const { documentTypeId } = req.body;
         const file = req.file;
 

@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 15:12 — Rewrite worker-dashboard tests → caught + fixed a multi-tenant data leak
+- **Item:** Fix the broken backend suites — slice 3 (`worker-dashboard`)
+- **Outcome:** shipped — **and found/fixed a security bug (cross-worker data exposure)**
+- **Discovery:** `worker-dashboard.test.js` was another **placeholder stub** (only `toBeDefined()`/`toBe(true)`). Rewrote it into **7 real tests** behind the real `workerAuthMiddleware`. The multi-tenant test caught it: `getWorkerDocuments` did `const { workerId, agencyId } = req.worker`, but the middleware sets `req.worker = { id, agencyId }` — so `workerId` was **undefined**, Prisma dropped the filter, and `findMany({ where: { workerId: undefined, agencyId }})` returned **every worker's compliance documents in the agency** to any logged-in worker (PII/GDPR exposure). `uploadWorkerDocument` had the same bug → `workerId: undefined` on create (uploads broken).
+- **Changes:** `backend/src/routes/worker-documents.js` — both handlers now destructure `{ id: workerId, agencyId }`. `backend/src/tests/integration/worker-dashboard.test.js` — full real rewrite (7 tests: auth, multi-tenant filter, expiry color/days enrichment, empty, DB-error, document-types). Re-added `worker-dashboard` to `test:ci`.
+- **Verify:** worker-dashboard **7/7**; `npm run test:ci` = **16 suites / 156 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(worker-docs): scope worker documents to the worker (security) + real tests
+- **Notes / decisions:** **Third real bug surfaced by replacing placeholder tests with real ones** (after the Sentry v10 crash and the worker-login P0). Pattern holds: the "TDD stub" suites never exercised the routes, so genuine bugs hid behind green-looking intentions. **Please smoke-test the worker portal (login + documents list) once a DB is wired.** Remaining: `security-pipeline` (next firing — likely the same), `worker-e2e` (needs a test DB).
+
 ## 2026-06-30 15:02 — Rewrite worker-auth tests → caught + fixed a P0 (worker login broken)
 - **Item:** Fix the broken backend suites — slice 2 (`worker-auth`)
 - **Outcome:** shipped — **and found/fixed a production P0**
