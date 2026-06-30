@@ -228,6 +228,16 @@ export default function WorkerDashboardPage() {
         }
     };
 
+    // Pre-fill the upload form for the given document type and scroll the worker
+    // to it — shared by the rejected and the expiring/expired re-upload nudges.
+    const startReupload = (documentTypeId: string) => {
+        setSelectedDocType(documentTypeId);
+        const el = document.getElementById('documentTypeId');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.focus();
+        toast.success('Ready to re-upload. Choose a file and submit.');
+    };
+
     // Calculate compliance score
     const { score, completed, required } = calculateComplianceScore(documents, documentTypes);
     const complianceColor = getComplianceColor(documents, score, required);
@@ -485,17 +495,32 @@ export default function WorkerDashboardPage() {
                                             <p className="font-semibold mb-2">Rejection Reason:</p>
                                             <p>{doc.rejectionReason}</p>
                                             <button
-                                                onClick={() => {
-                                                    setSelectedDocType(doc.documentTypeId);
-                                                    document.getElementById('documentTypeId')?.focus();
-                                                    toast.success('Ready to re-upload. Choose file and submit.');
-                                                }}
+                                                onClick={() => startReupload(doc.documentTypeId)}
                                                 className="mt-2 px-3 py-1 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors"
                                             >
                                                 Re-upload
                                             </button>
                                         </div>
                                     )}
+
+                                    {/* Expiring/expired nudge (not for rejected — that has its own CTA above) */}
+                                    {doc.status !== 'REJECTED' &&
+                                        doc.expiryDate &&
+                                        (doc.status === 'EXPIRED' || doc.expiryColor === 'red' || doc.expiryColor === 'yellow') && (
+                                            <div className="mt-3 p-3 bg-white bg-opacity-80 rounded text-sm text-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                <p className="font-semibold">
+                                                    {doc.daysUntilExpiry !== null && doc.daysUntilExpiry < 0
+                                                        ? 'This document has expired — please upload a renewed copy.'
+                                                        : 'This document is expiring soon — upload a renewed copy to stay compliant.'}
+                                                </p>
+                                                <button
+                                                    onClick={() => startReupload(doc.documentTypeId)}
+                                                    className="shrink-0 px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700 transition-colors"
+                                                >
+                                                    Re-upload
+                                                </button>
+                                            </div>
+                                        )}
                                 </div>
                             ))}
                         </div>

@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 16:52 — Worker re-upload nudge for expiring/expired documents
+- **Item:** Worker document re-upload nudge
+- **Outcome:** shipped
+- **Changes:** `app/worker/dashboard/page.tsx` — the REJECTED docs already had a Re-upload CTA; **added the expiring/expired case** (gated on `status !== 'REJECTED' && expiryDate && (status === 'EXPIRED' || expiryColor red/yellow)`) with a clear message (expired vs expiring-soon) + Re-upload button. Extracted a shared `startReupload(documentTypeId)` helper (sets the doc-type select, `scrollIntoView` + focus, success toast) and refactored the existing rejected button to use it.
+- **Verify:** build ✅ (✓ Compiled successfully; /worker/dashboard 5.49 kB), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only).
+- **Commit:** see git — 🛡️ feat(worker): re-upload nudge for expiring/expired documents
+- **Notes / decisions:** Read the page first and found the REJECTED nudge already existed — so the real gap was expiring/expired docs (a worker with an expired DBS saw "EXPIRED 10 days ago" but no action). DRY'd the two CTAs through one handler. Build-verifiable only (no localhost) — founder to eyeball. This was the last clean no-new-dep P7 item; remaining work is gated (CSP, auto-poster, £ earnings), needs deps (frontend test runner, pino), or is large/infra (security-pipeline features, worker-e2e test DB). Next firing will ideate unless a gated item is greenlit.
+
 ## 2026-06-30 16:42 — Pagination clamps on audit-log + documents
 - **Item:** Pagination clamp on the other list endpoints
 - **Outcome:** shipped
