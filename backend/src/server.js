@@ -138,6 +138,9 @@ app.use('/api/shifts/:shiftId', shiftAssignmentsRouter);
 const shiftRequirementsRouter = require('./routes/shift-requirements');
 app.use('/api/shift-requirements', shiftRequirementsRouter);
 
+const shiftTemplatesRouter = require('./routes/shift-templates');
+app.use('/api/shift-templates', shiftTemplatesRouter);
+
 const shiftsBulkRouter = require('./routes/shifts-bulk');
 app.use('/api/shifts/bulk', shiftsBulkRouter);
 

@@ -46,6 +46,7 @@ model Agency {
   workerAvailability  WorkerAvailability[]
   shiftAssignments    ShiftAssignment[]
   complianceSnapshots ComplianceSnapshot[]
+  shiftTemplates      ShiftTemplate[]
 
   @@map("agencies")
 }
@@ -309,6 +310,28 @@ model Shift {
 
   @@index([agencyId, shiftDate])
   @@map("shifts")
+}
+
+// ─── ShiftTemplate (Reusable shift definition — create shifts from a template) ─
+model ShiftTemplate {
+  id                String   @id @default(cuid())
+  agencyId          String
+  name              String // Template label, e.g. "Weekday Nurse — St Mary's"
+  facilityName      String
+  startTime         String // HH:mm format
+  endTime           String // HH:mm format
+  role              String
+  requiredCount     Int      @default(1)
+  complianceCheckup Boolean  @default(false)
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, name])
+  @@map("shift_templates")
 }
 
 // ─── WorkerAvailability (Worker marks available/unavailable/on leave) ────────

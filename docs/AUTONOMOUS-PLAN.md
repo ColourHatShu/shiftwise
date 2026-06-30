@@ -33,7 +33,9 @@
 - [x] Extend Cmd+K live search to **shifts** (parallel debounced fetch via `/api/shifts?facilityName=`, grouped results). **Documents deliberately not searched** — no document search endpoint or detail route; doc hits would have no deep-link target distinct from worker search. Revisit only if a `/api/documents?search=` endpoint + a doc target are added.
 - [x] Worker availability calendar — revived `/dashboard/availability` as a real, light-themed coordinator page (worker picker + month calendar) that **persists** AVAILABLE/UNAVAILABLE/ON_LEAVE via the existing `/api/workers/:id/availability` API; re-added the sidebar nav item
 - [x] Re-theme the worker detail page (`dashboard/workers/[id]/page.tsx`) from dark (slate/white) to the light design system — converted ~100 className lines (cards→white/`#DDE3EE`, text→`#0A1628`/`#5B6E8C`, translucent-on-dark accents→light `*-50/*-700`), logic untouched. ⚠️ Needs a human visual pass (re-themed blind; build + grep verified, but not eyeballed).
-- [ ] Shift templates + recurring auto-poster (saves coordinators hours/week) — start with the template entity + create-from-template flow
+- [x] Shift templates — **entity + backend API** slice: `ShiftTemplate` model (pushed to Supabase), `routes/shift-templates.js` CRUD (list/create/delete, agency-scoped) mounted at `/api/shift-templates`, +7 passing tests
+- [ ] Shift templates — **frontend slice:** templates management UI (list/create/delete) + "create shift from template" action (prefill the shift create form / POST `/api/shifts` from a chosen template)
+- [ ] Shift templates — **recurring auto-poster:** schedule a template to auto-create shifts on a cadence (own slice; needs a cron/scheduler design — likely a council decision)
 - [ ] Worker earnings dashboard (read-only summary of completed/assigned shifts)
 
 ## P4 — Code quality & performance

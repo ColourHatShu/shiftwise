@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 12:03 — Shift templates: entity + backend API (slice 1)
+- **Item:** Shift templates — start with the template entity + create-from-template flow
+- **Outcome:** shipped (slice 1 of 3: entity + API)
+- **Changes:** `prisma/schema.prisma` — new `ShiftTemplate` model (agency-scoped reusable shift def: name, facility, start/end, role, requiredCount, complianceCheckup, notes; `@@unique([agencyId, name])`) + Agency relation. **Pushed to Supabase via `prisma db push`** (new `shift_templates` table, additive). New `routes/shift-templates.js` — CRUD (GET list / POST create with validation + P2002 dup handling / DELETE with agency-ownership check), mounted at `/api/shift-templates`. New `tests/routes/shift-templates.test.js` (7 tests).
+- **Verify:** backend `npm test` — **130 passed / 28 failed** (was 123/28: **+7 new, ZERO new failures**); route `require()` loads clean; db push synced + client regenerated. Frontend untouched (no FE build needed).
+- **Commit:** see git — 🛡️ feat(shifts): ShiftTemplate entity + CRUD API
+- **Notes / decisions:** Scoped to the **entity + API** first (per "start with the template entity"); queued the **frontend create-from-template UI** and the **recurring auto-poster** (needs a scheduler design) as separate slices. Distinct from the existing `ShiftRequirement` model (that's document-requirements-per-role, not a reusable shift definition). Used `db push` (not `migrate`) to add the table, consistent with how this project's Supabase DB is managed (migrations lag schema — see SUPABASE.md); the table is additive so no data risk. create-from-template will reuse the existing `POST /api/shifts` (no new endpoint needed).
+
 ## 2026-06-30 11:52 — Re-theme worker detail page (dark → light)
 - **Item:** Re-theme `dashboard/workers/[id]/page.tsx` from dark to the light design system
 - **Outcome:** shipped (⚠️ needs a human visual pass)
