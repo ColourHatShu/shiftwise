@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
     Search,
     Download,
@@ -492,7 +493,10 @@ export default function ComplianceDashboard() {
                 {loading ? (
                     <div className="p-6 text-center text-[#5B6E8C]">Loading workers...</div>
                 ) : workers.length === 0 ? (
-                    <div className="p-6 text-center text-[#5B6E8C]">No workers found</div>
+                    <EmptyState
+                        title="No workers found"
+                        message="Add workers to see their compliance status here."
+                    />
                 ) : (
                     <>
                         <div className="overflow-x-auto">

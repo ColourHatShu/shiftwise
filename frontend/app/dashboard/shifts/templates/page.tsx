@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Trash2, CalendarPlus, LayoutTemplate } from "lucide-re
 import { useApi } from "@/lib/use-api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface ShiftTemplate {
     id: string;
@@ -195,12 +196,12 @@ export default function ShiftTemplatesPage() {
                     {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-44 w-full rounded-xl" />)}
                 </div>
             ) : templates.length === 0 ? (
-                <div className="rounded-xl border border-[#DDE3EE] bg-white p-12 text-center">
-                    <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-[#F5F7FA]">
-                        <LayoutTemplate size={24} className="text-[#5B6E8C]" />
-                    </div>
-                    <p className="text-[#5B6E8C]">No templates yet. Create one to speed up shift posting.</p>
-                </div>
+                <EmptyState
+                    icon={LayoutTemplate}
+                    title="No templates yet"
+                    message="Create a template to speed up posting recurring shifts."
+                    className="rounded-xl border border-[#DDE3EE] bg-white"
+                />
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {templates.map((t) => (

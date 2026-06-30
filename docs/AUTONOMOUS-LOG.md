@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 15:42 — Empty-state adoption across remaining pages
+- **Item:** Empty-state consistency — remaining pages
+- **Outcome:** shipped (empty states now consistent app-wide)
+- **Changes:** adopted `<EmptyState>` on **documents** (page-level "no workers" + CTA), **compliance** ("No workers found"), **shift templates** ("No templates yet"), and the **shifts detail** "Assigned Workers" panel (was off-theme gray `text-gray-500`, now design-system + `py-6`). Added the import to each. Reused already-imported icons (FileText, LayoutTemplate) and omitted icons where none was imported (compliance, shifts) to avoid churn.
+- **Verify:** build ✅ (✓ Compiled successfully), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only).
+- **Commit:** see git — 🛡️ feat(ui): adopt EmptyState across documents/compliance/templates/shifts
+- **Notes / decisions:** Left **reports**' inline table-row messages as-is — they're contextual per-row notes ("Perfect—every worker is compliant", "No expiring documents in this range"), not blank-list states, so EmptyState doesn't fit. Combined with last firing, all main list pages now share one empty-state look. **This clears the last clean P5 item** — the buildable backlog is now only decision-gated (£ earnings, CSP, auto-poster) or larger (security-pipeline features, worker-e2e test DB). **Next firing should run an ideation pass** to refill, unless the founder greenlights a gated item.
+
 ## 2026-06-30 15:32 — Empty-state component + adoption (workers, audit-log)
 - **Item:** Empty-state consistency
 - **Outcome:** shipped (component + 2 key pages; remaining pages split into a follow-up)

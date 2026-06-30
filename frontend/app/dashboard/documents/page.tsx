@@ -8,6 +8,7 @@ import { downloadDocument } from "@/lib/api/documents";
 import { useApi } from "@/lib/use-api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { Worker, ComplianceDocument } from "@/types/api";
 import toast from "react-hot-toast";
 
@@ -160,15 +161,17 @@ export default function DocumentsPage() {
             )}
 
             {workers.length === 0 ? (
-                <div className="bg-white border border-[#DDE3EE] rounded-xl p-12 text-center">
-                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-[#F5F7FA] mb-4">
-                        <FileText size={24} className="text-[#5B6E8C]" />
-                    </div>
-                    <p className="text-[#5B6E8C]">No workers added yet.</p>
-                    <Link href="/dashboard/workers/new" className="text-[#003087] hover:text-[#003087]/80 font-medium text-sm mt-2 inline-block transition-colors">
-                        Add your first worker →
-                    </Link>
-                </div>
+                <EmptyState
+                    icon={FileText}
+                    title="No workers added yet"
+                    message="Add your healthcare staff, then upload their compliance documents."
+                    className="bg-white border border-[#DDE3EE] rounded-xl"
+                    action={
+                        <Link href="/dashboard/workers/new" className="text-[#003087] hover:text-[#003087]/80 font-medium text-sm transition-colors">
+                            Add your first worker →
+                        </Link>
+                    }
+                />
             ) : (
                 <div className="space-y-4">
                     {workers.map((worker: Worker) => {

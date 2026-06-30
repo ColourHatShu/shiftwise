@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, Check, X, Edit, Trash2, BarChart3, Upload, LayoutTemplate } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from 'react-hot-toast';
 import ShiftCalendar from './components/ShiftCalendar';
 import ShiftModal from './components/ShiftModal';
@@ -220,7 +221,11 @@ export default function ShiftsPage() {
           <div className="mt-8">
             <h3 className="font-semibold text-gray-900 mb-4">Assigned Workers</h3>
             {!selectedShift.assignments || selectedShift.assignments.length === 0 ? (
-              <p className="text-gray-500">No workers assigned yet</p>
+              <EmptyState
+                title="No workers assigned yet"
+                message="Assign compliant workers to fill this shift."
+                className="py-6"
+              />
             ) : (
               <div className="space-y-2">
                 {selectedShift.assignments.map((assignment) => (
