@@ -10,6 +10,12 @@ interface ModalProps {
   children: React.ReactNode;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  /**
+   * Wrap children in a `p-6` body. Default true (the title+body use case).
+   * Set false for modals that render their own full-width header/body/footer
+   * sections (so their borders span the card edge-to-edge).
+   */
+  padded?: boolean;
 }
 
 const sizeClasses = {
@@ -27,6 +33,7 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   className = '',
   size = 'lg',
+  padded = true,
 }) => {
   const visible = open ?? isOpen ?? false;
 
@@ -66,7 +73,7 @@ export const Modal: React.FC<ModalProps> = ({
             </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        {padded ? <div className="p-6">{children}</div> : children}
       </div>
     </div>
   );

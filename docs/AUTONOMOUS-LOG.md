@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 10:20 — Make <Modal> reusable + migrate DeleteConfirmationModal
+- **Item:** Consolidate duplicated modal wrappers into the shared `<Modal>` component
+- **Outcome:** shipped (scoped — see decision)
+- **Changes:** `components/ui/modal.tsx` — added an additive `padded` prop (default true; when false, children render without the `p-6` body wrapper so a modal's own full-width header/footer borders span the card edge-to-edge). `dashboard/shifts/components/DeleteConfirmationModal.tsx` — removed its duplicated `fixed inset-0` overlay + card wrapper and now renders through `<Modal size="sm" padded={false}>`, inner markup unchanged.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ refactor(ui): make Modal reusable + migrate DeleteConfirmationModal
+- **Notes / decisions:** Investigated all 6 wrapper-duplicating modals and found this is partly a **design decision, not a mechanical refactor** — they use two visual languages: generic Tailwind (`rounded-lg`/`shadow-lg`/`max-h-96`) vs the dashboard design system (`rounded-xl`/`shadow-2xl`/`backdrop-blur`). Forcing them all onto today's `<Modal>` would visibly change shadows, corner radius, max-height, and add/remove the blur — unwanted churn. So this firing did the SAFE part: made `<Modal>` capable of hosting header/footer modals (the prerequisite) and migrated the one modal (`DeleteConfirmationModal`) whose style already matches — faithfully (only shadow-lg→xl + ESC/click-outside-to-cancel, both fine for a confirm dialog). The existing `<Modal>` users (`AssignModal`, `ConfirmModal`) are unaffected (default `padded` preserved). **⛔ Needs the human/council:** pick the canonical modal style before migrating the rest — queued as a follow-up.
+
 ## 📊 Milestone summary — 2026-06-30 (8 items shipped)
 The Knight loop has been running ~10-min firings on `knight-autonomous` (isolated branch, never master). **Shipped so far (most recent first):**
 1. Shared `<ConfirmationBadge>` — deduped shift-confirmation badges (this firing)
