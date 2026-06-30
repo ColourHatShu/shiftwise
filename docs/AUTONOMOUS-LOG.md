@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 17:22 — Resurrect the audit-pack component test → frontend testing complete (53 tests)
+- **Item:** Resurrect `__tests__/audit-pack-components.test.tsx`
+- **Outcome:** shipped — all 3 pre-existing frontend suites now run; **component-testing seam established**
+- **Changes:** installed `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `@vitejs/plugin-react`; added `plugins: [react()]` to `vitest.config.ts` (JSX transform — the components are TSX and tsconfig is jsx:preserve); imported `@testing-library/jest-dom/vitest` in `vitest.setup.ts` (for `.toBeInTheDocument`); switched the test's `jest.mock('react-hot-toast')` → `vi.mock(...)` (vitest statically hoists `vi.mock`); added the file to `include`.
+- **Verify:** the component suite **12/12**; full `npm run test:ci` = **4 files / 53 tests passed**; `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully.
+- **Commit:** see git — 🛡️ test(frontend): resurrect audit-pack component suite (RTL)
+- **Notes / decisions:** The AuditPackModal/CQCChecklist components are context-free (plain `fetch` + `react-hot-toast`, no Clerk/useApi), so they rendered under jsdom with just fetch+toast mocks — no provider wrapping needed. The only blocker was the JSX transform (fixed with `@vitejs/plugin-react`) and `.toBeInTheDocument` (jest-dom). One-line test edit (`jest.mock`→`vi.mock`) for reliable hoisting. **Frontend now has a real, CI-enforced test foundation (unit + component): 53 tests.** Combined with backend's 190, the project is at ~243 green tests. Remaining clean item: pino logger (76); the rest is founder-gated or large/infra.
+
 ## 2026-06-30 17:12 — Resurrect 2 of 3 frontend __tests__ suites (4 → 41 tests)
 - **Item:** Resurrect the pre-existing `frontend/__tests__/` suites
 - **Outcome:** shipped (2 of 3 suites; the React component one deferred)

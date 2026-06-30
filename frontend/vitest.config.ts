@@ -1,11 +1,12 @@
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
-// Frontend unit tests. Resolves the `@/` path alias, runs in jsdom (the offline
-// suite touches window/localStorage), and shims `jest`→`vi` for the pre-existing
-// suites. The audit-pack component test is excluded for now — it needs
-// @testing-library/react + user-event and a jest→vi rewrite (tracked follow-up).
+// Frontend unit + component tests. The React plugin provides the JSX transform
+// (tsconfig is jsx:preserve for Next), jsdom gives a DOM, the `@/` alias is
+// resolved, and `vitest.setup.ts` shims `jest`→`vi` + loads jest-dom matchers.
 export default defineConfig({
+    plugins: [react()],
     resolve: {
         alias: { '@': fileURLToPath(new URL('.', import.meta.url)) },
     },
@@ -17,6 +18,7 @@ export default defineConfig({
             'lib/**/*.test.ts',
             '__tests__/worker-compliance.test.ts',
             '__tests__/worker-offline.test.ts',
+            '__tests__/audit-pack-components.test.tsx',
         ],
     },
 });

@@ -4,9 +4,9 @@ import AuditPackModal from '../app/dashboard/components/AuditPackModal';
 import CQCChecklist from '../app/dashboard/components/CQCChecklist';
 import toast from 'react-hot-toast';
 
-// Mock fetch and toast
+// Mock fetch and toast (vi.mock is statically hoisted by vitest)
 global.fetch = jest.fn();
-jest.mock('react-hot-toast');
+vi.mock('react-hot-toast');
 
 describe('Audit Pack Modal (R-AP-01)', () => {
   beforeEach(() => {
