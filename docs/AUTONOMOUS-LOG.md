@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 13:03 — Memoize workers table rows
+- **Item:** Add useMemo/useCallback + debounced search to heavy tables (stop re-rendering on keystroke)
+- **Outcome:** shipped
+- **Changes:** `dashboard/workers/page.tsx` — hoisted `getRAGStatus` + the RAG color map to module scope (pure, stable deps), then wrapped the rendered worker rows in `useMemo(() => workers.map(...), [workers])`. The search input is local state (`searchInputValue`) and was already debounced (300ms); now typing in it no longer rebuilds the table rows (they only depend on `workers`). Replaced the inline `workers.map` in the tbody with `{workerRows}`.
+- **Verify:** build ✅ (✓ Compiled successfully, 25/25), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only). Rows JSX preserved verbatim — behavior identical.
+- **Commit:** see git — 🛡️ perf(web): memoize workers table rows
+- **Notes / decisions:** Applied to the workers list (the canonical heavy table). The perf win is modest at typical agency sizes but it's correct and removes needless work; the same `useMemo` pattern can be applied to compliance/audit-log tables if they grow (noted in the plan). Skipped the human-gated £-earnings item.
+
 ## 2026-06-30 12:52 — Modal consolidation complete (design-system canonical)
 - **Item:** Finish modal consolidation (founder greenlit "use design-system, go")
 - **Outcome:** shipped (⚠️ needs a visual pass)

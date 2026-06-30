@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import React from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
@@ -24,6 +24,21 @@ interface Worker {
     documentsUploaded?: number;
     documentsTotal?: number;
 }
+
+type RagColorKey = "green" | "amber" | "red";
+
+// Pure + module-scoped so the memoized worker rows have stable dependencies.
+const RAG_COLORS: Record<RagColorKey, { dot: string; bar: string; text: string }> = {
+    green: { dot: "bg-[#16A34A]", bar: "bg-[#16A34A]", text: "text-[#166534]" },
+    amber: { dot: "bg-[#D97706]", bar: "bg-[#D97706]", text: "text-[#92400E]" },
+    red: { dot: "bg-[#DC2626]", bar: "bg-[#DC2626]", text: "text-[#991B1B]" },
+};
+
+const getRAGStatus = (score: number): { color: RagColorKey; label: string } => {
+    if (score >= 90) return { color: "green", label: "Compliant" };
+    if (score >= 70) return { color: "amber", label: "Review" };
+    return { color: "red", label: "Action" };
+};
 
 export default function WorkersPage() {
     const { isLoaded, isSignedIn } = useAuth();
@@ -104,12 +119,77 @@ export default function WorkersPage() {
         fetchWorkers(1, searchQuery, status);
     };
 
-    // RAG Status Badge
-    const getRAGStatus = (score: number) => {
-        if (score >= 90) return { color: 'green', label: 'Compliant' };
-        if (score >= 70) return { color: 'amber', label: 'Review' };
-        return { color: 'red', label: 'Action' };
-    };
+    // Memoize the rendered rows so typing in the (local-state) search box doesn't
+    // rebuild the whole table on every keystroke — rows only depend on `workers`.
+    const workerRows = useMemo(
+        () =>
+            workers.map((worker) => {
+                const rag = getRAGStatus(worker.complianceScore || 0);
+                const colors = RAG_COLORS[rag.color];
+                return (
+                    <tr key={worker.id} className="group hover:bg-[#F5F7FA] transition-colors">
+                        <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-lg bg-[#E6EDF8] text-[#003087] flex items-center justify-center font-medium text-sm">
+                                    {worker.firstName.charAt(0)}{worker.lastName.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className="font-medium text-[#0A1628]">{worker.firstName} {worker.lastName}</p>
+                                    <p className="text-xs text-[#5B6E8C]">{worker.email}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td className="px-6 py-4">
+                            <p className="text-sm text-[#0A1628]">{worker.jobTitle || "Unassigned"}</p>
+                            <p className="text-xs text-[#5B6E8C]">
+                                {worker.startDate ? format(new Date(worker.startDate), "MMM yyyy") : "N/A"}
+                            </p>
+                        </td>
+                        <td className="px-6 py-4"><StatusBadge status={worker.status} /></td>
+                        <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 max-w-[120px]">
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span className="text-[#5B6E8C]">
+                                            {typeof worker.complianceScore === 'number' ? `${worker.complianceScore}%` : '—'}
+                                        </span>
+                                        <span className={`font-medium ${colors.text}`}>{rag.label}</span>
+                                    </div>
+                                    <div className="w-full bg-[#F5F7FA] rounded-full h-1.5">
+                                        <div className={`h-1.5 rounded-full ${colors.bar}`} style={{ width: `${worker.complianceScore ?? 0}%` }} />
+                                    </div>
+                                </div>
+                                <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
+                            </div>
+                            <p className="text-xs text-[#5B6E8C] mt-1">
+                                {typeof worker.documentsUploaded === 'number' && typeof worker.documentsTotal === 'number'
+                                    ? `${worker.documentsUploaded} of ${worker.documentsTotal} documents`
+                                    : 'Documents not yet calculated'}
+                            </p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                                <button
+                                    onClick={() => setEditingWorker(worker)}
+                                    className="inline-flex items-center gap-1.5 text-[#5B6E8C] hover:text-[#003087] font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] transition-all"
+                                >
+                                    <Edit size={14} />
+                                    Edit
+                                </button>
+                                <Link
+                                    href={`/dashboard/workers/${worker.id}`}
+                                    className="inline-flex items-center gap-1.5 text-[#003087] hover:text-[#003087]/80 font-medium text-sm px-3 py-1.5 rounded-lg bg-[#E6EDF8] hover:bg-[#E6EDF8]/80 transition-all"
+                                >
+                                    <Eye size={14} />
+                                    View
+                                </Link>
+                            </div>
+                        </td>
+                    </tr>
+                );
+            }),
+        [workers]
+    );
 
     if (!isLoaded || isLoading) {
         return (
@@ -276,84 +356,7 @@ export default function WorkersPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                workers.map((worker) => {
-                                    const rag = getRAGStatus(worker.complianceScore || 0);
-                                    const ragColors = {
-                                        green: { dot: "bg-[#16A34A]", bar: "bg-[#16A34A]", text: "text-[#166534]" },
-                                        amber: { dot: "bg-[#D97706]", bar: "bg-[#D97706]", text: "text-[#92400E]" },
-                                        red: { dot: "bg-[#DC2626]", bar: "bg-[#DC2626]", text: "text-[#991B1B]" },
-                                    };
-                                    const colors = ragColors[rag.color as keyof typeof ragColors];
-                                    return (
-                                        <tr
-                                            key={worker.id}
-                                            className="group hover:bg-[#F5F7FA] transition-colors"
-                                        >
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-lg bg-[#E6EDF8] text-[#003087] flex items-center justify-center font-medium text-sm">
-                                                        {worker.firstName.charAt(0)}{worker.lastName.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium text-[#0A1628]">{worker.firstName} {worker.lastName}</p>
-                                                        <p className="text-xs text-[#5B6E8C]">{worker.email}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="text-sm text-[#0A1628]">{worker.jobTitle || "Unassigned"}</p>
-                                                <p className="text-xs text-[#5B6E8C]">
-                                                    {worker.startDate ? format(new Date(worker.startDate), "MMM yyyy") : "N/A"}
-                                                </p>
-                                            </td>
-                                            <td className="px-6 py-4"><StatusBadge status={worker.status} /></td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    {/* Compliance Progress Bar */}
-                                                    <div className="flex-1 max-w-[120px]">
-                                                        <div className="flex justify-between text-xs mb-1">
-                                                            <span className="text-[#5B6E8C]">
-                                                                {typeof worker.complianceScore === 'number' ? `${worker.complianceScore}%` : '—'}
-                                                            </span>
-                                                            <span className={`font-medium ${colors.text}`}>{rag.label}</span>
-                                                        </div>
-                                                        <div className="w-full bg-[#F5F7FA] rounded-full h-1.5">
-                                                            <div
-                                                                className={`h-1.5 rounded-full ${colors.bar}`}
-                                                                style={{ width: `${worker.complianceScore ?? 0}%` }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    {/* RAG Indicator */}
-                                                    <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
-                                                </div>
-                                                <p className="text-xs text-[#5B6E8C] mt-1">
-                                                    {typeof worker.documentsUploaded === 'number' && typeof worker.documentsTotal === 'number'
-                                                        ? `${worker.documentsUploaded} of ${worker.documentsTotal} documents`
-                                                        : 'Documents not yet calculated'}
-                                                </p>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => setEditingWorker(worker)}
-                                                        className="inline-flex items-center gap-1.5 text-[#5B6E8C] hover:text-[#003087] font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] transition-all"
-                                                    >
-                                                        <Edit size={14} />
-                                                        Edit
-                                                    </button>
-                                                    <Link
-                                                        href={`/dashboard/workers/${worker.id}`}
-                                                        className="inline-flex items-center gap-1.5 text-[#003087] hover:text-[#003087]/80 font-medium text-sm px-3 py-1.5 rounded-lg bg-[#E6EDF8] hover:bg-[#E6EDF8]/80 transition-all"
-                                                    >
-                                                        <Eye size={14} />
-                                                        View
-                                                    </Link>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
+                                workerRows
                             )}
                         </tbody>
                     </table>

@@ -42,7 +42,7 @@
 ## P4 — Code quality & performance
 - [x] Introduce a shared `frontend/types/api.ts` (Worker, DocumentType, ComplianceDocument, DocSlot, AnalysisResult, Shift, ShiftAssignment, ShiftTemplate, Paginated) and adopted it in `workers/[id]/page.tsx` — replaced the 9 worst `any`s (state vars, modal props, analysis result, slot, params). Build clean.
 - [x] Continue `any` cleanup using `types/api.ts` — adopted shared types in `documents/page.tsx` (typed `workers`, `getComputedStatus`, `getComplianceScore`, the reduce/map callbacks; added `Worker.complianceDocuments`). Remaining app `any`s are mostly low-value `catch (err: any)`; shifts/compliance pages had ≤1 each.
-- [ ] Add `useMemo`/`useCallback` + debounced search to heavy tables so they stop re-rendering on every keystroke
+- [x] `useMemo` heavy table rows — workers list rows are now `useMemo`'d over `[workers]` (with `getRAGStatus`/RAG colors hoisted to module scope for stable deps), so keystrokes in the local-state search box don't rebuild the table. Search was already debounced (300ms). Other tables (compliance/audit-log) can get the same treatment if they grow.
 - [ ] Add a custom Helmet CSP to the backend (currently using Helmet defaults)
 - [ ] Extend skeleton loaders (using the new `<Skeleton />`) to the remaining full-page spinners: audit-log, documents, audit-packs, compliance, worker dashboard pages
 - [ ] Set `requestId` as a per-request Sentry scope tag (after the Sentry requestHandler) so ALL events in a request carry it, not just the manually-captured exception in the global error handler
