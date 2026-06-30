@@ -16,6 +16,7 @@ import EditWorkerModal from '../components/EditWorkerModal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { downloadDocument, getDocumentStatus, pollDocumentStatus } from "@/lib/api/documents";
 import { useApi } from "@/lib/use-api";
+import type { Worker, DocumentType, ComplianceDocument, DocSlot, AnalysisResult } from "@/types/api";
 
 const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
     NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-[#EBEEF5] text-[#5B6E8C] border-[#DDE3EE]", icon: XCircle },
@@ -28,7 +29,7 @@ const statusConfig: Record<string, { label: string; classes: string; icon: any }
 };
 
 // ─── Upload Modal ─────────────────────────────────────────────────────────────
-function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
+function UploadModal({ docType, workerId, onClose, onSuccess }: { docType: DocumentType; workerId: string; onClose: () => void; onSuccess: (doc?: ComplianceDocument) => void }) {
     const { apiFetch } = useApi();
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -130,11 +131,11 @@ function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
 }
 
 // ─── Document Review Modal (Automated Scanning) ──────────────────────────────
-function AnalysisModal({ document, onClose, onSuccess }: any) {
+function AnalysisModal({ document, onClose, onSuccess }: { document: ComplianceDocument; onClose: () => void; onSuccess: () => void }) {
     const { getToken } = useAuth();
     const { apiFetch } = useApi();
     const [loadingAI, setLoadingAI] = useState(true);
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<AnalysisResult | null>(null);
     const [error, setError] = useState("");
     const [verifying, setVerifying] = useState(false);
     const [notes, setNotes] = useState("");
@@ -371,18 +372,18 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
 
 // ─── Main Worker Profile Page ─────────────────────────────────────────────────
 export default function WorkerProfilePage() {
-    const params = useParams() as any;
-    const workerId = params?.id;
+    const params = useParams();
+    const workerId = params?.id as string;
     const router = useRouter();
     const { getToken, isLoaded, isSignedIn } = useAuth();
     const { apiFetch } = useApi();
 
-    const [worker, setWorker] = useState<any>(null);
-    const [docSlots, setDocSlots] = useState<any[]>([]);
+    const [worker, setWorker] = useState<Worker | null>(null);
+    const [docSlots, setDocSlots] = useState<DocSlot[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
-    const [uploadTarget, setUploadTarget] = useState<any>(null);
-    const [analysisTarget, setAnalysisTarget] = useState<any>(null);
+    const [uploadTarget, setUploadTarget] = useState<DocumentType | null>(null);
+    const [analysisTarget, setAnalysisTarget] = useState<ComplianceDocument | null>(null);
     const [editTarget, setEditTarget] = useState<boolean>(false);
     const [pendingConfirm, setPendingConfirm] = useState<null | { kind: 'deactivate' | 'delete'; busy: boolean }>(null);
 
@@ -603,7 +604,7 @@ export default function WorkerProfilePage() {
                         <div className="col-span-4 text-center py-8 text-[#5B6E8C] text-sm">
                             Document types loading... If this persists, navigate away and return.
                         </div>
-                    ) : docSlots.map((slot: any) => {
+                    ) : docSlots.map((slot: DocSlot) => {
                         const { documentType: dt, document: doc, computedStatus } = slot;
                         const cfg = statusConfig[computedStatus] || statusConfig.NOT_UPLOADED;
                         const Icon = cfg.icon;

@@ -40,7 +40,8 @@
 - [ ] (If wanted) £ earnings — add a pay-rate model (per-worker or per-role/shift hourly rate) so the worker summary can show actual pay. Needs the human (rates are business data).
 
 ## P4 — Code quality & performance
-- [ ] Introduce a shared `frontend/types/api.ts` and start replacing the worst `any` usages (begin with `workers/[id]/page.tsx`)
+- [x] Introduce a shared `frontend/types/api.ts` (Worker, DocumentType, ComplianceDocument, DocSlot, AnalysisResult, Shift, ShiftAssignment, ShiftTemplate, Paginated) and adopted it in `workers/[id]/page.tsx` — replaced the 9 worst `any`s (state vars, modal props, analysis result, slot, params). Build clean.
+- [ ] Continue `any` cleanup using `types/api.ts`: adopt the shared types in other high-`any` files (compliance, documents, shifts pages); leave low-value `catch (err: any)` as-is
 - [ ] Add `useMemo`/`useCallback` + debounced search to heavy tables so they stop re-rendering on every keystroke
 - [ ] Add a custom Helmet CSP to the backend (currently using Helmet defaults)
 - [ ] Extend skeleton loaders (using the new `<Skeleton />`) to the remaining full-page spinners: audit-log, documents, audit-packs, compliance, worker dashboard pages

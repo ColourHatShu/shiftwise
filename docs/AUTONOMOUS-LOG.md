@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 12:32 — Shared types/api.ts + replace worst `any`s
+- **Item:** Introduce `frontend/types/api.ts` and start replacing the worst `any` usages
+- **Outcome:** shipped
+- **Changes:** new `frontend/types/api.ts` (Worker, DocumentType, ComplianceDocument, DocSlot, AnalysisResult, Shift, ShiftAssignment, ShiftTemplate, Paginated). Adopted in `dashboard/workers/[id]/page.tsx` — typed the 9 worst `any`s: both modal prop bags (UploadModal/AnalysisModal), `result` (AnalysisResult), `useParams()`/`workerId`, `worker` (Worker), `docSlots` (DocSlot[]), `uploadTarget` (DocumentType), `analysisTarget` (ComplianceDocument), and the `docSlots.map` callback.
+- **Verify:** build ✅ (✓ Compiled successfully, 25/25), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Notes / decisions:** Skipped the top backlog item (£ earnings — pay-rate model) as it's explicitly **human-gated** (business data). Made interface fields permissive/optional (supersets of each endpoint's response) so the same types reuse cleanly and existing usages compile. Left low-value `catch (err: any)` (7) as-is — converting them needs `instanceof` guards everywhere for little gain. Queued a follow-up to extend the shared types to other high-`any` files.
+- **Commit:** see git — 🛡️ refactor(types): shared types/api.ts + type worker detail page
+
 ## 2026-06-30 12:22 — Worker shifts summary (honest "earnings" — no fake £)
 - **Item:** Worker earnings dashboard (read-only summary of completed/assigned shifts)
 - **Outcome:** shipped (as a shifts/hours summary)
