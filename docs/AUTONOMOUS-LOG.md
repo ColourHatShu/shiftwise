@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 15:22 — Startup env validation (+ reclassify security-pipeline)
+- **Item:** Harden startup env validation (and triage the last 2 "broken suites")
+- **Outcome:** shipped (env validation) + planning (security-pipeline reclassified)
+- **Changes:** new `backend/src/lib/validate-env.js` (`getEnvErrors(env)` — pure, returns `{errors, warnings}`: DATABASE_URL always required; JWT_SECRET-not-dev-fallback + CLERK_SECRET_KEY required in prod; dev → warnings). `server.js` now calls it at boot, logs warnings, and `process.exit(1)` with a clear message on errors (replacing the soft CLERK check). +5 unit tests.
+- **Verify:** `validate-env` require OK; `node --check src/server.js` OK; new test **5/5**; `npm run test:ci` = **17 suites / 161 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(backend): fail-fast env validation + tests
+- **Decisions:** Investigated the next "broken suite", `security-pipeline.test.js` — it is **NOT** a placeholder like the others; it's an **aspirational security SPEC suite** that mounts the real documents router (needs Clerk-auth mocking + `nock` + a live Ollama) and deliberately asserts *unbuilt* features (AI retry/backoff, wrong-document detection, identity-mismatch, optimistic locking) plus env-coupled checks. Force-greening it would mean gutting the spec or building many features blind — a rabbit hole. So I **reclassified** it (and `worker-e2e`, which needs a test DB) in the plan, kept both excluded from CI, and **harvested its concrete security gaps into `IDEAS.md`** ("Harvested from security-pipeline") as real, buildable feature items. The quick-fix portion of the test-suite item is complete (3/3 placeholder/mock suites fixed). Picked env validation (the next clean, verifiable item) to ship this firing.
+
 ## 2026-06-30 15:12 — Rewrite worker-dashboard tests → caught + fixed a multi-tenant data leak
 - **Item:** Fix the broken backend suites — slice 3 (`worker-dashboard`)
 - **Outcome:** shipped — **and found/fixed a security bug (cross-worker data exposure)**

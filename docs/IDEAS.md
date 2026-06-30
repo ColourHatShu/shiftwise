@@ -28,3 +28,11 @@
 - **Worker document re-upload nudges** — when a doc is rejected or expiring, surface a clear "re-upload" prompt in the worker portal (data already exists). *(value: faster compliance; effort: low-medium, frontend-led.)*
 - **Coordinator handoff notes** — free-text shift/day notes visible to the next coordinator. *(value: continuity; effort: low.)*
 - **Care-home contact rolodex** — store facility contacts (name/phone/email) so coordinators aren't digging through WhatsApp. *(value: ops; effort: low-medium — new Facility/Contact model.)*
+
+## Harvested from `security-pipeline.test.js` (aspirational spec → real features)
+> That suite documents desired AI-pipeline security behaviours, most NOT YET implemented. Build them as real features (each with real tests), then the spec can be enabled incrementally.
+- **AI analyse resilience** — the `/api/documents/:id/analyse` (Ollama) call has no retry/backoff or timeout handling; on timeout/500/429 it should fail cleanly, log `document.ai_analysis_failed` (with `reason`), and retry with backoff / respect `Retry-After`. *(reliability + auditability.)*
+- **Identity & wrong-document detection** — flag when the AI-extracted name doesn't match the worker (`identity_mismatch_detected` audit) or the detected document type differs from the expected type (`wrongDocumentWarning`). *(fraud/compliance signal; high value for a CQC-audit product.)*
+- **PII-safe audit logging** — ensure audit-log metadata never stores raw PII (document numbers, full names) extracted by the AI. *(GDPR.)*
+- **Optimistic locking on document verify** — concurrent approve/reject shouldn't flip-flop status; add a version column / transactional guard. *(data integrity.)*
+- **Upload audit trail** — coordinator/worker uploads should always write an audit log (IP, user agent, user id, metadata sans file content). *(traceability.)*

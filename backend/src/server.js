@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const Sentry = require('@sentry/node');
 const prisma = require('./lib/prisma');
+const { getEnvErrors } = require('./lib/validate-env');
 const { initCronJobs, checkExpiriesAndAlert } = require('./services/cronService');
 
 const app = express();
@@ -238,12 +239,16 @@ app.use((err, req, res, next) => {
 // ─── Start Server ─────────────────────────────────────────────────────────────
 async function startServer() {
     try {
-        // Check required env vars
-        if (!process.env.CLERK_SECRET_KEY) {
-            console.error('❌ CLERK_SECRET_KEY is not set! Auth will not work.');
-        } else {
-            console.log('✅ Clerk secret key loaded:', process.env.CLERK_SECRET_KEY.slice(0, 12) + '...');
+        // Fail fast on missing/invalid critical config (clear message > a late,
+        // cryptic crash on first use).
+        const { errors, warnings } = getEnvErrors();
+        warnings.forEach((w) => console.warn('⚠ ' + w));
+        if (errors.length > 0) {
+            console.error('❌ Invalid environment configuration:\n  - ' + errors.join('\n  - '));
+            console.error('   Set the missing variables (see backend/.env) and restart.');
+            process.exit(1);
         }
+        console.log('✅ Environment validated');
 
         await prisma.$connect();
         console.log('✅ Database connected');
