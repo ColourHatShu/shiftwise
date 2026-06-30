@@ -6,41 +6,8 @@ import Link from "next/link";
 import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle, Search } from "lucide-react";
 import { downloadDocument } from "@/lib/api/documents";
 import { useApi } from "@/lib/use-api";
+import { StatusBadge } from "@/components/ui/status-badge";
 import toast from "react-hot-toast";
-
-// RAG Status Config
-const statusConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
-    NOT_UPLOADED: { 
-        label: "Not Uploaded", 
-        bgColor: "bg-[#EBEEF5]",
-        textColor: "text-[#5B6E8C]"
-    },
-    PENDING: { 
-        label: "Pending Review", 
-        bgColor: "bg-[#FEF3C7]",
-        textColor: "text-[#92400E]"
-    },
-    APPROVED: { 
-        label: "Verified", 
-        bgColor: "bg-[#DCFCE7]",
-        textColor: "text-[#166534]"
-    },
-    EXPIRING_SOON: { 
-        label: "Expiring Soon", 
-        bgColor: "bg-[#FEF3C7]",
-        textColor: "text-[#92400E]"
-    },
-    EXPIRED: { 
-        label: "Expired", 
-        bgColor: "bg-[#FEE2E2]",
-        textColor: "text-[#991B1B]"
-    },
-    REJECTED: { 
-        label: "Non-Compliant", 
-        bgColor: "bg-[#FEE2E2]",
-        textColor: "text-[#991B1B]"
-    },
-};
 
 export default function DocumentsPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
@@ -217,16 +184,13 @@ export default function DocumentsPage() {
                                                 <tbody className="divide-y divide-[#DDE3EE]">
                                                     {docs.map((doc: any) => {
                                                         const status = getComputedStatus(doc);
-                                                        const cfg = statusConfig[status] || statusConfig.NOT_UPLOADED;
                                                         return (
                                                             <tr key={doc.id} className="group hover:bg-[#F5F7FA] transition-colors">
                                                                 <td className="py-3">
                                                                     <p className="text-sm font-medium text-[#0A1628]">{doc.documentType?.name}</p>
                                                                 </td>
                                                                 <td className="py-3">
-                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bgColor} ${cfg.textColor}`}>
-                                                                        {cfg.label}
-                                                                    </span>
+                                                                    <StatusBadge status={status} fallbackStatus="NOT_UPLOADED" />
                                                                 </td>
                                                                 <td className="py-3">
                                                                     <p className="text-sm text-[#5B6E8C]">

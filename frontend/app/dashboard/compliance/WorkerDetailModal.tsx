@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Check, XCircle, Eye, EyeOff } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface Document {
     id: string;
@@ -159,13 +160,7 @@ export default function WorkerDetailModal({
                                 <div>
                                     <p className="text-xs text-[#5B6E8C] uppercase tracking-wider">Status</p>
                                     <p className="text-sm font-medium text-[#0A1628] mt-1">
-                                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                                            worker.status === 'ACTIVE'
-                                                ? 'bg-[#DCFCE7] text-[#166534]'
-                                                : 'bg-[#FEE2E2] text-[#991B1B]'
-                                        }`}>
-                                            {worker.status}
-                                        </span>
+                                        <StatusBadge status={worker.status} />
                                     </p>
                                 </div>
                                 {worker.phone && (

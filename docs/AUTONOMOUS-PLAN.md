@@ -20,7 +20,8 @@
 ## P2 — Maintainability (DRY) & dead code
 - [x] Extract the repeated Clerk `getToken + fetch + headers` boilerplate into a shared `useApi`/`apiFetch` helper and adopt it in the highest-traffic pages first — created `lib/use-api.ts`; adopted on dashboard, workers, documents pages
 - [x] Migrate the remaining `getToken + fetch` sites to `useApi` — 9 files, 26 fetch sites migrated; only legit `getToken` left is for `lib/api/*` helpers (downloadDocument/getDocumentStatus/pollDocumentStatus) in `workers/[id]` + `documents`
-- [ ] Extract duplicated status-badge color logic (~6 files) into a single shared badge component/util
+- [x] Extract duplicated status-badge color logic into a single shared badge component/util — created `components/ui/status-badge.tsx` (`<StatusBadge>` + `getStatusStyle`); adopted on workers list, documents table, WorkerDetailModal
+- [ ] Adopt `<StatusBadge>` for the remaining status vocabularies: shift-confirmation badges (`assigned-shifts`, `AssignmentList`, `AssignModal`), worker dashboard `getStatusBadgeClasses`, and the worker-list RAG (green/amber/red) logic
 - [ ] Consolidate duplicated modal wrappers (~4 files) into one reusable `<Modal>` component
 - [ ] Replace any remaining native `window.confirm()` destructive actions with the existing `components/ui/confirm-dialog.tsx`
 - [ ] Hide or finish the dead `/dashboard/availability` route (remove it from the sidebar if not implemented)

@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import EditWorkerModal from './components/EditWorkerModal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { useApi } from '@/lib/use-api';
 
 interface Worker {
@@ -108,20 +109,6 @@ export default function WorkersPage() {
         if (score >= 90) return { color: 'green', label: 'Compliant' };
         if (score >= 70) return { color: 'amber', label: 'Review' };
         return { color: 'red', label: 'Action' };
-    };
-
-    // Status Badge for worker state
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "ACTIVE":
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#DCFCE7] text-[#166534]">Active</span>;
-            case "INACTIVE":
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#EBEEF5] text-[#5B6E8C]">Inactive</span>;
-            case "SUSPENDED":
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FEF3C7] text-[#92400E]">Suspended</span>;
-            default:
-                return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#FEE2E2] text-[#991B1B]">Unknown</span>;
-        }
     };
 
     if (!isLoaded || isLoading) {
@@ -319,7 +306,7 @@ export default function WorkersPage() {
                                                     {worker.startDate ? format(new Date(worker.startDate), "MMM yyyy") : "N/A"}
                                                 </p>
                                             </td>
-                                            <td className="px-6 py-4">{getStatusBadge(worker.status)}</td>
+                                            <td className="px-6 py-4"><StatusBadge status={worker.status} /></td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     {/* Compliance Progress Bar */}

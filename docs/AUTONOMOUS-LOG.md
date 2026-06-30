@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 09:54 — Shared <StatusBadge> (dedupe status-pill logic)
+- **Item:** Extract duplicated status-badge color logic into a single shared badge component/util
+- **Outcome:** shipped
+- **Changes:** new `frontend/components/ui/status-badge.tsx` — `<StatusBadge status … />` + `getStatusStyle()` with a central status→{label,className} map (worker ACTIVE/INACTIVE/SUSPENDED + document NOT_UPLOADED/PENDING/APPROVED/EXPIRING_SOON/EXPIRED/REJECTED), optional `fallbackStatus`. Adopted in: `workers/page.tsx` (removed inline `getStatusBadge` switch), `documents/page.tsx` (removed `statusConfig` map; used `fallbackStatus="NOT_UPLOADED"` to preserve exact behavior), `compliance/WorkerDetailModal.tsx` (replaced an ad-hoc binary green/red badge).
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ refactor(ui): shared StatusBadge component
+- **Notes / decisions:** workers + documents adoptions are visually identical (same pill classes + labels; documents keeps the NOT_UPLOADED fallback via the new prop). WorkerDetailModal was an **intentional normalization** — it previously rendered the raw uppercase status with only ACTIVE=green / else=red and `px-3`; it now shows the canonical capitalized pill (e.g. INACTIVE = grey, SUSPENDED = amber) consistent with the rest of the app. Did NOT fold in the shift-confirmation badges or the worker-list RAG (green/amber/red) logic — those are distinct vocabularies; queued as a follow-up to extend the same component.
+
 ## 2026-06-30 09:44 — Migrate remaining getToken+fetch sites to useApi
 - **Item:** Migrate the remaining getToken+fetch sites to the shared useApi() hook
 - **Outcome:** shipped
