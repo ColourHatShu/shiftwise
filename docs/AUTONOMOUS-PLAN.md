@@ -29,7 +29,8 @@
 
 ## P3 — Feature expansion (Wave C)
 - [x] Cmd+K command palette (first slice) — `components/ui/command-palette.tsx`, mounted in the dashboard layout; ⌘K/Ctrl+K, client-side fuzzy filter over navigation + quick actions, full keyboard nav
-- [ ] Cmd+K follow-ups: add a visible "Search… ⌘K" affordance (top bar/sidebar) for discoverability, and extend the palette to search live worker/shift/document data (via `useApi`)
+- [x] Cmd+K follow-ups: added a visible "Search… ⌘K" sidebar affordance (opens the palette via a custom event) + live **worker** search in the palette (debounced, via `useApi` → `/api/workers?search=`), unified keyboard nav across pages + workers
+- [ ] Extend Cmd+K live search to **shifts** and **documents** (mirror the worker-search pattern; group results by type)
 - [ ] Worker availability calendar (mark available/unavailable days; foundation for rota)
 - [ ] Shift templates + recurring auto-poster (saves coordinators hours/week) — start with the template entity + create-from-template flow
 - [ ] Worker earnings dashboard (read-only summary of completed/assigned shifts)

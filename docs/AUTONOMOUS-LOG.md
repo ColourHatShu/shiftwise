@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 11:11 — Cmd+K: visible affordance + live worker search
+- **Item:** Cmd+K follow-ups — visible search affordance + live data search
+- **Outcome:** shipped
+- **Changes:** `components/ui/command-palette.tsx` — now opens on a custom `OPEN_COMMAND_PALETTE_EVENT` (in addition to ⌘K/Ctrl+K) and performs **live worker search** (debounced 250ms via `useApi` → `/api/workers?search=…&limit=5`); results are grouped ("Pages & actions" + "Workers") with a unified flat keyboard index and a loading spinner. `dashboard/layout.tsx` — added a visible "Search… ⌘K" button in the sidebar that dispatches the open event.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ feat(web): ⌘K visible affordance + live worker search
+- **Notes / decisions:** Used a decoupled custom window event to open the palette from the sidebar button (avoids lifting state / a context provider). Scoped live search to **workers** (highest-value entity, endpoint already supports `?search=`); shifts + documents search queued as a follow-up. Debounce + a `cancelled` guard prevent stale/racey results. Couldn't visually verify (no localhost here) — build/lint pass.
+
 ## 2026-06-30 10:54 — Cmd+K command palette (first slice)
 - **Item:** Cmd+K universal search + quick actions
 - **Outcome:** shipped

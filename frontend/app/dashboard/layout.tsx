@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, SignOutButton } from "@clerk/nextjs";
 import { useApi } from "@/lib/use-api";
-import { CommandPalette } from "@/components/ui/command-palette";
+import { CommandPalette, OPEN_COMMAND_PALETTE_EVENT } from "@/components/ui/command-palette";
 import {
     LayoutDashboard,
     Users,
@@ -18,6 +18,7 @@ import {
     Archive,
     Menu,
     X,
+    Search,
 } from "lucide-react";
 
 const navItems = [
@@ -152,6 +153,21 @@ export default function DashboardLayout({
                         className="md:hidden p-1.5 -mr-1.5 rounded-lg text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] transition-colors duration-150"
                     >
                         <X size={20} />
+                    </button>
+                </div>
+
+                {/* Search affordance — opens the ⌘K command palette */}
+                <div className="px-3 pt-3">
+                    <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new Event(OPEN_COMMAND_PALETTE_EVENT))}
+                        className="flex w-full items-center gap-2 rounded-lg border border-[#DDE3EE] bg-[#F5F7FA] px-3 py-2 text-[13px] text-[#5B6E8C] transition-colors hover:border-[#003087]/30 hover:text-[#0A1628]"
+                    >
+                        <Search size={16} className="shrink-0" />
+                        <span className="flex-1 text-left">Search…</span>
+                        <kbd className="rounded border border-[#DDE3EE] bg-white px-1.5 py-0.5 text-[10px] font-medium text-[#5B6E8C]">
+                            ⌘K
+                        </kbd>
                     </button>
                 </div>
 

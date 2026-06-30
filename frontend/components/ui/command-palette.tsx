@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useApi } from "@/lib/use-api";
 import {
     Search,
     LayoutDashboard,
@@ -12,8 +13,13 @@ import {
     Archive,
     BarChart3,
     Settings,
+    User,
+    Loader2,
     type LucideIcon,
 } from "lucide-react";
+
+/** Custom event other components dispatch to open the palette (e.g. a sidebar button). */
+export const OPEN_COMMAND_PALETTE_EVENT = "shiftwise:open-command-palette";
 
 interface Command {
     id: string;
@@ -24,8 +30,6 @@ interface Command {
     href: string;
 }
 
-// First slice: navigation + quick actions across the coordinator dashboard.
-// Live worker/shift/document data search can be layered on later.
 const COMMANDS: Command[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", keywords: "home overview" },
     { id: "workers", label: "Workers", icon: Users, href: "/dashboard/workers", keywords: "staff carers nurses" },
@@ -38,19 +42,32 @@ const COMMANDS: Command[] = [
     { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/settings", keywords: "agency profile config" },
 ];
 
+interface WorkerHit {
+    id: string;
+    name: string;
+    email: string;
+}
+
+// Flat, keyboard-navigable item — either a static command or a live worker hit.
+type Item = { kind: "command"; cmd: Command } | { kind: "worker"; worker: WorkerHit };
+
 /**
- * CommandPalette — a ⌘K / Ctrl+K command palette for fast navigation and
- * quick actions. Mounted once in the dashboard layout. Client-side fuzzy
- * (substring) filtering over the command list; full keyboard navigation.
+ * CommandPalette — ⌘K / Ctrl+K command palette. Mounted once in the dashboard
+ * layout. Filters static navigation/actions client-side AND searches live worker
+ * data (debounced, via the backend). Opens on ⌘K, on Ctrl+K, or when any element
+ * dispatches the OPEN_COMMAND_PALETTE_EVENT (e.g. the sidebar "Search…" button).
  */
 export function CommandPalette() {
     const router = useRouter();
+    const { apiFetch } = useApi();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
     const [active, setActive] = useState(0);
+    const [workers, setWorkers] = useState<WorkerHit[]>([]);
+    const [loadingWorkers, setLoadingWorkers] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Global ⌘K / Ctrl+K toggle (+ Esc close).
+    // Open via ⌘K / Ctrl+K (toggle) or the custom event; Esc closes.
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -60,49 +77,104 @@ export function CommandPalette() {
                 setOpen(false);
             }
         };
+        const onOpen = () => setOpen(true);
         window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
+        window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
+        return () => {
+            window.removeEventListener("keydown", onKey);
+            window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen);
+        };
     }, []);
 
     // Reset + focus the input each time the palette opens.
     useEffect(() => {
         if (!open) return;
         setQuery("");
+        setWorkers([]);
         const t = setTimeout(() => inputRef.current?.focus(), 0);
         return () => clearTimeout(t);
     }, [open]);
 
-    const results = useMemo(() => {
+    const filteredCommands = useMemo(() => {
         const q = query.trim().toLowerCase();
         if (!q) return COMMANDS;
         return COMMANDS.filter((c) => `${c.label} ${c.keywords ?? ""}`.toLowerCase().includes(q));
     }, [query]);
 
+    // Debounced live worker search (only while open + with a query).
+    useEffect(() => {
+        if (!open) return;
+        const q = query.trim();
+        if (!q) {
+            setWorkers([]);
+            setLoadingWorkers(false);
+            return;
+        }
+        let cancelled = false;
+        setLoadingWorkers(true);
+        const t = setTimeout(async () => {
+            try {
+                const res = await apiFetch(`/api/workers?search=${encodeURIComponent(q)}&limit=5`);
+                if (!res.ok) throw new Error("search failed");
+                const data = await res.json();
+                if (!cancelled) {
+                    setWorkers(
+                        (data.data || []).map((w: { id: string; firstName: string; lastName: string; email: string }) => ({
+                            id: w.id,
+                            name: `${w.firstName} ${w.lastName}`,
+                            email: w.email,
+                        }))
+                    );
+                }
+            } catch {
+                if (!cancelled) setWorkers([]);
+            } finally {
+                if (!cancelled) setLoadingWorkers(false);
+            }
+        }, 250);
+        return () => {
+            cancelled = true;
+            clearTimeout(t);
+        };
+    }, [query, open, apiFetch]);
+
+    // Unified flat list for keyboard navigation.
+    const items: Item[] = useMemo(
+        () => [
+            ...filteredCommands.map((cmd) => ({ kind: "command" as const, cmd })),
+            ...workers.map((worker) => ({ kind: "worker" as const, worker })),
+        ],
+        [filteredCommands, workers]
+    );
+
     // Keep the highlighted row valid as the result set changes.
     useEffect(() => {
         setActive(0);
-    }, [query]);
+    }, [query, workers.length]);
 
     if (!open) return null;
 
-    const run = (cmd?: Command) => {
-        if (!cmd) return;
+    const run = (item?: Item) => {
+        if (!item) return;
         setOpen(false);
-        router.push(cmd.href);
+        router.push(item.kind === "command" ? item.cmd.href : `/dashboard/workers/${item.worker.id}`);
     };
 
     const onInputKey = (e: React.KeyboardEvent) => {
         if (e.key === "ArrowDown") {
             e.preventDefault();
-            setActive((a) => Math.min(results.length - 1, a + 1));
+            setActive((a) => Math.min(items.length - 1, a + 1));
         } else if (e.key === "ArrowUp") {
             e.preventDefault();
             setActive((a) => Math.max(0, a - 1));
         } else if (e.key === "Enter") {
             e.preventDefault();
-            run(results[active]);
+            run(items[active]);
         }
     };
+
+    const commandCount = filteredCommands.length;
+    const nothing = items.length === 0 && !loadingWorkers;
 
     return (
         <div
@@ -124,26 +196,33 @@ export function CommandPalette() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={onInputKey}
-                        placeholder="Search pages and actions…"
-                        aria-label="Search pages and actions"
+                        placeholder="Search pages, actions, and workers…"
+                        aria-label="Search pages, actions, and workers"
                         className="w-full bg-transparent py-3.5 text-sm text-[#0A1628] placeholder-[#5B6E8C] focus:outline-none"
                     />
+                    {loadingWorkers && <Loader2 size={16} className="shrink-0 animate-spin text-[#5B6E8C]" />}
                 </div>
 
                 {/* Results */}
-                <ul className="max-h-80 overflow-y-auto py-2">
-                    {results.length === 0 ? (
-                        <li className="px-4 py-6 text-center text-sm text-[#5B6E8C]">No matches</li>
+                <div className="max-h-80 overflow-y-auto py-2">
+                    {nothing ? (
+                        <p className="px-4 py-6 text-center text-sm text-[#5B6E8C]">No matches</p>
                     ) : (
-                        results.map((cmd, i) => {
-                            const Icon = cmd.icon;
-                            const isActive = i === active;
-                            return (
-                                <li key={cmd.id}>
+                        <>
+                            {filteredCommands.length > 0 && (
+                                <p className="px-4 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-[#5B6E8C]">
+                                    Pages &amp; actions
+                                </p>
+                            )}
+                            {filteredCommands.map((cmd, i) => {
+                                const Icon = cmd.icon;
+                                const isActive = i === active;
+                                return (
                                     <button
+                                        key={cmd.id}
                                         type="button"
                                         onMouseEnter={() => setActive(i)}
-                                        onClick={() => run(cmd)}
+                                        onClick={() => run({ kind: "command", cmd })}
                                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
                                             isActive ? "bg-[#E6EDF8] text-[#003087]" : "text-[#0A1628] hover:bg-[#F5F7FA]"
                                         }`}
@@ -154,11 +233,36 @@ export function CommandPalette() {
                                             <span className="text-[11px] uppercase tracking-wide text-[#5B6E8C]">{cmd.hint}</span>
                                         )}
                                     </button>
-                                </li>
-                            );
-                        })
+                                );
+                            })}
+
+                            {workers.length > 0 && (
+                                <p className="px-4 pb-1 pt-3 text-[11px] font-medium uppercase tracking-wide text-[#5B6E8C]">
+                                    Workers
+                                </p>
+                            )}
+                            {workers.map((worker, j) => {
+                                const flatIndex = commandCount + j;
+                                const isActive = flatIndex === active;
+                                return (
+                                    <button
+                                        key={worker.id}
+                                        type="button"
+                                        onMouseEnter={() => setActive(flatIndex)}
+                                        onClick={() => run({ kind: "worker", worker })}
+                                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                                            isActive ? "bg-[#E6EDF8] text-[#003087]" : "text-[#0A1628] hover:bg-[#F5F7FA]"
+                                        }`}
+                                    >
+                                        <User size={16} className={isActive ? "text-[#003087]" : "text-[#5B6E8C]"} />
+                                        <span className="flex-1 truncate">{worker.name}</span>
+                                        <span className="max-w-[45%] truncate text-[11px] text-[#5B6E8C]">{worker.email}</span>
+                                    </button>
+                                );
+                            })}
+                        </>
                     )}
-                </ul>
+                </div>
 
                 {/* Footer hint */}
                 <div className="flex items-center justify-between border-t border-[#DDE3EE] px-4 py-2 text-[11px] text-[#5B6E8C]">
