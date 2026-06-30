@@ -35,3 +35,6 @@ Thumbs.db
 
 # Docker
 .dockerignore
+
+# Autonomous Knight transient lock
+.knight-lock
