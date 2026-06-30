@@ -15,7 +15,7 @@
 - [x] Add `aria-label`s to all icon-only buttons across `frontend/app/` (19 buttons across 12 files; close/download/edit/delete/pagination controls)
 - [x] Build a reusable `<Skeleton />` primitive and replace full-page spinners with skeleton loaders on the main list pages (workers, reports, shifts)
 - [x] Add request-ID middleware on the backend and attach it as a Sentry correlation tag + return it in error responses — **already implemented** in `server.js` (commit `ef91788`): `req.requestId` + `X-Request-Id` header, Sentry tag, and `requestId` in error responses
-- [ ] Fix the N+1 query in bulk shift assignment (`backend/src/routes/shift-assignments.js`) — batch the per-worker `findFirst` + compliance validation instead of looping
+- [x] Fix the N+1 query in bulk shift assignment (`backend/src/routes/shift-assignments.js`) — batched `validateComplianceForWorkers()` (constant 4 queries vs ~5×N); shared `computeCompliance()` keeps single/bulk paths identical
 
 ## P2 — Maintainability (DRY) & dead code
 - [ ] Extract the repeated Clerk `getToken + fetch + headers` boilerplate (~98 sites) into a shared `useApi`/`apiFetch` helper and adopt it in the highest-traffic pages first
@@ -36,3 +36,4 @@
 - [ ] Add a custom Helmet CSP to the backend (currently using Helmet defaults)
 - [ ] Extend skeleton loaders (using the new `<Skeleton />`) to the remaining full-page spinners: audit-log, documents, audit-packs, compliance, worker dashboard pages
 - [ ] Set `requestId` as a per-request Sentry scope tag (after the Sentry requestHandler) so ALL events in a request carry it, not just the manually-captured exception in the global error handler
+- [ ] Fix the buggy `should reject non-OWNER/ADMIN users` test in `shift-assignments.test.js` (auth mock always forces OWNER) and make backend integration suites (worker-*, security-pipeline) runnable without a live Postgres (test DB or mock)

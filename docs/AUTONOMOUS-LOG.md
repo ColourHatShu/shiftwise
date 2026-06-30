@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 09:24 — Fix N+1 in bulk shift assignment
+- **Item:** Fix the N+1 query in bulk shift assignment — batch the per-worker findFirst + compliance validation
+- **Outcome:** shipped
+- **Changes:** `lib/compliance-assignment.js` — extracted pure `computeCompliance()` helper, refactored `validateComplianceAtTime` to use it (identical output), added batched `validateComplianceForWorkers(workerIds, shiftId, agencyId)` (returns a Map). `routes/shift-assignments.js` — `assign-bulk` Phase 1 now does ONE batched call instead of per-worker `worker.findFirst` + `validateComplianceAtTime`. Updated `tests/routes/shift-assignments.test.js` for the batched path + fixed a missing `prisma.worker.count` mock.
+- **Verify:** backend `npm test` — **30→28 failures (fixed 2, ZERO new)**, 121→123 passing. Targeted file: 3→1 failing. Confirmed via stash baseline comparison. (frontend untouched; backend has no lint script.)
+- **Commit:** see git — 🛡️ perf(shifts): batch bulk-assign compliance checks (kill N+1)
+- **Notes / decisions:** Bulk assignment of N workers went from ~5×N queries (per-worker: worker lookup + re-fetching the SAME shift + SAME required doc types + that worker's docs) to a constant **4 queries** for the whole batch (shift, all workers, doc types, all docs — grouped in memory). For 100 workers that's ~500 queries → 4. Chose to add a batched function + extract a shared pure `computeCompliance()` rather than rewrite the existing single-worker function, so the single/bulk paths can never diverge on compliance logic (a correctness risk for a compliance product). Phase-2 (row creation) left as-is — those are necessary writes with per-row P2002 handling. **Pre-existing failures the human should know about (NOT caused by this firing):** the integration suites (`security-pipeline`, `worker-e2e`, `worker-auth`, `worker-dashboard`, `worker-assignments`) need a live Postgres that isn't available in the Knight's environment; and `shift-assignments.test.js` has one genuinely buggy test (`should reject non-OWNER/ADMIN users`) whose auth mock always forces role OWNER so a VIEWER 403 can't be exercised. Queued a backlog item to fix that test + the DB-test story.
+
 ## 2026-06-30 09:14 — Request-ID middleware (no-op: already implemented)
 - **Item:** Add request-ID middleware + Sentry correlation tag + return ID in error responses
 - **Outcome:** no-op (already done)

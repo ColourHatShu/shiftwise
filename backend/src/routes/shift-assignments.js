@@ -1,7 +1,7 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
 const { requireAgency, requireRole } = require('../lib/auth');
-const { validateComplianceAtTime } = require('../lib/compliance-assignment');
+const { validateComplianceAtTime, validateComplianceForWorkers } = require('../lib/compliance-assignment');
 
 const router = express.Router({ mergeParams: true });
 
@@ -47,34 +47,34 @@ router.post('/assign-bulk', requireRole(['OWNER', 'ADMIN']), async (req, res) =>
         const toAssign = [];
         const toSkip = [];
 
-        // Phase 1: Validate compliance for all workers
-        for (const workerId of workerIds) {
-            // Check if worker exists
-            const worker = await prisma.worker.findFirst({
-                where: { id: workerId, agencyId: req.agencyId }
-            });
+        // Phase 1: Validate compliance for all workers in a single batched pass.
+        // This replaces the previous per-worker findFirst + validateComplianceAtTime
+        // N+1 (≈5 queries × N workers) with a constant 4 queries for the whole batch.
+        const complianceByWorker = await validateComplianceForWorkers(workerIds, shiftId, req.agencyId);
+        const assignedWorkerIds = new Set(existingAssignments.map(a => a.workerId));
 
-            if (!worker) {
+        for (const workerId of workerIds) {
+            const result = complianceByWorker.get(workerId);
+
+            // Worker doesn't exist / not in this agency
+            if (!result || result.notFound) {
                 toSkip.push({ workerId, reason: 'Worker not found' });
                 continue;
             }
 
-            // Check if already assigned
-            if (existingAssignments.some(a => a.workerId === workerId)) {
+            // Already assigned to this shift
+            if (assignedWorkerIds.has(workerId)) {
                 toSkip.push({ workerId, reason: 'Already assigned to this shift' });
                 continue;
             }
 
-            // Validate compliance at assignment time
-            const complianceValidation = await validateComplianceAtTime(workerId, shiftId, req.agencyId);
-
-            if (!complianceValidation.isCompliant) {
-                toSkip.push({ workerId, reason: complianceValidation.reason });
+            if (!result.isCompliant) {
+                toSkip.push({ workerId, reason: result.reason });
             } else {
                 toAssign.push({
                     workerId,
-                    snapshot: complianceValidation.snapshot,
-                    score: complianceValidation.snapshot.complianceScore
+                    snapshot: result.snapshot,
+                    score: result.snapshot.complianceScore
                 });
             }
         }

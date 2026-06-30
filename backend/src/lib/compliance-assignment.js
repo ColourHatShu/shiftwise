@@ -7,6 +7,57 @@ const prisma = require('./prisma');
  */
 
 /**
+ * Pure compliance computation shared by the single-worker and batched paths.
+ * Given the agency's required document types and a worker's compliance documents,
+ * returns { isCompliant, reason, snapshot } with no I/O — so the single-worker and
+ * bulk code paths can never diverge on how compliance is judged.
+ */
+function computeCompliance(requiredDocTypes, workerDocs) {
+    const reasons = [];
+    const approvedDocs = [];
+    const now = new Date();
+
+    for (const reqDoc of requiredDocTypes) {
+        const workerDoc = workerDocs.find(d => d.documentTypeId === reqDoc.id);
+
+        if (!workerDoc) {
+            reasons.push(`Missing ${reqDoc.name}`);
+        } else if (workerDoc.status !== 'APPROVED') {
+            reasons.push(`Not yet approved: ${reqDoc.name}`);
+        } else if (workerDoc.expiryDate && new Date(workerDoc.expiryDate) < now) {
+            const expiryDateStr = new Date(workerDoc.expiryDate).toISOString().split('T')[0];
+            reasons.push(`Document expired ${expiryDateStr}: ${reqDoc.name}`);
+        } else {
+            approvedDocs.push({
+                documentTypeId: reqDoc.id,
+                documentTypeName: reqDoc.name,
+                approvalStatus: workerDoc.status,
+                expiryDate: workerDoc.expiryDate ? workerDoc.expiryDate.toISOString().split('T')[0] : null,
+                capturedAt: new Date().toISOString()
+            });
+        }
+    }
+
+    const totalRequired = requiredDocTypes.length;
+    const complianceScore = totalRequired === 0
+        ? 100
+        : Math.round((approvedDocs.length / totalRequired) * 100);
+    const isCompliant = reasons.length === 0 && complianceScore === 100;
+
+    return {
+        isCompliant,
+        reason: reasons.length > 0 ? reasons.join('; ') : null,
+        snapshot: {
+            documents: approvedDocs,
+            complianceScore,
+            status: isCompliant ? 'compliant' : 'non-compliant',
+            capturedAt: new Date().toISOString(),
+            notes: reasons.length > 0 ? reasons.join('; ') : null
+        }
+    };
+}
+
+/**
  * Validate worker compliance at time of assignment
  * Returns: { isCompliant: boolean, reason?: string, snapshot: {...} }
  * Per R-SA-01: Specific reasons (Missing {docType}, Document expired {date}, Not yet approved)
@@ -46,17 +97,7 @@ async function validateComplianceAtTime(workerId, shiftId, agencyId) {
 
         if (requiredDocTypes.length === 0) {
             // No required docs defined, worker is compliant
-            return {
-                isCompliant: true,
-                reason: null,
-                snapshot: {
-                    documents: [],
-                    complianceScore: 100,
-                    status: 'compliant',
-                    capturedAt: new Date().toISOString(),
-                    notes: null
-                }
-            };
+            return computeCompliance([], []);
         }
 
         // Get worker's compliance documents
@@ -70,55 +111,67 @@ async function validateComplianceAtTime(workerId, shiftId, agencyId) {
             }
         });
 
-        const reasons = [];
-        const approvedDocs = [];
-        const now = new Date();
-
-        // Check each required document
-        for (const reqDoc of requiredDocTypes) {
-            const workerDoc = workerDocs.find(d => d.documentTypeId === reqDoc.id);
-
-            if (!workerDoc) {
-                reasons.push(`Missing ${reqDoc.name}`);
-            } else if (workerDoc.status !== 'APPROVED') {
-                reasons.push(`Not yet approved: ${reqDoc.name}`);
-            } else if (workerDoc.expiryDate && new Date(workerDoc.expiryDate) < now) {
-                const expiryDateStr = new Date(workerDoc.expiryDate).toISOString().split('T')[0];
-                reasons.push(`Document expired ${expiryDateStr}: ${reqDoc.name}`);
-            } else {
-                // Document is valid
-                approvedDocs.push({
-                    documentTypeId: reqDoc.id,
-                    documentTypeName: reqDoc.name,
-                    approvalStatus: workerDoc.status,
-                    expiryDate: workerDoc.expiryDate ? workerDoc.expiryDate.toISOString().split('T')[0] : null,
-                    capturedAt: new Date().toISOString()
-                });
-            }
-        }
-
-        // Calculate compliance score
-        const completedRequired = approvedDocs.length;
-        const totalRequired = requiredDocTypes.length;
-        const complianceScore = Math.round((completedRequired / totalRequired) * 100);
-
-        const isCompliant = reasons.length === 0 && complianceScore === 100;
-
-        return {
-            isCompliant,
-            reason: reasons.length > 0 ? reasons.join('; ') : null,
-            snapshot: {
-                documents: approvedDocs,
-                complianceScore,
-                status: isCompliant ? 'compliant' : 'non-compliant',
-                capturedAt: new Date().toISOString(),
-                notes: reasons.length > 0 ? reasons.join('; ') : null
-            }
-        };
+        return computeCompliance(requiredDocTypes, workerDocs);
     } catch (error) {
         console.error('Error validating compliance at assignment time:', error);
         throw error;
     }
+}
+
+/**
+ * Batched compliance validation for many workers against ONE shift.
+ * Fetches the shift, all workers, the required document types, and every worker's
+ * compliance documents in a constant number of queries (4) regardless of how many
+ * workers are passed — replacing the previous per-worker N+1 in bulk assignment.
+ *
+ * Returns: Map<workerId, { notFound: true } | { notFound: false, isCompliant, reason, snapshot }>
+ */
+async function validateComplianceForWorkers(workerIds, shiftId, agencyId) {
+    const results = new Map();
+    if (!Array.isArray(workerIds) || workerIds.length === 0) return results;
+
+    // Shift fetched once (shared across all workers).
+    const shift = await prisma.shift.findFirst({ where: { id: shiftId, agencyId } });
+    if (!shift) {
+        throw new Error(`Shift not found: ${shiftId}`);
+    }
+
+    // All requested workers fetched in a single query (existence + agency scope).
+    const workers = await prisma.worker.findMany({
+        where: { id: { in: workerIds }, agencyId },
+        select: { id: true }
+    });
+    const foundIds = new Set(workers.map(w => w.id));
+
+    // Required document types fetched once (shared across all workers).
+    const requiredDocTypes = await prisma.documentType.findMany({
+        where: { agencyId, isRequired: true },
+        select: { id: true, name: true, hasExpiry: true }
+    });
+
+    // Every worker's compliance documents fetched in a single query, grouped in memory.
+    const docsByWorker = new Map();
+    if (requiredDocTypes.length > 0) {
+        const allDocs = await prisma.complianceDocument.findMany({
+            where: { workerId: { in: workerIds }, agencyId },
+            include: { documentType: true }
+        });
+        for (const doc of allDocs) {
+            if (!docsByWorker.has(doc.workerId)) docsByWorker.set(doc.workerId, []);
+            docsByWorker.get(doc.workerId).push(doc);
+        }
+    }
+
+    for (const workerId of workerIds) {
+        if (!foundIds.has(workerId)) {
+            results.set(workerId, { notFound: true });
+            continue;
+        }
+        const workerDocs = docsByWorker.get(workerId) || [];
+        results.set(workerId, { notFound: false, ...computeCompliance(requiredDocTypes, workerDocs) });
+    }
+
+    return results;
 }
 
 /**
@@ -181,7 +234,9 @@ async function checkComplianceForShift(shiftId, agencyId) {
 }
 
 module.exports = {
+    computeCompliance,
     validateComplianceAtTime,
+    validateComplianceForWorkers,
     captureSnapshot,
     checkComplianceForShift
 };

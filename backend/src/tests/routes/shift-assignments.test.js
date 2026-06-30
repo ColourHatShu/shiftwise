@@ -28,11 +28,33 @@ jest.mock('../../lib/auth', () => ({
 }));
 
 jest.mock('../../lib/compliance-assignment', () => ({
-    validateComplianceAtTime: jest.fn()
+    validateComplianceAtTime: jest.fn(),
+    validateComplianceForWorkers: jest.fn()
 }));
 
 const prisma = require('../../lib/prisma');
-const { validateComplianceAtTime } = require('../../lib/compliance-assignment');
+const { validateComplianceAtTime, validateComplianceForWorkers } = require('../../lib/compliance-assignment');
+
+// Helper: build the Map returned by validateComplianceForWorkers for a set of workers
+function complianceMapFor(workerIds, isCompliantFn) {
+    const map = new Map();
+    workerIds.forEach((id, i) => {
+        const compliant = isCompliantFn(id, i);
+        map.set(id, {
+            notFound: false,
+            isCompliant: compliant,
+            reason: compliant ? null : 'Missing required document',
+            snapshot: {
+                documents: [],
+                complianceScore: compliant ? 100 : 50,
+                status: compliant ? 'compliant' : 'non-compliant',
+                capturedAt: new Date().toISOString(),
+                notes: null
+            }
+        });
+    });
+    return map;
+}
 
 describe('Shift Assignment Endpoints', () => {
     let app;
@@ -49,7 +71,8 @@ describe('Shift Assignment Endpoints', () => {
         };
         prisma.worker = {
             findFirst: jest.fn(),
-            findMany: jest.fn()
+            findMany: jest.fn(),
+            count: jest.fn()
         };
         prisma.shiftAssignment = {
             create: jest.fn(),
@@ -97,31 +120,13 @@ describe('Shift Assignment Endpoints', () => {
                 requiredCount: 5
             });
 
-            // Mock workers exist
-            workerIds.forEach(workerId => {
-                prisma.worker.findFirst.mockResolvedValueOnce({
-                    id: workerId,
-                    firstName: 'Worker',
-                    lastName: workerId,
-                    agencyId: 'test-agency-1'
-                });
-            });
-
             // Mock no existing assignments
             prisma.shiftAssignment.findMany.mockResolvedValueOnce([]);
 
-            // Mock compliance validation for all workers
-            validateComplianceAtTime.mockResolvedValue({
-                isCompliant: true,
-                reason: null,
-                snapshot: {
-                    documents: [],
-                    complianceScore: 100,
-                    status: 'compliant',
-                    capturedAt: new Date().toISOString(),
-                    notes: null
-                }
-            });
+            // Mock batched compliance validation — all 5 workers exist and are compliant
+            validateComplianceForWorkers.mockResolvedValue(
+                complianceMapFor(workerIds, () => true)
+            );
 
             // Mock assignment creation
             workerIds.forEach(workerId => {
@@ -161,70 +166,12 @@ describe('Shift Assignment Endpoints', () => {
                 requiredCount: 10
             });
 
-            // Mock all workers exist
-            allWorkerIds.forEach(workerId => {
-                prisma.worker.findFirst.mockResolvedValueOnce({
-                    id: workerId,
-                    firstName: 'Worker',
-                    lastName: workerId,
-                    agencyId: 'test-agency-1'
-                });
-            });
-
             prisma.shiftAssignment.findMany.mockResolvedValueOnce([]);
 
-            // Mock compliance validation: first 5 compliant, next 5 non-compliant
-            validateComplianceAtTime
-                .mockResolvedValueOnce({
-                    isCompliant: true,
-                    reason: null,
-                    snapshot: { status: 'compliant', complianceScore: 100 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: true,
-                    reason: null,
-                    snapshot: { status: 'compliant', complianceScore: 100 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: true,
-                    reason: null,
-                    snapshot: { status: 'compliant', complianceScore: 100 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: true,
-                    reason: null,
-                    snapshot: { status: 'compliant', complianceScore: 100 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: true,
-                    reason: null,
-                    snapshot: { status: 'compliant', complianceScore: 100 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: false,
-                    reason: 'Missing DBS',
-                    snapshot: { status: 'non-compliant', complianceScore: 50 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: false,
-                    reason: 'Document expired 2025-01-01',
-                    snapshot: { status: 'non-compliant', complianceScore: 0 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: false,
-                    reason: 'Missing Right to Work',
-                    snapshot: { status: 'non-compliant', complianceScore: 50 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: false,
-                    reason: 'Not yet approved',
-                    snapshot: { status: 'non-compliant', complianceScore: 0 }
-                })
-                .mockResolvedValueOnce({
-                    isCompliant: false,
-                    reason: 'Missing DBS, Missing RTW',
-                    snapshot: { status: 'non-compliant', complianceScore: 0 }
-                });
+            // Mock batched compliance validation: first 5 compliant, next 5 non-compliant
+            validateComplianceForWorkers.mockResolvedValue(
+                complianceMapFor(allWorkerIds, (_id, i) => i < 5)
+            );
 
             // Mock assignment creation for compliant workers
             for (let i = 0; i < 5; i++) {
