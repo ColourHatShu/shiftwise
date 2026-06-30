@@ -373,8 +373,9 @@ router.get('/worker/:workerId', async (req, res) => {
 router.get('/agency', async (req, res) => {
     try {
 
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        // Clamp pagination: page >= 1, limit in [1, 100] so `take` can't be unbounded.
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
         const skip = (page - 1) * limit;
 
         const [workers, total] = await Promise.all([

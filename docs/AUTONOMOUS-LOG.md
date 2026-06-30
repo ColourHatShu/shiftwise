@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 16:42 — Pagination clamps on audit-log + documents
+- **Item:** Pagination clamp on the other list endpoints
+- **Outcome:** shipped
+- **Changes:** `routes/audit-log.js` (was `limit||50`, validated `<=1000` → allowed `take:1000`) and `routes/documents.js` (was `limit||20`, **fully unbounded**) now clamp to `page = max(1)` + `limit = min(max(…,1),100)` — no client can request an unbounded `take`. Removed audit-log's now-redundant 400-on-bad-pagination block (input is clamped instead, matching workers/compliance). New `tests/routes/audit-log.test.js` (5 tests).
+- **Verify:** `node --check` both routes OK; new test **5/5**; `npm run test:ci` = **21 suites / 190 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(api): clamp pagination on audit-log + documents
+- **Notes / decisions:** Audited all list endpoints first — `compliance` + `workers` already clamp at 100; `shifts` has no user-controlled limit; only audit-log (soft 1000 cap) and documents (no cap) needed it. Used the robust `min(max(...,1),100)` form so negative/zero limits floor to 1 too. Chose this clean, no-new-dep, route-tested item over the frontend test runner (P7) which needs npm devDeps + build/lint/CI integration (its own firing + founder sign-off). Remaining clean backlog is thin — next firing likely the re-upload nudge (frontend, build-verifiable) or another ideation/founder-unlock.
+
 ## 2026-06-30 16:32 — Unit-test fetchWithRetry (+ pin a contract quirk)
 - **Item:** Unit tests for `lib/fetchWithRetry.js`
 - **Outcome:** shipped

@@ -13,22 +13,16 @@ router.use(requireAgency);
 // Requires OWNER or ADMIN role.
 router.get('/', requireRole(['OWNER', 'ADMIN']), async (req, res) => {
     try {
-        // Parse query params
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
+        // Parse + clamp pagination: page >= 1, limit in [1, 100] so a client can
+        // never request an unbounded `take` (matches workers/compliance).
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        const limit = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 100);
         const skip = (page - 1) * limit;
         const action = req.query.action || undefined;
         const entity = req.query.entity || undefined;
         const userId = req.query.userId || undefined;
         const dateFrom = req.query.dateFrom || undefined;
         const dateTo = req.query.dateTo || undefined;
-
-        // Validate pagination
-        if (page < 1 || limit < 1 || limit > 1000) {
-            return res.status(400).json({
-                error: 'Invalid pagination parameters. page and limit must be positive integers, limit <= 1000'
-            });
-        }
 
         // Build where clause
         const where = {
