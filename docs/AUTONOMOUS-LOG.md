@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 15:52 — Unit-test computeCompliance (core logic) + close two leads
+- **Item:** (no clean plan item left) — shipped real core-logic coverage instead of pure ideation
+- **Outcome:** shipped
+- **Changes:** new `backend/src/tests/unit/compliance-assignment.test.js` — 8 direct tests for `computeCompliance` (the pure function every compliance verdict flows through): no-required-docs, all-approved, missing, not-yet-approved, expired (with date), no-expiry-date, partial score + concatenated reasons, snapshot shape. Previously only exercised indirectly via a route test.
+- **Verify:** new test **8/8**; `npm run test:ci` = **18 suites / 169 tests, 0 failing**.
+- **Commit:** see git — 🛡️ test(compliance): unit-test computeCompliance core logic
+- **Decisions / leads closed:** (1) **Frontend Sentry is fine** — `sentry-initializer.tsx` already uses the functional v10 API (`replayIntegration()`/`captureConsoleIntegration()`), not the removed v7 class API. The earlier worry (after the backend v7→v10 fix) is resolved — no fix needed; recorded in the plan so it isn't re-investigated. (2) **Corrected an IDEAS.md mis-assumption:** the document AI pipeline is **local Tesseract OCR**, not Ollama, so the "retry/backoff" harvested item doesn't apply; the real gap is an **unhandled rejection** in the background `setImmediate(analyzeDocument)` (no audit/Sentry on failure) — added as a P6 plan item. With the clean backlog exhausted, chose to add high-value core-logic coverage (fully verifiable, no infra) over redundant ideation.
+
 ## 2026-06-30 15:42 — Empty-state adoption across remaining pages
 - **Item:** Empty-state consistency — remaining pages
 - **Outcome:** shipped (empty states now consistent app-wide)

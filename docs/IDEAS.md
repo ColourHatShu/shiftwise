@@ -31,7 +31,8 @@
 
 ## Harvested from `security-pipeline.test.js` (aspirational spec → real features)
 > That suite documents desired AI-pipeline security behaviours, most NOT YET implemented. Build them as real features (each with real tests), then the spec can be enabled incrementally.
-- **AI analyse resilience** — the `/api/documents/:id/analyse` (Ollama) call has no retry/backoff or timeout handling; on timeout/500/429 it should fail cleanly, log `document.ai_analysis_failed` (with `reason`), and retry with backoff / respect `Retry-After`. *(reliability + auditability.)*
+> ⚠️ **Correction (2026-06-30):** the spec assumes an **Ollama** network call, but the real `/api/documents/:id/analyse` uses **local Tesseract OCR** (`lib/ocrService`) run in a background `setImmediate`. So "retry/backoff/Retry-After" mostly doesn't apply; the real resilience gap is the **unhandled rejection** in that background call (now tracked as a plan item).
+- **AI analyse resilience (corrected)** — the manual analyse route runs `analyzeDocument` in `setImmediate` with no try/catch → silent failure, no `document.ai_analysis_failed` audit, no Sentry. Wrap it + audit failures. (See P6 in the plan.) *(reliability + auditability.)*
 - **Identity & wrong-document detection** — flag when the AI-extracted name doesn't match the worker (`identity_mismatch_detected` audit) or the detected document type differs from the expected type (`wrongDocumentWarning`). *(fraud/compliance signal; high value for a CQC-audit product.)*
 - **PII-safe audit logging** — ensure audit-log metadata never stores raw PII (document numbers, full names) extracted by the AI. *(GDPR.)*
 - **Optimistic locking on document verify** — concurrent approve/reject shouldn't flip-flop status; add a version column / transactional guard. *(data integrity.)*
