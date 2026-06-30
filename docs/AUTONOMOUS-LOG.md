@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 17:12 — Resurrect 2 of 3 frontend __tests__ suites (4 → 41 tests)
+- **Item:** Resurrect the pre-existing `frontend/__tests__/` suites
+- **Outcome:** shipped (2 of 3 suites; the React component one deferred)
+- **Changes:** installed `jsdom`; rewrote `vitest.config.ts` to add the `@/` alias (`fileURLToPath`), `globals: true`, `environment: 'jsdom'`, a `setupFiles` entry, and widened `include` to the two non-component suites; new `vitest.setup.ts` shims `jest`→`vi` (the suites were authored against Jest); excluded `vitest.setup.ts` from `next build`'s typecheck.
+- **Verify:** `npm run test:ci` = **3 files / 41 tests passed** (lib 4 + worker-compliance 21 + worker-offline 16); `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully.
+- **Commit:** see git — 🛡️ test(frontend): resurrect worker-compliance + worker-offline suites
+- **Notes / decisions:** Unlike the backend placeholder suites, these two were *real* tests and passed once wired (no bugs surfaced — the compliance-scoring + offline-cache libs are correct). Deferred `audit-pack-components.test.tsx` (12 tests) — it's a React component test needing `@testing-library/react` + `user-event` (another dep install) and `vi.mock` hoisting differs from `jest.mock`, so it warrants its own firing. Frontend coverage went from a single seed test to 41 real assertions over core worker logic + CI-enforced.
+
 ## 2026-06-30 17:02 — Frontend test runner (Vitest) — establishes the seam
 - **Item:** Frontend test runner
 - **Outcome:** shipped (closes the biggest coverage gap: frontend had *zero* tests)
