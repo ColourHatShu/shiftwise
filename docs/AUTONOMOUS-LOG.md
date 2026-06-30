@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 09:34 — Shared useApi() helper (kill getToken+fetch boilerplate)
+- **Item:** Extract the repeated Clerk getToken+fetch+headers boilerplate into a shared useApi/apiFetch helper, adopt in highest-traffic pages first
+- **Outcome:** shipped
+- **Changes:** new `frontend/lib/use-api.ts` — `useApi()` hook returning `apiFetch(path, options)` that auto-attaches the Clerk bearer token, prepends `NEXT_PUBLIC_API_URL`, and sets JSON `Content-Type` for non-FormData bodies; returns the raw `Response` so adoption is a drop-in. Adopted on the 3 highest-traffic coordinator pages: `dashboard/page.tsx`, `dashboard/workers/page.tsx`, `dashboard/documents/page.tsx` (removed their local `API_URL` consts + inline token/header plumbing).
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ refactor(web): shared useApi() hook + adopt on top pages
+- **Notes / decisions:** Returns `Response` (not parsed JSON) deliberately so each caller keeps its own `res.ok`/`res.json()` error handling — makes adoption a 1-line swap and avoids changing error semantics across the app. Left `getToken` in `documents/page.tsx` because `downloadDocument(id, getToken)` still needs it. Did NOT migrate all ~12 files in one firing (too large/risky) — queued the remaining 9 sites as a follow-up so each batch can be verified.
+
 ## 2026-06-30 09:24 — Fix N+1 in bulk shift assignment
 - **Item:** Fix the N+1 query in bulk shift assignment — batch the per-worker findFirst + compliance validation
 - **Outcome:** shipped

@@ -18,7 +18,8 @@
 - [x] Fix the N+1 query in bulk shift assignment (`backend/src/routes/shift-assignments.js`) — batched `validateComplianceForWorkers()` (constant 4 queries vs ~5×N); shared `computeCompliance()` keeps single/bulk paths identical
 
 ## P2 — Maintainability (DRY) & dead code
-- [ ] Extract the repeated Clerk `getToken + fetch + headers` boilerplate (~98 sites) into a shared `useApi`/`apiFetch` helper and adopt it in the highest-traffic pages first
+- [x] Extract the repeated Clerk `getToken + fetch + headers` boilerplate into a shared `useApi`/`apiFetch` helper and adopt it in the highest-traffic pages first — created `lib/use-api.ts`; adopted on dashboard, workers, documents pages
+- [ ] Migrate the remaining `getToken + fetch` sites to `useApi` (`workers/[id]`, `compliance`, `reports`, `settings`, `audit-log`, `onboarding`, `workers/new`, `EditWorkerModal`, `dashboard/layout`)
 - [ ] Extract duplicated status-badge color logic (~6 files) into a single shared badge component/util
 - [ ] Consolidate duplicated modal wrappers (~4 files) into one reusable `<Modal>` component
 - [ ] Replace any remaining native `window.confirm()` destructive actions with the existing `components/ui/confirm-dialog.tsx`

@@ -5,9 +5,8 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle, Search } from "lucide-react";
 import { downloadDocument } from "@/lib/api/documents";
+import { useApi } from "@/lib/use-api";
 import toast from "react-hot-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // RAG Status Config
 const statusConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
@@ -45,6 +44,7 @@ const statusConfig: Record<string, { label: string; bgColor: string; textColor: 
 
 export default function DocumentsPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
     const [workers, setWorkers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
@@ -53,10 +53,7 @@ export default function DocumentsPage() {
         const fetch_ = async () => {
             if (!isLoaded || !isSignedIn) return;
             try {
-                const token = await getToken();
-                const res = await fetch(`${API_URL}/api/documents/agency`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const res = await apiFetch(`/api/documents/agency`);
                 if (!res.ok) throw new Error("Failed to fetch documents");
                 const { data } = await res.json();
                 setWorkers(data);
@@ -67,7 +64,7 @@ export default function DocumentsPage() {
             }
         };
         fetch_();
-    }, [isLoaded, isSignedIn, getToken]);
+    }, [isLoaded, isSignedIn, apiFetch]);
 
     if (!isLoaded || isLoading) {
         return (

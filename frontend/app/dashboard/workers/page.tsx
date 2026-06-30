@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import EditWorkerModal from './components/EditWorkerModal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useApi } from '@/lib/use-api';
 
 interface Worker {
     id: string;
@@ -24,7 +25,8 @@ interface Worker {
 }
 
 export default function WorkersPage() {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -34,7 +36,6 @@ export default function WorkersPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalWorkers, setTotalWorkers] = useState(0);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
     // Debounce for search input
     const [searchInputValue, setSearchInputValue] = useState("");
@@ -44,7 +45,6 @@ export default function WorkersPage() {
         if (!isLoaded || !isSignedIn) return;
         try {
             setIsLoading(true);
-            const token = await getToken();
 
             // Build query params
             const params = new URLSearchParams();
@@ -53,9 +53,7 @@ export default function WorkersPage() {
             if (search) params.append("search", search);
             if (status) params.append("status", status);
 
-            const response = await fetch(`${API_URL}/api/workers?${params}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const response = await apiFetch(`/api/workers?${params}`);
             if (!response.ok) throw new Error("Failed to fetch workers");
             const data = await response.json();
             // Hydrate compliance fields from the backend if present; otherwise leave them
@@ -80,7 +78,7 @@ export default function WorkersPage() {
     // Initial load
     useEffect(() => {
         fetchWorkers(1, searchQuery, selectedStatus);
-    }, [isLoaded, isSignedIn, getToken, API_URL]);
+    }, [isLoaded, isSignedIn, apiFetch]);
 
     // Fetch when page changes
     useEffect(() => {

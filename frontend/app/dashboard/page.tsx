@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { Users, FileText, Clock, ShieldCheck, ArrowUpRight } from "lucide-react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { useApi } from "@/lib/use-api";
 
 interface Stats {
     totalWorkers: number;
@@ -15,7 +14,8 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
     const [stats, setStats] = useState<Stats | null>(null);
     const [agencyName, setAgencyName] = useState("");
     const [statsLoading, setStatsLoading] = useState(true);
@@ -24,10 +24,9 @@ export default function DashboardPage() {
         const fetchStats = async () => {
             if (!isLoaded || !isSignedIn) return;
             try {
-                const token = await getToken();
                 const [statsRes, agencyRes] = await Promise.all([
-                    fetch(`${API_URL}/api/dashboard/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-                    fetch(`${API_URL}/api/agencies/me`, { headers: { Authorization: `Bearer ${token}` } }),
+                    apiFetch(`/api/dashboard/stats`),
+                    apiFetch(`/api/agencies/me`),
                 ]);
                 if (statsRes.ok) setStats(await statsRes.json());
                 if (agencyRes.ok) {
@@ -41,7 +40,7 @@ export default function DashboardPage() {
             }
         };
         fetchStats();
-    }, [isLoaded, isSignedIn, getToken]);
+    }, [isLoaded, isSignedIn, apiFetch]);
 
     const statCards = [
         {
