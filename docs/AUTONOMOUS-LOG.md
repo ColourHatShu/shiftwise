@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 11:52 — Re-theme worker detail page (dark → light)
+- **Item:** Re-theme `dashboard/workers/[id]/page.tsx` from dark to the light design system
+- **Outcome:** shipped (⚠️ needs a human visual pass)
+- **Changes:** converted ~100 className lines across all 3 components (UploadModal, AnalysisModal, WorkerProfilePage): cards `bg-slate-800/*`→`bg-white`, borders→`border-[#DDE3EE]`, inset tiles→`bg-[#F5F7FA]`, headings/values→`text-[#0A1628]`, muted→`text-[#5B6E8C]`, translucent-on-dark accents (`bg-blue-500/10 text-blue-400` etc.)→light (`bg-blue-50 text-blue-700`), removed the dark-only date-picker `invert` filter, overlays `bg-black/60`→`bg-black/40`. Colored action buttons (blue-600/green-600) kept white text.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0, only a pre-existing exhaustive-deps warning), tests ⏭️ skipped (frontend-only). **Objective completeness checks:** `grep` confirms ZERO `slate-*` classes remain; no `bg-white … text-white` (white-on-white); diff is 100 ins / 100 del (pure className swaps, logic untouched).
+- **Commit:** see git — 🛡️ style(workers): re-theme worker detail page to light design system
+- **Notes / decisions:** This is a purely-visual change I **cannot verify visually** (no localhost from here), so I did it as a deterministic color-token mapping and gated it with objective checks (grep-clean of dark classes + build + anti-pattern grep) rather than eyeballing. **Please do a quick visual pass on `/dashboard/workers/<id>`** — if any shade is off, tell me and I'll adjust. This closes the council's last dark-theme leak; the coordinator app is now uniformly light.
+
 ## 2026-06-30 11:42 — Worker availability calendar (persistent) — first firing on main
 - **Item:** Worker availability calendar (mark available/unavailable days; foundation for rota)
 - **Outcome:** shipped

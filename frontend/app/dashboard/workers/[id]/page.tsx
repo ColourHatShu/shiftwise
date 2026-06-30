@@ -18,13 +18,13 @@ import { downloadDocument, getDocumentStatus, pollDocumentStatus } from "@/lib/a
 import { useApi } from "@/lib/use-api";
 
 const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
-    NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-slate-700/50 text-slate-400 border-slate-600/50", icon: XCircle },
-    PENDING: { label: "Pending Review", classes: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock },
-    AI_ANALYSED: { label: "Scanned", classes: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: FileText },
-    APPROVED: { label: "Verified", classes: "bg-green-500/10 text-green-400 border-green-500/20", icon: CheckCircle2 },
-    EXPIRING_SOON: { label: "Expiring Soon", classes: "bg-orange-500/10 text-orange-400 border-orange-500/20", icon: AlertCircle },
-    EXPIRED: { label: "Expired", classes: "bg-red-500/10 text-red-400 border-red-500/20", icon: AlertCircle },
-    REJECTED: { label: "Non-Compliant", classes: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle },
+    NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-[#EBEEF5] text-[#5B6E8C] border-[#DDE3EE]", icon: XCircle },
+    PENDING: { label: "Pending Review", classes: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
+    AI_ANALYSED: { label: "Scanned", classes: "bg-blue-50 text-blue-700 border-blue-200", icon: FileText },
+    APPROVED: { label: "Verified", classes: "bg-green-50 text-green-700 border-green-200", icon: CheckCircle2 },
+    EXPIRING_SOON: { label: "Expiring Soon", classes: "bg-orange-500/10 text-orange-600 border-orange-500/20", icon: AlertCircle },
+    EXPIRED: { label: "Expired", classes: "bg-red-50 text-red-700 border-red-200", icon: AlertCircle },
+    REJECTED: { label: "Non-Compliant", classes: "bg-red-50 text-red-700 border-red-200", icon: XCircle },
 };
 
 // ─── Upload Modal ─────────────────────────────────────────────────────────────
@@ -68,46 +68,46 @@ function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white border border-[#DDE3EE] rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">
                     <div>
-                        <h2 className="text-lg font-bold text-white">Upload Document</h2>
-                        <p className="text-sm text-slate-400 mt-0.5">{docType.name}</p>
+                        <h2 className="text-lg font-bold text-[#0A1628]">Upload Document</h2>
+                        <p className="text-sm text-[#5B6E8C] mt-0.5">{docType.name}</p>
                     </div>
-                    <button onClick={onClose} aria-label="Close dialog" className="text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} aria-label="Close dialog" className="text-[#5B6E8C] hover:text-[#0A1628] transition-colors">
                         <X size={20} />
                     </button>
                 </div>
 
-                {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-xl text-sm mb-4">{error}</div>}
+                {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-sm mb-4">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* File picker */}
                     <div
-                        className="border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors"
+                        className="border-2 border-dashed border-[#DDE3EE] hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors"
                         onClick={() => inputRef.current?.click()}
                     >
                         <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="hidden"
                             onChange={e => setFile(e.target.files?.[0] || null)} />
                         {file ? (
                             <div>
-                                <FileText size={24} className="text-blue-400 mx-auto mb-2" />
-                                <p className="text-sm text-white font-medium">{file.name}</p>
-                                <p className="text-xs text-slate-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+                                <FileText size={24} className="text-blue-700 mx-auto mb-2" />
+                                <p className="text-sm text-[#0A1628] font-medium">{file.name}</p>
+                                <p className="text-xs text-[#5B6E8C] mt-1">{(file.size / 1024).toFixed(1)} KB</p>
                             </div>
                         ) : (
                             <>
-                                <Upload size={24} className="text-slate-500 mx-auto mb-2" />
-                                <p className="text-sm text-slate-400">Click to select a file</p>
-                                <p className="text-xs text-slate-500 mt-1">PDF, JPG, PNG, DOC up to 10MB</p>
+                                <Upload size={24} className="text-[#5B6E8C] mx-auto mb-2" />
+                                <p className="text-sm text-[#5B6E8C]">Click to select a file</p>
+                                <p className="text-xs text-[#5B6E8C] mt-1">PDF, JPG, PNG, DOC up to 10MB</p>
                             </>
                         )}
                     </div>
 
                     {/* Expiry date input removed - now handled by automated background scan */}
                     {docType.hasExpiry && (
-                        <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-3 rounded-xl flex gap-3 text-sm">
+                        <div className="bg-blue-50 border border-blue-200 text-blue-700 p-3 rounded-xl flex gap-3 text-sm">
                             <FileText size={16} className="mt-0.5 shrink-0" />
                             <p>This document will be automatically scanned to verify the expiry date after you upload.</p>
                         </div>
@@ -115,7 +115,7 @@ function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
 
                     <div className="flex gap-3 pt-1">
                         <button type="button" onClick={onClose}
-                            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-400 border border-slate-700 hover:bg-slate-700/50 transition-colors">
+                            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#5B6E8C] border border-[#DDE3EE] hover:bg-[#F5F7FA] transition-colors">
                             Cancel
                         </button>
                         <button type="submit" disabled={!file || uploading}
@@ -234,38 +234,38 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white border border-[#DDE3EE] rounded-2xl p-6 w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
                             <FileText size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white">Document Review</h2>
-                            <p className="text-sm text-slate-400 mt-0.5">{document.documentType?.name}</p>
+                            <h2 className="text-lg font-bold text-[#0A1628]">Document Review</h2>
+                            <p className="text-sm text-[#5B6E8C] mt-0.5">{document.documentType?.name}</p>
                         </div>
                     </div>
                     {!loadingAI && !verifying && (
-                        <button onClick={onClose} aria-label="Close dialog" className="text-slate-400 hover:text-white transition-colors">
+                        <button onClick={onClose} aria-label="Close dialog" className="text-[#5B6E8C] hover:text-[#0A1628] transition-colors">
                             <X size={20} />
                         </button>
                     )}
                 </div>
 
-                {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">{error}</div>}
+                {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-4">{error}</div>}
 
                 {loadingAI ? (
                     <div className="py-12 text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4" />
-                        <p className="text-blue-400 font-medium">{loadingMsg}</p>
-                        <p className="text-sm text-slate-400 mt-1">Extracting details and checking for anomalies</p>
+                        <p className="text-blue-700 font-medium">{loadingMsg}</p>
+                        <p className="text-sm text-[#5B6E8C] mt-1">Extracting details and checking for anomalies</p>
                     </div>
                 ) : result ? (
                     <div className="space-y-5">
                         {result.wrongDocumentWarning && (
                             <div className="bg-amber-500 border border-amber-600 rounded-xl p-4 shadow-lg shadow-amber-500/20 mb-6">
-                                <div className="flex items-start gap-3 text-slate-900">
+                                <div className="flex items-start gap-3 text-[#0A1628]">
                                     <AlertCircle size={20} className="mt-0.5 shrink-0" />
                                     <div>
                                         <h3 className="font-bold mb-1">Warning: Document Mismatch</h3>
@@ -274,34 +274,34 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
                                 </div>
                             </div>
                         )}
-                        <div className="bg-blue-900/20 border border-blue-500/20 rounded-xl p-4">
-                            <p className="text-sm text-blue-100 italic">"{result.summary}"</p>
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                            <p className="text-sm text-blue-900 italic">"{result.summary}"</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <p className="text-xs text-slate-500 mb-1">Name Found</p>
-                                <p className="text-sm font-medium text-white">{result.fullName || "Not found"}</p>
+                            <div className="bg-[#F5F7FA] p-3 rounded-xl border border-[#DDE3EE]">
+                                <p className="text-xs text-[#5B6E8C] mb-1">Name Found</p>
+                                <p className="text-sm font-medium text-[#0A1628]">{result.fullName || "Not found"}</p>
                             </div>
-                            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <p className="text-xs text-slate-500 mb-1">Document Type Detected</p>
-                                <p className="text-sm font-medium text-white">{result.documentType || "Not found"}</p>
+                            <div className="bg-[#F5F7FA] p-3 rounded-xl border border-[#DDE3EE]">
+                                <p className="text-xs text-[#5B6E8C] mb-1">Document Type Detected</p>
+                                <p className="text-sm font-medium text-[#0A1628]">{result.documentType || "Not found"}</p>
                             </div>
-                            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <p className="text-xs text-slate-500 mb-1">Document Number</p>
-                                <p className="text-sm font-medium text-white">{result.documentNumber || "Not found"}</p>
+                            <div className="bg-[#F5F7FA] p-3 rounded-xl border border-[#DDE3EE]">
+                                <p className="text-xs text-[#5B6E8C] mb-1">Document Number</p>
+                                <p className="text-sm font-medium text-[#0A1628]">{result.documentNumber || "Not found"}</p>
                             </div>
-                            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <p className="text-xs text-slate-500 mb-1">Issuing Authority</p>
-                                <p className="text-sm font-medium text-white">{result.issuingAuthority || "Not found"}</p>
+                            <div className="bg-[#F5F7FA] p-3 rounded-xl border border-[#DDE3EE]">
+                                <p className="text-xs text-[#5B6E8C] mb-1">Issuing Authority</p>
+                                <p className="text-sm font-medium text-[#0A1628]">{result.issuingAuthority || "Not found"}</p>
                             </div>
-                            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <p className="text-xs text-slate-500 mb-1">Issue Date</p>
-                                <p className="text-sm font-medium text-white">{result.issueDate || "Not found"}</p>
+                            <div className="bg-[#F5F7FA] p-3 rounded-xl border border-[#DDE3EE]">
+                                <p className="text-xs text-[#5B6E8C] mb-1">Issue Date</p>
+                                <p className="text-sm font-medium text-[#0A1628]">{result.issueDate || "Not found"}</p>
                             </div>
-                            <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <p className="text-xs text-slate-500 mb-1">Expiry Date</p>
-                                <p className="text-sm font-medium text-white">
+                            <div className="bg-[#F5F7FA] p-3 rounded-xl border border-[#DDE3EE]">
+                                <p className="text-xs text-[#5B6E8C] mb-1">Expiry Date</p>
+                                <p className="text-sm font-medium text-[#0A1628]">
                                     {result.expiryDate && result.expiryDate !== 'null' ? result.expiryDate : (document.documentType?.hasExpiry ? "Not found" : "None")}
                                 </p>
                             </div>
@@ -313,11 +313,11 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
                             );
                             if (validConcerns.length === 0) return null;
                             return (
-                                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                                    <h3 className="text-sm font-bold text-amber-500 mb-2 flex items-center gap-2">
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                    <h3 className="text-sm font-bold text-amber-700 mb-2 flex items-center gap-2">
                                         <AlertCircle size={14} /> Attention Needed
                                     </h3>
-                                    <ul className="text-sm text-amber-200/80 list-disc pl-4 space-y-1">
+                                    <ul className="text-sm text-amber-700 list-disc pl-4 space-y-1">
                                         {validConcerns.map((c: string, i: number) => <li key={i}>{c}</li>)}
                                     </ul>
                                 </div>
@@ -325,36 +325,36 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
                         })()}
 
                         {document.documentType?.hasExpiry && (!result.expiryDate || result.expiryDate === 'null' || result.expiryDate === 'None') && (
-                            <div className="bg-slate-900/50 p-4 rounded-xl border border-blue-500/30">
-                                <label className="text-sm font-bold text-blue-400 block mb-2 flex items-center gap-2">
+                            <div className="bg-[#F5F7FA] p-4 rounded-xl border border-blue-200">
+                                <label className="text-sm font-bold text-blue-700 block mb-2 flex items-center gap-2">
                                     <Calendar size={14} /> Expiry date not detected — please enter manually
                                 </label>
                                 <input
                                     type="date"
                                     value={manualExpiry}
                                     onChange={(e) => setManualExpiry(e.target.value)}
-                                    className="w-full bg-slate-800 border border-slate-600 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                                    className="w-full bg-white border border-[#DDE3EE] text-[#0A1628] rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
                                 />
                             </div>
                         )}
 
                         <div>
-                            <label className="text-sm font-medium text-slate-300 block mb-1.5">Coordinator Notes (Optional)</label>
+                            <label className="text-sm font-medium text-[#5B6E8C] block mb-1.5">Coordinator Notes (Optional)</label>
                             <textarea
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
                                 placeholder="Add any notes about this verification..."
-                                className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 h-20 resize-none transition-colors"
+                                className="w-full bg-white border border-[#DDE3EE] text-[#0A1628] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 h-20 resize-none transition-colors"
                             />
                         </div>
 
                         <div className="flex gap-3 pt-2">
                             <button onClick={() => runAnalysis(true)} disabled={verifying}
-                                className="px-4 py-3 rounded-xl border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 text-sm font-medium transition-colors">
+                                className="px-4 py-3 rounded-xl border border-blue-200 text-blue-700 hover:bg-blue-50 text-sm font-medium transition-colors">
                                 Re-scan
                             </button>
                             <button onClick={() => handleVerify("REJECTED")} disabled={verifying}
-                                className="flex-1 py-3 rounded-xl text-sm font-semibold bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors">
+                                className="flex-1 py-3 rounded-xl text-sm font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors">
                                 {verifying ? "Processing..." : "Reject Document"}
                             </button>
                             <button onClick={() => handleVerify("APPROVED")} disabled={verifying}
@@ -473,8 +473,8 @@ export default function WorkerProfilePage() {
     if (error) {
         return (
             <div className="text-center py-20">
-                <p className="text-red-400 mb-4">{error}</p>
-                <Link href="/dashboard/workers" className="text-blue-400 hover:text-blue-300">← Back to Workers</Link>
+                <p className="text-red-700 mb-4">{error}</p>
+                <Link href="/dashboard/workers" className="text-blue-700 hover:text-blue-800">← Back to Workers</Link>
             </div>
         );
     }
@@ -522,49 +522,49 @@ export default function WorkerProfilePage() {
 
 
             {/* Back */}
-            <Link href="/dashboard/workers" className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors">
+            <Link href="/dashboard/workers" className="inline-flex items-center gap-2 text-[#5B6E8C] hover:text-[#0A1628] text-sm transition-colors">
                 <ArrowLeft size={16} /> Back to Workers
             </Link>
 
             {/* Worker header card */}
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 backdrop-blur-sm">
+            <div className="bg-white border border-[#DDE3EE] rounded-2xl p-6 backdrop-blur-sm">
                 <div className="flex items-start gap-5">
-                    <div className="h-16 w-16 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-2xl font-bold flex-shrink-0">
+                    <div className="h-16 w-16 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center text-2xl font-bold flex-shrink-0">
                         {worker.firstName[0]}{worker.lastName[0]}
                     </div>
                     <div className="flex-1">
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-3">
-                                <h1 className="text-2xl font-bold text-white">{worker.firstName} {worker.lastName}</h1>
+                                <h1 className="text-2xl font-bold text-[#0A1628]">{worker.firstName} {worker.lastName}</h1>
                                 {worker.status === 'INACTIVE' && (
-                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-700/50 text-slate-400 border border-slate-600/50">
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBEEF5] text-[#5B6E8C] border border-[#DDE3EE]">
                                         Inactive
                                     </span>
                                 )}
                             </div>
-                            <p className="text-slate-400 mt-0.5">{worker.jobTitle || "No role assigned"}</p>
+                            <p className="text-[#5B6E8C] mt-0.5">{worker.jobTitle || "No role assigned"}</p>
                             <button
                                 onClick={() => setEditTarget(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl text-sm font-medium transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-sm font-medium transition-colors"
                             >
                                 <Edit size={16} /> Edit
                             </button>
                         </div>
-                        <div className="flex flex-wrap gap-4 mt-4 text-sm text-slate-300">
-                            <span className="flex items-center gap-2"><Mail size={14} className="text-slate-500" />{worker.email}</span>
-                            {worker.phone && <span className="flex items-center gap-2"><Phone size={14} className="text-slate-500" />{worker.phone}</span>}
-                            {worker.startDate && <span className="flex items-center gap-2"><Calendar size={14} className="text-slate-500" />Started {format(new Date(worker.startDate), "MMM dd, yyyy")}</span>}
-                            <span className="flex items-center gap-2"><Briefcase size={14} className="text-slate-500" />ID: {worker.id.slice(-8).toUpperCase()}</span>
+                        <div className="flex flex-wrap gap-4 mt-4 text-sm text-[#5B6E8C]">
+                            <span className="flex items-center gap-2"><Mail size={14} className="text-[#5B6E8C]" />{worker.email}</span>
+                            {worker.phone && <span className="flex items-center gap-2"><Phone size={14} className="text-[#5B6E8C]" />{worker.phone}</span>}
+                            {worker.startDate && <span className="flex items-center gap-2"><Calendar size={14} className="text-[#5B6E8C]" />Started {format(new Date(worker.startDate), "MMM dd, yyyy")}</span>}
+                            <span className="flex items-center gap-2"><Briefcase size={14} className="text-[#5B6E8C]" />ID: {worker.id.slice(-8).toUpperCase()}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Additional Risk Actions */}
-                <div className="mt-6 pt-5 border-t border-slate-700/50 flex gap-4">
+                <div className="mt-6 pt-5 border-t border-[#DDE3EE] flex gap-4">
                     {worker.status !== 'INACTIVE' ? (
                         <button
                             onClick={handleDeactivate}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-colors"
                         >
                             <UserX size={16} /> Deactivate Worker
                         </button>
@@ -572,13 +572,13 @@ export default function WorkerProfilePage() {
                         <>
                             <button
                                 onClick={handleReactivate}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-500 hover:text-green-400 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 rounded-xl transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-colors"
                             >
                                 <UserCheck size={16} /> Reactivate Worker
                             </button>
                             <button
                                 onClick={handleDeleteWorker}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-colors"
                             >
                                 <Trash2 size={16} /> Delete Worker (Permanent)
                             </button>
@@ -588,19 +588,19 @@ export default function WorkerProfilePage() {
             </div>
 
             {/* Compliance Documents */}
-            <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden backdrop-blur-sm">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 bg-slate-900/30">
+            <div className="bg-white border border-[#DDE3EE] rounded-2xl overflow-hidden backdrop-blur-sm">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA]">
                     <div>
-                        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                            <FileText size={18} className="text-blue-400" /> Compliance Documents
+                        <h2 className="text-lg font-semibold text-[#0A1628] flex items-center gap-2">
+                            <FileText size={18} className="text-blue-700" /> Compliance Documents
                         </h2>
-                        <p className="text-xs text-slate-500 mt-0.5">{docSlots.filter(s => s.document).length} of {docSlots.length} documents uploaded</p>
+                        <p className="text-xs text-[#5B6E8C] mt-0.5">{docSlots.filter(s => s.document).length} of {docSlots.length} documents uploaded</p>
                     </div>
                 </div>
 
                 <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {docSlots.length === 0 ? (
-                        <div className="col-span-4 text-center py-8 text-slate-500 text-sm">
+                        <div className="col-span-4 text-center py-8 text-[#5B6E8C] text-sm">
                             Document types loading... If this persists, navigate away and return.
                         </div>
                     ) : docSlots.map((slot: any) => {
@@ -609,11 +609,11 @@ export default function WorkerProfilePage() {
                         const Icon = cfg.icon;
 
                         return (
-                            <div key={dt.id} className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 flex flex-col gap-3 hover:border-slate-600 transition-colors">
+                            <div key={dt.id} className="bg-white border border-[#DDE3EE] rounded-xl p-4 flex flex-col gap-3 hover:border-[#DDE3EE] transition-colors">
                                 {/* Doc type name + status */}
                                 <div>
-                                    <p className="text-sm font-semibold text-white">{dt.name}</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">{dt.description}</p>
+                                    <p className="text-sm font-semibold text-[#0A1628]">{dt.name}</p>
+                                    <p className="text-xs text-[#5B6E8C] mt-0.5">{dt.description}</p>
                                 </div>
 
                                 <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border w-fit ${cfg.classes}`}>
@@ -632,25 +632,25 @@ export default function WorkerProfilePage() {
                                     const diffTime = expDate.getTime() - today.getTime();
                                     const daysRemaining = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                                    let expColor = "text-slate-300";
+                                    let expColor = "text-[#5B6E8C]";
                                     let expText = `Expires in ${daysRemaining} days`;
 
                                     if (daysRemaining < 0) {
                                         expColor = "text-red-900 font-bold bg-red-100 px-1 rounded"; // Dark red
                                         expText = `Expired ${Math.abs(daysRemaining)} days ago`;
                                     } else if (daysRemaining <= 13) {
-                                        expColor = "text-red-500 font-bold";
+                                        expColor = "text-red-700 font-bold";
                                         expText = `Expires in ${daysRemaining} days`;
                                     } else if (daysRemaining <= 30) {
-                                        expColor = "text-orange-400 font-semibold";
+                                        expColor = "text-orange-600 font-semibold";
                                         expText = `Expires in ${daysRemaining} days`;
                                     } else {
-                                        expColor = "text-green-400 font-medium";
+                                        expColor = "text-green-700 font-medium";
                                         expText = `Expires in ${daysRemaining} days`;
                                     }
 
                                     return (
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs text-[#5B6E8C]">
                                             Expires: <span className={expColor}>{expText}</span>
                                             <span className="block mt-0.5 opacity-60">({format(expDate, "dd MMM yyyy")})</span>
                                         </p>
@@ -670,7 +670,7 @@ export default function WorkerProfilePage() {
                                                     toast.error(error instanceof Error ? error.message : 'Failed to download document');
                                                 }
                                             }}
-                                            className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-all"
+                                            className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[#DDE3EE] text-[#5B6E8C] hover:text-[#0A1628] hover:border-[#DDE3EE] transition-all"
                                             aria-label="Download document"
                                             title="Download document">
                                             <Eye size={12} />
@@ -684,7 +684,7 @@ export default function WorkerProfilePage() {
                                             </button>
                                             <button onClick={() => setUploadTarget(dt)}
                                                 aria-label="Replace document"
-                                                className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-all"
+                                                className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#EBEEF5] hover:bg-[#DDE3EE] text-[#0A1628] transition-all"
                                                 title="Replace Document">
                                                 <Upload size={12} />
                                             </button>
@@ -692,7 +692,7 @@ export default function WorkerProfilePage() {
                                     )}
                                     {!doc && (
                                         <button onClick={() => setUploadTarget(dt)}
-                                            className="flex-1 flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 hover:text-blue-300 transition-all">
+                                            className="flex-1 flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 hover:text-blue-800 transition-all">
                                             <Upload size={12} /> Upload
                                         </button>
                                     )}
@@ -705,9 +705,9 @@ export default function WorkerProfilePage() {
 
             {/* Notes */}
             {worker.notes && (
-                <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-6">
-                    <h2 className="font-semibold text-white mb-2">Notes</h2>
-                    <p className="text-slate-400 text-sm whitespace-pre-wrap">{worker.notes}</p>
+                <div className="bg-white border border-[#DDE3EE] rounded-2xl p-6">
+                    <h2 className="font-semibold text-[#0A1628] mb-2">Notes</h2>
+                    <p className="text-[#5B6E8C] text-sm whitespace-pre-wrap">{worker.notes}</p>
                 </div>
             )}
         </div>
