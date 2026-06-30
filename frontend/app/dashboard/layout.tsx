@@ -24,7 +24,9 @@ const navItems = [
     { label: "Workers", href: "/dashboard/workers", icon: Users },
     { label: "Documents", href: "/dashboard/documents", icon: FileText },
     { label: "Shifts", href: "/dashboard/shifts", icon: Calendar },
-    { label: "Availability", href: "/dashboard/availability", icon: Calendar },
+    // "Availability" hidden: the coordinator page is a non-persisting stub
+    // (no aggregate endpoint; clicks are optimistic-only). Re-add when the
+    // worker availability calendar (P3) wires up real persistence.
     { label: "Audit Log", href: "/dashboard/audit-log", icon: FileText },
     { label: "Audit Packs", href: "/dashboard/audit-packs", icon: Archive },
     { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },

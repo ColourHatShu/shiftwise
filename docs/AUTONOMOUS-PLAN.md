@@ -25,7 +25,7 @@
 - [x] Make `<Modal>` reusable for full header/body/footer modals (added `padded` prop) and migrated `DeleteConfirmationModal` onto it as the first faithful adoption (zero visual change + gained ESC/click-outside close)
 - [blocked] **Finish modal consolidation — needs the human's canonical-style decision.** Remaining modals split into two visual languages: generic Tailwind (`ShiftModal`, `BulkUploadModal`, `AuditPackModal`: `rounded-lg`/`shadow-lg`/`max-h-96`) vs design-system (`EditWorkerModal`, `WorkerDetailModal`: `rounded-xl`/`shadow-2xl`/`backdrop-blur`). A blind migration would change shadows/radius/max-height/blur — unverifiable visual churn. **Knight's recommendation:** make the **design-system style canonical** (the dashboard is the primary surface and uses hex tokens), restyle `<Modal>` to it, then migrate all modals. Tell the Knight "use design-system, go" to unblock — it's then mechanical.
 - [x] Replace remaining native `window.confirm()` destructive actions with the styled `ConfirmDialog` — the last one (`AssignmentList` unassign-worker) now uses `<ConfirmDialog>`
-- [ ] Hide or finish the dead `/dashboard/availability` route (remove it from the sidebar if not implemented)
+- [x] Hide the dead `/dashboard/availability` route — removed the sidebar nav item (page was a non-persisting coordinator stub). Page kept as an unlinked placeholder for the P3 availability calendar.
 
 ## P3 — Feature expansion (Wave C)
 - [ ] Cmd+K universal search + quick actions (workers, shifts, documents) — high demo value, scoped to client-side fuzzy search first

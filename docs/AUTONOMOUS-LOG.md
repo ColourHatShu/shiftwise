@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 10:44 — Hide the dead /dashboard/availability route
+- **Item:** Hide or finish the dead `/dashboard/availability` route
+- **Outcome:** shipped
+- **Changes:** `dashboard/layout.tsx` — removed the "Availability" sidebar nav item (the sidebar was its only entry point, confirmed by grep). Left a comment explaining why.
+- **Verify:** build ✅ (24/24, route still compiles — just unlinked), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ fix(ui): hide dead availability route from sidebar
+- **Notes / decisions:** The page is a **trust hole**: it lives in the coordinator dashboard but shows worker-facing "Your Availability" copy, `fetchAvailability` is a no-op (no aggregate endpoint), and `updateAvailability` is optimistic-local-only — clicks are silently discarded on refresh. The item preferred "hide over delete" and the page's own comment marks it an intentional Phase-9 placeholder, so I removed the nav link rather than deleting the file. The route now isn't reachable through the UI; kept the page as scaffolding the **P3 worker availability calendar** can finish (the per-worker backend already exists at `/api/workers/:workerId/availability`). When P3 builds the real calendar, either wire this up + re-add the nav item or delete the stub.
+
 ## 2026-06-30 10:34 — Replace last native window.confirm() with ConfirmDialog
 - **Item:** Replace remaining native `window.confirm()` destructive actions with `components/ui/confirm-dialog.tsx`
 - **Outcome:** shipped
