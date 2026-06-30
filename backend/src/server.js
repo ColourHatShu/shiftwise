@@ -20,16 +20,9 @@ if (SENTRY_DSN) {
         dsn: SENTRY_DSN,
         environment: process.env.NODE_ENV || 'development',
         tracesSampleRate: 0.1,
-        integrations: [
-            new Sentry.Integrations.Http({ tracing: true }),
-            new Sentry.Integrations.Express({
-                request: true,
-                serverName: true,
-                transaction: true
-            }),
-            new Sentry.Integrations.OnUncaughtException(),
-            new Sentry.Integrations.OnUnhandledRejection()
-        ]
+        // @sentry/node v8+: the HTTP, Express, uncaught-exception and
+        // unhandled-rejection integrations are enabled by default — no manual
+        // `new Sentry.Integrations.*` array (that v7 API was removed in v8).
     });
     console.log('✅ Sentry initialized for backend');
 } else {
@@ -48,9 +41,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// Sentry request handler middleware (must be early)
+// Tag every Sentry event in a request with the correlation ID, so ALL events
+// (not just the manually-captured exception) carry it. v8+ isolates the Sentry
+// scope per request automatically via the default HTTP integration, so a plain
+// middleware tagging the current scope applies to just this request.
 if (SENTRY_DSN) {
-    app.use(Sentry.Handlers.requestHandler());
+    app.use((req, res, next) => {
+        Sentry.setTag('requestId', req.requestId);
+        next();
+    });
 }
 
 // General rate limiting - 100 requests per 15 minutes per IP
@@ -204,11 +203,6 @@ app.get('/api/health', async (req, res) => {
 app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
-
-// Sentry error handler middleware (must be after all other middleware/routes)
-if (SENTRY_DSN) {
-    app.use(Sentry.Handlers.errorHandler());
-}
 
 // Global error handler — never leak err.message in production responses (it can contain
 // Prisma error text, file paths, stack snippets). Keep details server-side / in Sentry.

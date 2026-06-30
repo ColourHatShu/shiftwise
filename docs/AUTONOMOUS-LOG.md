@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 13:32 — requestId Sentry scope tag + FIX latent Sentry v10 crash (P0)
+- **Item:** Set `requestId` as a per-request Sentry scope tag
+- **Outcome:** shipped (+ discovered/fixed a P0)
+- **Discovery:** the installed `@sentry/node` is **v10.53.1**, but `server.js` used **v7 APIs** — `new Sentry.Integrations.Http/Express/OnUncaughtException/OnUnhandledRejection` in `init`, and `Sentry.Handlers.requestHandler()/errorHandler()`. In v10 `Sentry.Integrations` and `Sentry.Handlers` are `undefined`, so the moment `SENTRY_DSN_BACKEND` is set (i.e. production error monitoring is turned on) the backend would **TypeError on boot**. It only "worked" because the DSN is empty in dev (Sentry block skipped).
+- **Changes:** `backend/src/server.js` — `Sentry.init` now uses v8+ defaults (dropped the removed `integrations: [new Sentry.Integrations.*]` array; HTTP/Express/uncaught/unhandled are auto-enabled). Replaced the dead `Handlers.requestHandler()` with a middleware doing `Sentry.setTag('requestId', req.requestId)` (the actual item — v8+ isolates scope per request, so all events in the request carry it). Removed the dead `Handlers.errorHandler()`; the custom global handler keeps its `Sentry.captureException(err, { tags })` (valid in v10) so no double-capture.
+- **Verify:** `node --check src/server.js` ✅; a node harness confirmed v10 `init` + `setTag` + `captureException` don't throw ✅; backend `npm test` 130 passed / 28 failed (unchanged baseline — zero new failures); grep confirms no `Sentry.Handlers`/`Sentry.Integrations` code remains (only a comment). Could not boot-with-real-DSN here (no DSN/DB-in-sandbox), but the API surface is validated.
+- **Commit:** see git — 🛡️ fix(sentry): migrate to @sentry/node v10 API + requestId scope tag
+- **Notes / decisions:** This is the highest-value find in a while — Sentry is the production error-monitoring the whole observability phase depends on, and it was silently un-enable-able. **When the founder adds a real `SENTRY_DSN_BACKEND`, please confirm the backend still boots** (I validated the API but not a live DSN end-to-end).
+
 ## 2026-06-30 13:22 — Ideation pass (backlog refill)
 - **Item:** (no implementation) — ran an ideation pass because only ~2 non-blocked items remained (below the playbook's "keep the loop fed" threshold)
 - **Outcome:** planning
