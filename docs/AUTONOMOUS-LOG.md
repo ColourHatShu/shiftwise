@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 16:02 — Harden background document analysis (Sentry + audit on failure)
+- **Item:** Harden background document analysis
+- **Outcome:** shipped
+- **Changes:** new `backend/src/lib/analysis-failure.js` — `recordAnalysisFailure(doc, reason, error?)`: marks the document FAILED, `Sentry.captureException` (with documentId/agencyId tags) when an error is present, and writes a `document.ai_analysis_failed` audit entry (**reason only — no PII**); never throws. Routed all **7** OCR/analysis failure paths in `routes/documents.js` (unsupported type, PDF-empty, PDF-fail, decrypt-fail, OCR-error, analysis-exception, outer-catch) through it and removed the dead `updateDocumentStatus`. +5 unit tests.
+- **Verify:** no leftover `updateDocumentStatus`; `node --check` documents.js OK; new test **5/5**; `npm run test:ci` = **19 suites / 174 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(documents): audit + Sentry on OCR analysis failures
+- **Notes / decisions:** Corrected the earlier framing: `analyzeDocument` already had a full outer catch, so failures weren't unhandled rejections — the real gap was that they were **silent** (console-only: no Sentry alert, no audit trail), which is unacceptable for a CQC-audit product (a document silently stuck FAILED with no record). The fix makes every failure visible + auditable, with a clean testable seam. This was the last harvested-from-security-pipeline quick win that's verifiable without a live DB/Ollama; the remaining harvested items (identity/wrong-doc detection, optimistic locking) are larger features. Backlog is now decision-gated or large — next firing will ideate unless the founder greenlights a gated item.
+
 ## 2026-06-30 15:52 — Unit-test computeCompliance (core logic) + close two leads
 - **Item:** (no clean plan item left) — shipped real core-logic coverage instead of pure ideation
 - **Outcome:** shipped

@@ -12,6 +12,7 @@ const { encryptFile, encryptFileGCM, decryptFileAuto, readAndDecryptFile, valida
 const { validate, documentUploadSchema, documentVerifySchema } = require('../middleware/validation');
 const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
 const { analyzeDocumentImage, shutdownOCR } = require('../lib/ocrService');
+const { recordAnalysisFailure } = require('../lib/analysis-failure');
 
 const router = express.Router();
 
@@ -63,8 +64,7 @@ const analyzeDocument = async (doc, worker, filePath) => {
         const isPdf = ext === '.pdf';
 
         if (!isImage && !isPdf) {
-            console.error(`[Async OCR] Unsupported file type: ${ext}`);
-            await updateDocumentStatus(doc.id, 'FAILED', null);
+            await recordAnalysisFailure(doc, `Unsupported file type: ${ext}`);
             return;
         }
 
@@ -95,21 +95,18 @@ const analyzeDocument = async (doc, worker, filePath) => {
                     }
 
                     if (!firstPageBuffer) {
-                        console.error('[Async OCR] PDF conversion returned empty');
-                        await updateDocumentStatus(doc.id, 'FAILED', null);
+                        await recordAnalysisFailure(doc, 'PDF conversion returned empty');
                         return;
                     }
 
                     imageBuffer = firstPageBuffer;
                 } catch (err) {
-                    console.error('[Async OCR] PDF conversion failed:', err);
-                    await updateDocumentStatus(doc.id, 'FAILED', null);
+                    await recordAnalysisFailure(doc, 'PDF conversion failed', err);
                     return;
                 }
             }
         } catch (decryptErr) {
-            console.error('[Async OCR] Decryption error:', decryptErr);
-            await updateDocumentStatus(doc.id, 'FAILED', null);
+            await recordAnalysisFailure(doc, 'Decryption failed', decryptErr);
             return;
         }
 
@@ -120,8 +117,7 @@ const analyzeDocument = async (doc, worker, filePath) => {
             const ocrResult = await analyzeDocumentImage(imageBuffer, workerData);
 
             if (ocrResult.error) {
-                console.error(`[Async OCR] Analysis error:`, ocrResult.error);
-                await updateDocumentStatus(doc.id, 'FAILED', null);
+                await recordAnalysisFailure(doc, `OCR analysis error: ${ocrResult.error}`);
                 return;
             }
 
@@ -164,30 +160,12 @@ const analyzeDocument = async (doc, worker, filePath) => {
 
             console.log(`[Async OCR] Analysis complete for document ${doc.id}`);
         } catch (analysisErr) {
-            console.error(`[Async OCR] Analysis exception:`, analysisErr);
-            await updateDocumentStatus(doc.id, 'FAILED', null);
+            await recordAnalysisFailure(doc, 'Analysis exception', analysisErr);
         }
     } catch (error) {
-        console.error('[Async OCR] Unexpected error:', error);
-        try {
-            await updateDocumentStatus(doc.id, 'FAILED', null);
-        } catch (e) {
-            console.error('[Async OCR] Failed to update document status:', e);
-        }
+        await recordAnalysisFailure(doc, 'Unexpected analysis error', error);
     }
 };
-
-// Helper to update document status
-async function updateDocumentStatus(docId, status, analysisResult) {
-    try {
-        await prisma.complianceDocument.update({
-            where: { id: docId },
-            data: { status, analysisResult }
-        });
-    } catch (error) {
-        console.error(`[Async OCR] Failed to update status for ${docId}:`, error);
-    }
-}
 
 // ─── POST /api/documents/upload ───────────────────────────────────────────────
 router.post('/upload', documentUploadLimiter, upload.single('file'), validate(documentUploadSchema), async (req, res) => {
