@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, SignOutButton } from "@clerk/nextjs";
+import { useApi } from "@/lib/use-api";
 import {
     LayoutDashboard,
     Users,
@@ -30,8 +31,6 @@ const navItems = [
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 export default function DashboardLayout({
     children,
 }: {
@@ -39,7 +38,8 @@ export default function DashboardLayout({
 }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
     const [mobileOpen, setMobileOpen] = useState(false);
 
     // On every dashboard load: ensure agency exists, then check onboarding status
@@ -47,18 +47,13 @@ export default function DashboardLayout({
         const checkOnboarding = async () => {
             if (!isLoaded || !isSignedIn) return;
             try {
-                const token = await getToken();
-
                 // 1. Ensure agency + user record exist
-                await fetch(`${API_URL}/api/agencies/setup`, {
+                await apiFetch(`/api/agencies/setup`, {
                     method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
                 });
 
                 // 2. Check if agency has completed onboarding
-                const meRes = await fetch(`${API_URL}/api/agencies/me`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const meRes = await apiFetch(`/api/agencies/me`);
 
                 if (meRes.ok) {
                     const { data: agency } = await meRes.json();
@@ -71,7 +66,7 @@ export default function DashboardLayout({
             }
         };
         checkOnboarding();
-    }, [isLoaded, isSignedIn, getToken, router]);
+    }, [isLoaded, isSignedIn, apiFetch, router]);
 
     // Close the mobile drawer whenever the route changes
     useEffect(() => {

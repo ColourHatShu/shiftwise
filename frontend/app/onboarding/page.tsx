@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useApi } from "@/lib/use-api";
 import { useRouter } from "next/navigation";
 import { Building2, MapPin, Phone, ChevronRight, CheckCircle2 } from "lucide-react";
 
@@ -12,10 +12,8 @@ const AGENCY_TYPES = [
     "Mixed Healthcare Agency",
 ];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 export default function OnboardingPage() {
-    const { getToken } = useAuth();
+    const { apiFetch } = useApi();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
@@ -38,13 +36,8 @@ export default function OnboardingPage() {
         setError("");
 
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/agencies/onboard`, {
+            const res = await apiFetch(`/api/agencies/onboard`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
                 body: JSON.stringify(form),
             });
 

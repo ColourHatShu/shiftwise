@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import {
@@ -15,8 +16,6 @@ import {
     Clock
 } from "lucide-react";
 import WorkerDetailModal from "./WorkerDetailModal";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 interface Worker {
     id: string;
@@ -49,7 +48,8 @@ interface AlertsSummary {
 }
 
 export default function ComplianceDashboard() {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
 
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [alerts, setAlerts] = useState<AlertsSummary | null>(null);
@@ -77,13 +77,9 @@ export default function ComplianceDashboard() {
 
         setLoading(true);
         try {
-            const token = await getToken();
-            const headers = { Authorization: `Bearer ${token}` };
-
             // Fetch workers
-            const workersRes = await fetch(
-                `${API_URL}/api/agency/compliance/workers?page=${page}&status=${statusFilter || ''}&search=${search}&sortBy=${sortBy}`,
-                { headers }
+            const workersRes = await apiFetch(
+                `/api/agency/compliance/workers?page=${page}&status=${statusFilter || ''}&search=${search}&sortBy=${sortBy}`
             );
 
             if (workersRes.ok) {
@@ -96,7 +92,7 @@ export default function ComplianceDashboard() {
             }
 
             // Fetch alerts
-            const alertsRes = await fetch(`${API_URL}/api/agency/compliance/alerts`, { headers });
+            const alertsRes = await apiFetch(`/api/agency/compliance/alerts`);
             if (alertsRes.ok) {
                 const alertData = await alertsRes.json();
                 setAlerts(alertData.data);
@@ -106,7 +102,7 @@ export default function ComplianceDashboard() {
         } finally {
             setLoading(false);
         }
-    }, [isLoaded, isSignedIn, getToken, page, statusFilter, search, sortBy]);
+    }, [isLoaded, isSignedIn, apiFetch, page, statusFilter, search, sortBy]);
 
     useEffect(() => {
         fetchData();
@@ -116,13 +112,8 @@ export default function ComplianceDashboard() {
     const handleExport = async (format: 'csv' | 'pdf') => {
         setExporting(true);
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/agency/compliance/export`, {
+            const res = await apiFetch(`/api/agency/compliance/export`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ format })
             });
 
@@ -195,16 +186,11 @@ export default function ComplianceDashboard() {
 
     const handleOpenWorkerModal = async (workerId: string) => {
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/workers/${workerId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await apiFetch(`/api/workers/${workerId}`);
             if (res.ok) {
                 const workerData = await res.json();
                 // Also fetch documents
-                const docsRes = await fetch(`${API_URL}/api/documents/worker/${workerId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const docsRes = await apiFetch(`/api/documents/worker/${workerId}`);
                 let documents = [];
                 if (docsRes.ok) {
                     const docsData = await docsRes.json();
@@ -227,10 +213,8 @@ export default function ComplianceDashboard() {
 
     const handleApproveDocument = async (documentId: string) => {
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/agency/compliance/document/${documentId}/approve`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await apiFetch(`/api/agency/compliance/document/${documentId}/approve`, {
+                method: 'POST'
             });
             if (res.ok) {
                 toast.success('Document approved');
@@ -247,13 +231,8 @@ export default function ComplianceDashboard() {
 
     const handleRejectDocument = async (documentId: string, reason: string) => {
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/agency/compliance/document/${documentId}/reject`, {
+            const res = await apiFetch(`/api/agency/compliance/document/${documentId}/reject`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ reason })
             });
             if (res.ok) {
@@ -272,10 +251,8 @@ export default function ComplianceDashboard() {
     const handleDeactivateWorker = async () => {
         if (!selectedWorker) return;
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/agency/compliance/worker/${selectedWorker.id}/deactivate`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await apiFetch(`/api/agency/compliance/worker/${selectedWorker.id}/deactivate`, {
+                method: 'POST'
             });
             if (res.ok) {
                 toast.success('Worker deactivated');

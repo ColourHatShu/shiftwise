@@ -15,8 +15,7 @@ import { useRouter } from "next/navigation";
 import EditWorkerModal from '../components/EditWorkerModal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { downloadDocument, getDocumentStatus, pollDocumentStatus } from "@/lib/api/documents";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { useApi } from "@/lib/use-api";
 
 const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
     NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-slate-700/50 text-slate-400 border-slate-600/50", icon: XCircle },
@@ -30,7 +29,7 @@ const statusConfig: Record<string, { label: string; classes: string; icon: any }
 
 // ─── Upload Modal ─────────────────────────────────────────────────────────────
 function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
-    const { getToken } = useAuth();
+    const { apiFetch } = useApi();
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
@@ -43,15 +42,13 @@ function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
         setError("");
 
         try {
-            const token = await getToken();
             const fd = new FormData();
             fd.append("file", file);
             fd.append("workerId", workerId);
             fd.append("documentTypeId", docType.id);
 
-            const res = await fetch(`${API_URL}/api/documents/upload`, {
+            const res = await apiFetch(`/api/documents/upload`, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
                 body: fd,
             });
             if (!res.ok) {
@@ -135,6 +132,7 @@ function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
 // ─── Document Review Modal (Automated Scanning) ──────────────────────────────
 function AnalysisModal({ document, onClose, onSuccess }: any) {
     const { getToken } = useAuth();
+    const { apiFetch } = useApi();
     const [loadingAI, setLoadingAI] = useState(true);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState("");
@@ -223,10 +221,8 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
     const handleVerify = async (status: "APPROVED" | "REJECTED") => {
         setVerifying(true);
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/documents/${document.id}/verify`, {
+            const res = await apiFetch(`/api/documents/${document.id}/verify`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ status, notes, manualExpiryDate: manualExpiry || undefined })
             });
             if (!res.ok) throw new Error(`Failed to ${status === "APPROVED" ? "verify" : "reject"} document`);
@@ -379,6 +375,7 @@ export default function WorkerProfilePage() {
     const workerId = params?.id;
     const router = useRouter();
     const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
 
     const [worker, setWorker] = useState<any>(null);
     const [docSlots, setDocSlots] = useState<any[]>([]);
@@ -392,10 +389,9 @@ export default function WorkerProfilePage() {
     const fetchAll = async () => {
         if (!isLoaded || !isSignedIn || !workerId) return;
         try {
-            const token = await getToken();
             const [workerRes, docsRes] = await Promise.all([
-                fetch(`${API_URL}/api/workers/${workerId}`, { headers: { Authorization: `Bearer ${token}` } }),
-                fetch(`${API_URL}/api/documents/worker/${workerId}`, { headers: { Authorization: `Bearer ${token}` } }),
+                apiFetch(`/api/workers/${workerId}`),
+                apiFetch(`/api/documents/worker/${workerId}`),
             ]);
             if (!workerRes.ok) throw new Error(workerRes.status === 404 ? "Worker not found" : "Failed to load");
             const { data: w } = await workerRes.json();
@@ -420,10 +416,8 @@ export default function WorkerProfilePage() {
         if (!worker) return;
         setPendingConfirm((p) => p && { ...p, busy: true });
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/workers/${workerId}/deactivate`, {
+            const res = await apiFetch(`/api/workers/${workerId}/deactivate`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Failed to deactivate worker");
             toast.success("Worker deactivated");
@@ -439,10 +433,8 @@ export default function WorkerProfilePage() {
         if (!worker) return;
 
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/workers/${workerId}/reactivate`, {
+            const res = await apiFetch(`/api/workers/${workerId}/reactivate`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Failed to reactivate worker");
             toast.success("Worker restored to active status");
@@ -461,10 +453,8 @@ export default function WorkerProfilePage() {
         if (!worker) return;
         setPendingConfirm((p) => p && { ...p, busy: true });
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/workers/${workerId}`, {
+            const res = await apiFetch(`/api/workers/${workerId}`, {
                 method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Failed to delete worker");
             toast.success("Worker deleted permanently");

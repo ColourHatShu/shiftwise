@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 09:44 — Migrate remaining getToken+fetch sites to useApi
+- **Item:** Migrate the remaining getToken+fetch sites to the shared useApi() hook
+- **Outcome:** shipped
+- **Changes:** 9 files, **26 fetch sites** migrated to `apiFetch`: `workers/[id]/page.tsx` (7, 3 components), `compliance/page.tsx` (8), `reports/page.tsx` (3), `settings/page.tsx` (2), `audit-log/page.tsx` (1), `onboarding/page.tsx` (1), `workers/new/page.tsx` (1), `EditWorkerModal.tsx` (1), `dashboard/layout.tsx` (2). Removed dead local `API_URL` consts; updated useEffect/useCallback dep arrays (getToken/API_URL → apiFetch); dropped redundant Authorization + JSON Content-Type headers.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only). Also grep-verified zero remaining `${API_URL}`/`Bearer ${token}`/`const API_URL` and no dangling `headers` var.
+- **Commit:** see git — 🛡️ refactor(web): migrate remaining auth-fetch sites to useApi
+- **Notes / decisions:** Ran a parallel workflow (one agent per file, 9 agents) so each file's nuances were handled in isolation — notably `workers/[id]` correctly KEPT `getToken` (still passed to `downloadDocument`/`getDocumentStatus`/`pollDocumentStatus`) while removing it where unused. The dashboard's auth-fetch boilerplate is now centralized in `lib/use-api.ts`. The only `getToken` references left in the app are the `lib/api/*` helper calls; migrating those helpers to internally use the hook/token is a separate, optional refactor (not queued — low value right now).
+
 ## 2026-06-30 09:34 — Shared useApi() helper (kill getToken+fetch boilerplate)
 - **Item:** Extract the repeated Clerk getToken+fetch+headers boilerplate into a shared useApi/apiFetch helper, adopt in highest-traffic pages first
 - **Outcome:** shipped

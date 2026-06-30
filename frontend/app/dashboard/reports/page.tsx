@@ -2,19 +2,17 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@clerk/nextjs";
 import { FileText, Clock, AlertTriangle, Download, Eye, X, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { useApi } from "@/lib/use-api";
 
 // Module-scope cache — previously declared inside the component which meant it
 // was re-instantiated on every render and never actually cached anything.
 const CACHE: Record<string, any> = {};
 
 export default function ReportsPage() {
-    const { getToken } = useAuth();
+    const { apiFetch } = useApi();
 
     const [previewType, setPreviewType] = useState<string | null>(null);
     const [previewData, setPreviewData] = useState<any>(null);
@@ -35,15 +33,12 @@ export default function ReportsPage() {
         }
 
         try {
-            const token = await getToken();
             let endpoint = "";
             if (type === "COMPLIANCE") endpoint = "/api/reports/compliance";
             else if (type === "EXPIRING") endpoint = `/api/reports/expiring?days=${param || 30}`;
             else if (type === "NON_COMPLIANT") endpoint = "/api/reports/non-compliant";
 
-            const res = await fetch(`${API_URL}${endpoint}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await apiFetch(endpoint);
 
             if (!res.ok) throw new Error("Failed to fetch report data");
 
@@ -62,25 +57,19 @@ export default function ReportsPage() {
     const handleDownloadPdf = async (type: string, param?: number) => {
         setIsGeneratingPdf(type);
         try {
-            const token = await getToken();
-
             let endpoint = "";
             if (type === "COMPLIANCE") endpoint = "/api/reports/compliance";
             else if (type === "EXPIRING") endpoint = `/api/reports/expiring?days=${param || 30}`;
             else if (type === "NON_COMPLIANT") endpoint = "/api/reports/non-compliant";
 
-            const dataRes = await fetch(`${API_URL}${endpoint}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const dataRes = await apiFetch(endpoint);
             if (!dataRes.ok) throw new Error("Failed to gather report data for PDF");
             const { data } = await dataRes.json();
 
-            const pdfRes = await fetch(`${API_URL}/api/reports/generate-pdf`, {
+            const pdfRes = await apiFetch(`/api/reports/generate-pdf`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/pdf",
-                    Authorization: `Bearer ${token}`
+                    "Accept": "application/pdf"
                 },
                 body: JSON.stringify({
                     reportType: type,

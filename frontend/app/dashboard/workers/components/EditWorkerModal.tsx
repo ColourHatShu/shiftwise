@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useApi } from "@/lib/use-api";
 import { X, Save } from "lucide-react";
 
 // Synchronized subset from new/page.tsx
@@ -15,7 +16,8 @@ const ROLES = [
 ];
 
 export default function EditWorkerModal({ worker, onClose, onSuccess }: any) {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
 
     // Deconstruct worker's existing DB shape into our frontend form shape
     const [formData, setFormData] = useState({
@@ -29,7 +31,6 @@ export default function EditWorkerModal({ worker, onClose, onSuccess }: any) {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
     // Handle ESC key to close
     useEffect(() => {
@@ -70,13 +71,8 @@ export default function EditWorkerModal({ worker, onClose, onSuccess }: any) {
         };
 
         try {
-            const token = await getToken();
-            const response = await fetch(`${API_URL}/api/workers/${worker.id}`, {
+            const response = await apiFetch(`/api/workers/${worker.id}`, {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
                 body: JSON.stringify(payload)
             });
 

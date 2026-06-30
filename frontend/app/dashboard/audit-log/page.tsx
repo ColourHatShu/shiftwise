@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useApi } from "@/lib/use-api";
 import { format } from "date-fns";
 import { Search, ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -31,7 +32,8 @@ interface PaginationData {
 }
 
 export default function AuditLogPage() {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
     const [entries, setEntries] = useState<AuditLogEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
@@ -47,13 +49,10 @@ export default function AuditLogPage() {
     const [filterDateFrom, setFilterDateFrom] = useState("");
     const [filterDateTo, setFilterDateTo] = useState("");
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
     const fetchAuditLog = async (pageNum: number = 1) => {
         if (!isLoaded || !isSignedIn) return;
         try {
             setIsLoading(true);
-            const token = await getToken();
 
             // Build query params
             const params = new URLSearchParams();
@@ -65,9 +64,7 @@ export default function AuditLogPage() {
             if (filterDateFrom) params.append("dateFrom", filterDateFrom);
             if (filterDateTo) params.append("dateTo", filterDateTo);
 
-            const response = await fetch(`${API_URL}/api/audit-log?${params}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const response = await apiFetch(`/api/audit-log?${params}`);
 
             if (!response.ok) {
                 if (response.status === 403) {
@@ -91,7 +88,7 @@ export default function AuditLogPage() {
 
     useEffect(() => {
         fetchAuditLog(page);
-    }, [isLoaded, isSignedIn, getToken, API_URL, page]);
+    }, [isLoaded, isSignedIn, apiFetch, page]);
 
     const handleFilterChange = () => {
         setPage(1); // Reset to first page when filters change

@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useApi } from "@/lib/use-api";
 import { Save, Building2, MapPin, Phone } from "lucide-react";
 import toast from "react-hot-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const AGENCY_TYPES = [
     "Recruitment Agency",
@@ -16,7 +15,8 @@ const AGENCY_TYPES = [
 ];
 
 export default function SettingsPage() {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState("");
@@ -34,10 +34,7 @@ export default function SettingsPage() {
         const fetchSettings = async () => {
             if (!isLoaded || !isSignedIn) return;
             try {
-                const token = await getToken();
-                const res = await fetch(`${API_URL}/api/agencies/me`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await apiFetch(`/api/agencies/me`);
 
                 if (!res.ok) throw new Error("Failed to load settings");
 
@@ -60,7 +57,7 @@ export default function SettingsPage() {
         };
 
         fetchSettings();
-    }, [isLoaded, isSignedIn, getToken]);
+    }, [isLoaded, isSignedIn, apiFetch]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData(prev => ({
@@ -75,13 +72,8 @@ export default function SettingsPage() {
         setError("");
 
         try {
-            const token = await getToken();
-            const res = await fetch(`${API_URL}/api/agencies/update`, {
+            const res = await apiFetch(`/api/agencies/update`, {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
                 body: JSON.stringify(formData)
             });
 

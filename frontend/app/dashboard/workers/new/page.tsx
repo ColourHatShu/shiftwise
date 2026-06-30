@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useApi } from "@/lib/use-api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
@@ -16,12 +17,12 @@ const ROLES = [
 ];
 
 export default function AddWorkerPage() {
-    const { getToken, isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
+    const { apiFetch } = useApi();
     const router = useRouter();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();
@@ -47,13 +48,8 @@ export default function AddWorkerPage() {
         };
 
         try {
-            const token = await getToken();
-            const response = await fetch(`${API_URL}/api/workers`, {
+            const response = await apiFetch(`/api/workers`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
                 body: JSON.stringify(data)
             });
 
