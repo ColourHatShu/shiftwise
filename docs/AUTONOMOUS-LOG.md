@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 09:14 — Request-ID middleware (no-op: already implemented)
+- **Item:** Add request-ID middleware + Sentry correlation tag + return ID in error responses
+- **Outcome:** no-op (already done)
+- **Changes:** none to code — plan/log only
+- **Verify:** n/a (docs-only; no code touched)
+- **Commit:** see git — 🛡️ docs(knight): mark request-ID item done (already shipped in ef91788)
+- **Notes / decisions:** Verified in `backend/src/server.js`: request-ID middleware (lines ~45-49) sets `req.requestId` from the `x-request-id` header or a fresh `crypto.randomUUID()` and echoes it via the `X-Request-Id` response header; the global error handler tags Sentry with `requestId` and includes `requestId` in the JSON error body. `git log -S` attributes all of this to the super-ready hardening commit `ef91788`. Nothing to build. **Next firing should take the N+1 fix in `shift-assignments.js`** (the next P1 item). Optional future enhancement (NOT done, would be a new item): set `requestId` as a Sentry *scope* tag per-request so ALL events in a request carry it, not only the manually-captured exception.
+
 ## 2026-06-30 09:04 — Skeleton loaders replace full-page spinners
 - **Item:** Build a reusable `<Skeleton />` primitive and replace full-page spinners on the main list pages
 - **Outcome:** shipped
