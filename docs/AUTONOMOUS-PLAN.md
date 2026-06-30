@@ -10,7 +10,8 @@
 > quality work. The Knight may re-prioritise and add items as product owner.
 
 ## P1 — Robustness, trust & accessibility
-- [ ] Add a responsive mobile sidebar drawer to `frontend/app/dashboard/layout.tsx` (app is currently desktop-only at a fixed 220px sidebar)
+- [x] **(discovered P0)** Fix production build-breaker: `worker/dashboard/shifts/page.tsx` read `localStorage` at render time → `next build` failed for all pages. Moved to a post-mount `useEffect`.
+- [x] Add a responsive mobile sidebar drawer to `frontend/app/dashboard/layout.tsx` (app is currently desktop-only at a fixed 220px sidebar)
 - [ ] Add `aria-label`s to all icon-only buttons across `frontend/app/` (currently zero); make the app screen-reader navigable
 - [ ] Build a reusable `<Skeleton />` primitive and replace full-page spinners with skeleton loaders on the main list pages (workers, reports, shifts)
 - [ ] Add request-ID middleware on the backend and attach it as a Sentry correlation tag + return it in error responses

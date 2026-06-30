@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, SignOutButton } from "@clerk/nextjs";
@@ -14,6 +14,8 @@ import {
     Shield,
     Calendar,
     Archive,
+    Menu,
+    X,
 } from "lucide-react";
 
 const navItems = [
@@ -38,6 +40,7 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const router = useRouter();
     const { getToken, isLoaded, isSignedIn } = useAuth();
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     // On every dashboard load: ensure agency exists, then check onboarding status
     useEffect(() => {
@@ -70,17 +73,68 @@ export default function DashboardLayout({
         checkOnboarding();
     }, [isLoaded, isSignedIn, getToken, router]);
 
+    // Close the mobile drawer whenever the route changes
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [pathname]);
+
+    // Lock body scroll while the mobile drawer is open
+    useEffect(() => {
+        if (mobileOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [mobileOpen]);
+
     const isActive = (href: string) => {
         if (href === "/dashboard") return pathname === "/dashboard";
         return pathname.startsWith(href);
     };
 
     return (
-        <div className="min-h-screen bg-[#F5F7FA] flex">
+        <div className="min-h-screen bg-[#F5F7FA] md:flex">
+            {/* ── Mobile Top Bar (hamburger) ── */}
+            <header className="md:hidden sticky top-0 z-30 flex items-center gap-3 bg-white border-b border-[#DDE3EE] px-4 py-3 shadow-sm">
+                <button
+                    type="button"
+                    onClick={() => setMobileOpen(true)}
+                    aria-label="Open navigation menu"
+                    aria-expanded={mobileOpen}
+                    aria-controls="dashboard-sidebar"
+                    className="p-1.5 -ml-1.5 rounded-lg text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] transition-colors duration-150"
+                >
+                    <Menu size={22} />
+                </button>
+                <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#003087] flex items-center justify-center">
+                        <span className="text-white font-semibold text-xs">SW</span>
+                    </div>
+                    <span className="text-base font-medium text-[#0A1628] tracking-tight">
+                        ShiftWise
+                    </span>
+                </div>
+            </header>
+
+            {/* ── Backdrop (mobile only, when drawer open) ── */}
+            {mobileOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/40 md:hidden"
+                    aria-hidden="true"
+                    onClick={() => setMobileOpen(false)}
+                />
+            )}
+
             {/* ── Professional White Sidebar with Royal Blue Accents ── */}
-            <aside className="w-[220px] shrink-0 flex flex-col bg-white border-r border-[#DDE3EE] sticky top-0 h-screen shadow-sm">
+            <aside
+                id="dashboard-sidebar"
+                className={`fixed md:sticky top-0 left-0 z-50 w-[220px] shrink-0 flex flex-col bg-white border-r border-[#DDE3EE] h-screen shadow-sm transform transition-transform duration-200 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+            >
                 {/* Logo */}
-                <div className="px-5 py-5 border-b border-[#DDE3EE]">
+                <div className="px-5 py-5 border-b border-[#DDE3EE] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-[#003087] flex items-center justify-center">
                             <span className="text-white font-semibold text-sm">SW</span>
@@ -89,6 +143,15 @@ export default function DashboardLayout({
                             ShiftWise
                         </span>
                     </div>
+                    {/* Close button (mobile only) */}
+                    <button
+                        type="button"
+                        onClick={() => setMobileOpen(false)}
+                        aria-label="Close navigation menu"
+                        className="md:hidden p-1.5 -mr-1.5 rounded-lg text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] transition-colors duration-150"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* Nav Links */}
@@ -99,6 +162,7 @@ export default function DashboardLayout({
                             <Link
                                 key={href}
                                 href={href}
+                                onClick={() => setMobileOpen(false)}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 group relative border-l-3 ${active
                                     ? "bg-[#E6EDF8] text-[#003087] border-l-[#003087]"
                                     : "text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] border-l-transparent"

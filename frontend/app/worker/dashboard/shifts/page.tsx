@@ -46,10 +46,11 @@ export default function WorkerShiftsPage() {
   const [applyingShiftId, setApplyingShiftId] = useState<string | null>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
-
-  const workerId = localStorage.getItem('workerId') || '';
+  const [workerId, setWorkerId] = useState('');
 
   useEffect(() => {
+    // Read client-only storage after mount so SSR/prerender doesn't touch localStorage
+    setWorkerId(localStorage.getItem('workerId') || '');
     fetchShifts();
     fetchAppliedShifts();
   }, []);
