@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 14:42 — Modal focus management (a11y)
+- **Item:** Modal focus management (a11y)
+- **Outcome:** shipped
+- **Changes:** `components/ui/modal.tsx` — on open: remembers `document.activeElement`, moves focus to the first focusable child (or the card); while open: traps Tab/Shift+Tab within the dialog; on close: restores focus to the opener. Card is `tabIndex={-1}` + `outline-none` as a focus fallback. Merged the existing Esc handler into the same keydown listener.
+- **Verify:** build ✅ (✓ Compiled successfully), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only). Couldn't keyboard-test in a browser here, but it's the standard focus-trap pattern and every modal builds clean.
+- **Commit:** see git — 🛡️ feat(a11y): focus trap + restore in shared Modal
+- **Notes / decisions:** High-leverage because the whole app's modals now route through `<Modal>` (after the recent consolidation) — one change improves keyboard/screen-reader UX everywhere (proper focus on open, no tabbing out to the page behind, focus returns to the trigger). Skipped the gated items; left item 50 (fix the 5 mock-broken suites) for dedicated per-suite firings.
+
 ## 2026-06-30 14:32 — GitHub Actions CI (+ discovered the "27 failures" are mock bugs)
 - **Item:** GitHub Actions CI
 - **Outcome:** shipped

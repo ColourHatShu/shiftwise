@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface ModalProps {
   open?: boolean;
@@ -36,12 +39,47 @@ export const Modal: React.FC<ModalProps> = ({
   padded = true,
 }) => {
   const visible = open ?? isOpen ?? false;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!visible) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+
+    // Remember what had focus, then move focus into the modal.
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    const card = cardRef.current;
+    const first = card?.querySelector<HTMLElement>(FOCUSABLE);
+    (first ?? card)?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !card) return;
+      // Trap focus within the modal.
+      const items = Array.from(card.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (items.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (!e.shiftKey && document.activeElement === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    };
+
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      // Restore focus to whatever opened the modal.
+      previouslyFocused.current?.focus?.();
+    };
   }, [visible, onClose]);
 
   if (!visible) return null;
@@ -55,7 +93,9 @@ export const Modal: React.FC<ModalProps> = ({
       aria-label={title}
     >
       <div
-        className={`relative w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto rounded-xl border border-[#DDE3EE] bg-white shadow-2xl ${className}`}
+        ref={cardRef}
+        tabIndex={-1}
+        className={`relative w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto rounded-xl border border-[#DDE3EE] bg-white shadow-2xl outline-none ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
