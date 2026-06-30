@@ -208,6 +208,7 @@ export default function ShiftCalendar({ shifts, onSelectShift, onCreateClick, lo
               else setCurrentDate(addMonths(currentDate, -1));
             }}
             className="p-2 hover:bg-gray-100 rounded"
+            aria-label="Previous period"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -225,6 +226,7 @@ export default function ShiftCalendar({ shifts, onSelectShift, onCreateClick, lo
               else setCurrentDate(addMonths(currentDate, 1));
             }}
             className="p-2 hover:bg-gray-100 rounded"
+            aria-label="Next period"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

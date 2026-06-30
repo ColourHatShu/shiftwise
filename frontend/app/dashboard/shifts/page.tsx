@@ -164,6 +164,7 @@ export default function ShiftsPage() {
               <button
                 onClick={() => setShowEditModal(true)}
                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                aria-label="Edit shift"
               >
                 <Edit className="w-5 h-5" />
               </button>
@@ -173,6 +174,7 @@ export default function ShiftsPage() {
                   setShowDeleteModal(true);
                 }}
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                aria-label="Delete shift"
               >
                 <Trash2 className="w-5 h-5" />
               </button>

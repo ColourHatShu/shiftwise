@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 08:54 — Accessibility: aria-labels on icon-only buttons
+- **Item:** Add `aria-label`s to all icon-only buttons across `frontend/app/`
+- **Outcome:** shipped
+- **Changes:** 12 files, 19 buttons labeled — close-dialog/close-preview (modals & overlays), prev/next month & period (availability + ShiftCalendar), edit/delete shift, download/replace document, toggle review actions
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ feat(a11y): aria-labels on icon-only buttons
+- **Notes / decisions:** Ran a parallel workflow (one agent per file, 25 files scanned) so each icon-only button got a context-specific label rather than a generic one. Verified the diff is aria-label-only (no logic/style changes); the only "deletions" are existing `<button>` lines rewritten with the attribute inserted. Icon buttons that already had text labels were left untouched. Follow-up: components outside `app/` (e.g. `components/ui/`) were out of scope for this item and could be swept later if any icon-only buttons exist there.
+
 ## 2026-06-30 08:44 — Mobile sidebar drawer (+ fixed P0 build-breaker)
 - **Item:** Add a responsive mobile sidebar drawer to `frontend/app/dashboard/layout.tsx`
 - **Outcome:** shipped

@@ -107,6 +107,7 @@ export default function EditWorkerModal({ worker, onClose, onSuccess }: any) {
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Close dialog"
                         className="p-2 text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] rounded-lg transition-colors"
                     >
                         <X size={20} />

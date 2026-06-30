@@ -97,6 +97,7 @@ export default function BulkUploadModal({
           <h2 className="text-2xl font-bold text-gray-900">Bulk Upload Shifts</h2>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="text-gray-500 hover:text-gray-700"
           >
             <X className="w-6 h-6" />

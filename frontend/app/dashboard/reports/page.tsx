@@ -233,7 +233,7 @@ export default function ReportsPage() {
                                 >
                                     <Download size={16} /> Generate PDF
                                 </button>
-                                <button onClick={() => setPreviewType(null)} className="p-2 text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] rounded-lg transition-colors">
+                                <button onClick={() => setPreviewType(null)} aria-label="Close preview" className="p-2 text-[#5B6E8C] hover:text-[#0A1628] hover:bg-[#F5F7FA] rounded-lg transition-colors">
                                     <X size={20} />
                                 </button>
                             </div>

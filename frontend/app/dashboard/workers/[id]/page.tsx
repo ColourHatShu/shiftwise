@@ -78,7 +78,7 @@ function UploadModal({ docType, workerId, onClose, onSuccess }: any) {
                         <h2 className="text-lg font-bold text-white">Upload Document</h2>
                         <p className="text-sm text-slate-400 mt-0.5">{docType.name}</p>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} aria-label="Close dialog" className="text-slate-400 hover:text-white transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -251,7 +251,7 @@ function AnalysisModal({ document, onClose, onSuccess }: any) {
                         </div>
                     </div>
                     {!loadingAI && !verifying && (
-                        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                        <button onClick={onClose} aria-label="Close dialog" className="text-slate-400 hover:text-white transition-colors">
                             <X size={20} />
                         </button>
                     )}
@@ -681,6 +681,7 @@ export default function WorkerProfilePage() {
                                                 }
                                             }}
                                             className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-all"
+                                            aria-label="Download document"
                                             title="Download document">
                                             <Eye size={12} />
                                         </button>
@@ -692,6 +693,7 @@ export default function WorkerProfilePage() {
                                                 <FileText size={12} /> Review Document
                                             </button>
                                             <button onClick={() => setUploadTarget(dt)}
+                                                aria-label="Replace document"
                                                 className="flex-none flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-all"
                                                 title="Replace Document">
                                                 <Upload size={12} />

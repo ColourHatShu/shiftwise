@@ -384,6 +384,7 @@ export default function AuditLogPage() {
                             <button
                                 onClick={() => setShowDetailPopover(false)}
                                 className="text-gray-500 hover:text-gray-700"
+                                aria-label="Close dialog"
                             >
                                 <X className="w-5 h-5" />
                             </button>

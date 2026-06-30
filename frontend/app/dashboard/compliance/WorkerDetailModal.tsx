@@ -139,6 +139,7 @@ export default function WorkerDetailModal({
                         </div>
                         <button
                             onClick={onClose}
+                            aria-label="Close dialog"
                             className="text-[#5B6E8C] hover:text-[#0A1628] transition-colors"
                         >
                             <X className="w-5 h-5" />
@@ -218,6 +219,7 @@ export default function WorkerDetailModal({
                                                 </div>
                                                 <button
                                                     onClick={() => setSelectedDocId(selectedDocId === doc.id ? null : doc.id)}
+                                                    aria-label="Toggle document review actions"
                                                     className="text-[#003087] hover:text-[#003087]/80 transition-colors"
                                                 >
                                                     {selectedDocId === doc.id ? (

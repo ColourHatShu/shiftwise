@@ -98,6 +98,7 @@ export default function AvailabilityPage() {
               <button
                 onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
                 className="p-2 hover:bg-gray-100 rounded"
+                aria-label="Previous month"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -107,6 +108,7 @@ export default function AvailabilityPage() {
               <button
                 onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
                 className="p-2 hover:bg-gray-100 rounded"
+                aria-label="Next month"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
