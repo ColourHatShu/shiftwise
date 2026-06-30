@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 13:22 — Ideation pass (backlog refill)
+- **Item:** (no implementation) — ran an ideation pass because only ~2 non-blocked items remained (below the playbook's "keep the loop fed" threshold)
+- **Outcome:** planning
+- **Changes:** added a **P5 — Ideated 2026-06-30** section to `AUTONOMOUS-PLAN.md` with 6 autonomously-buildable, verifiable, non-decision-gated items: Manage Document Types (Settings UI), Bulk worker CSV import, GitHub Actions CI, Modal focus management (a11y), Empty-state consistency, Harden startup env validation. Added a "Surfaced 2026-06-30" section to `IDEAS.md` (worker scorecards, no-show workflow, in-app notifications centre, doc re-upload nudges, handoff notes, care-home rolodex).
+- **Verify:** n/a (docs/planning only)
+- **Commit:** see git — 🛡️ docs(knight): ideation pass — refill backlog (P5 items)
+- **Notes / decisions:** Verified each promoted item is a real gap before adding (no document-types UI, no worker bulk import, no CI workflow, no modal focus trap, minimal env validation). Kept the remaining gated items as-is: £ earnings (needs human/business data), Helmet CSP (needs browser verification — report-only recommendation recorded). Next firings will implement the P5 items + the two leftover P4 items (requestId Sentry scope tag, fix buggy role test). Implementation resumes next firing (kept this one to planning per the playbook).
+
 ## 2026-06-30 13:12 — Extend skeleton loaders (documents + audit-log)
 - **Item:** Extend skeleton loaders to remaining full-page spinners
 - **Outcome:** shipped

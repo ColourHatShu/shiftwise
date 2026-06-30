@@ -47,3 +47,11 @@
 - [x] Extend skeleton loaders to remaining full-page spinners — replaced the full-page spinners on `documents` + `audit-log` with layout-matching `<Skeleton>` loaders (role=status + sr-only). `audit-packs`, `compliance`, and the worker dashboard have **no full-page spinner** (inline/per-section loading), so nothing to change there.
 - [ ] Set `requestId` as a per-request Sentry scope tag (after the Sentry requestHandler) so ALL events in a request carry it, not just the manually-captured exception in the global error handler
 - [ ] Fix the buggy `should reject non-OWNER/ADMIN users` test in `shift-assignments.test.js` (auth mock always forces OWNER) and make backend integration suites (worker-*, security-pipeline) runnable without a live Postgres (test DB or mock)
+
+## P5 — Ideated 2026-06-30 (autonomously buildable, verifiable; not decision-gated)
+- [ ] **Manage Document Types** — Settings UI (+ backend route if missing) to CRUD an agency's required compliance document types (name, required?, hasExpiry, warning days). This is core compliance config and there's currently no UI for it. Verify whether a `/api/document-types` route exists; build/extend as needed.
+- [ ] **Bulk worker CSV import** — mirror the existing shifts-bulk flow: a backend parse/validate endpoint + a frontend upload modal on the Workers page (download a template, upload CSV, show per-row results). Saves coordinators from manual entry.
+- [ ] **GitHub Actions CI** — `.github/workflows/ci.yml` running frontend `npm run build` + `npm run lint` and backend route/unit tests (the mocked-prisma suites; exclude the live-Postgres integration suites). Catches regressions on every push.
+- [ ] **Modal focus management (a11y)** — add a focus trap + focus-the-first-element-on-open + return-focus-on-close to the shared `<Modal>` (now that every modal uses it, this is high-leverage). Verifiable by build; improves keyboard/screen-reader UX.
+- [ ] **Empty-state consistency** — audit dashboard pages for missing/blank empty states and add the design-system empty state (icon tile + message + optional CTA), matching the workers/documents pattern.
+- [ ] **Harden startup env validation** — in `server.js`, validate critical env on boot and fail fast with a clear message (DATABASE_URL always; JWT_SECRET + CLERK_SECRET_KEY in production), instead of warning and crashing later on first use.
