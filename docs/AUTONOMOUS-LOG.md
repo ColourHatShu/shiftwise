@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 16:12 — Ideation pass (round 2 — backlog refill)
+- **Item:** (no implementation) — ideation pass; clean actionable items hit zero
+- **Outcome:** planning
+- **Changes:** added a **P7 — Ideated 2026-06-30 (round 2)** section to `AUTONOMOUS-PLAN.md` with 6 verified, buildable, test-verifiable items: identity-mismatch audit (uses the already-computed `nameMatchesWorker`), **frontend test runner** (Vitest+RTL — frontend currently has *zero* tests), pagination clamp on the non-workers list endpoints, unit tests for `lib/fetchWithRetry.js`, worker document re-upload nudge, and a structured logger (pino).
+- **Verify:** n/a (planning only). Each item was checked against the code first: confirmed the frontend has no `test` script, `nameMatchesWorker` is stored but never audited, and `express.json`/workers-list are already safe (so I did NOT add those as false gaps).
+- **Commit:** see git — 🛡️ docs(knight): ideation round 2 — refill backlog (P7)
+- **Notes / decisions:** All prior backlog tiers are now either shipped, decision-gated (£ earnings, CSP, auto-poster), or large/infra (security-pipeline enablement, worker-e2e test DB). Rather than force-green a spec suite or build a gated feature, ran a proper ideation pass so the next several firings have clean work again. **Highest-leverage next pick: the frontend test runner** (closes the biggest coverage gap and unblocks all future frontend tests). The most valuable founder unlocks remain: rotate the Supabase password, greenlight the CSP (report-only), and decide on auto-poster / £ earnings.
+
 ## 2026-06-30 16:02 — Harden background document analysis (Sentry + audit on failure)
 - **Item:** Harden background document analysis
 - **Outcome:** shipped
