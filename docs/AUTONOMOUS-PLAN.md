@@ -35,8 +35,9 @@
 - [x] Re-theme the worker detail page (`dashboard/workers/[id]/page.tsx`) from dark (slate/white) to the light design system — converted ~100 className lines (cards→white/`#DDE3EE`, text→`#0A1628`/`#5B6E8C`, translucent-on-dark accents→light `*-50/*-700`), logic untouched. ⚠️ Needs a human visual pass (re-themed blind; build + grep verified, but not eyeballed).
 - [x] Shift templates — **entity + backend API** slice: `ShiftTemplate` model (pushed to Supabase), `routes/shift-templates.js` CRUD (list/create/delete, agency-scoped) mounted at `/api/shift-templates`, +7 passing tests
 - [x] Shift templates — **frontend slice:** new `/dashboard/shifts/templates` page (list/create/delete via `useApi` → `/api/shift-templates`) + per-template "pick a date → Create shift" action (POST `/api/shifts`); linked from the Shifts page header
-- [ ] Shift templates — **recurring auto-poster:** schedule a template to auto-create shifts on a cadence (own slice; needs a cron/scheduler design — likely a council decision)
-- [ ] Worker earnings dashboard (read-only summary of completed/assigned shifts)
+- [blocked] Shift templates — **recurring auto-poster:** needs the human's go-ahead + a scheduling design decision. It's a **side-effecting cron** (auto-creates shifts on a cadence) — risky to build blind. **Knight's recommendation:** add recurrence fields to `ShiftTemplate` (cadence, daysOfWeek, postHorizonDays, active) + a daily cron in `cronService` that generates the next shifts and dedups against existing ones. Tell the Knight "build the auto-poster" to greenlight (then I'd do it as a council-designed multi-slice effort).
+- [x] Worker shifts summary (the "earnings dashboard" item) — added a read-only summary row (Assigned / Upcoming / Completed / Total hours) to `/worker/dashboard/assigned-shifts`, computed from real assignment data. **No £ earnings** — there is no pay-rate data in the schema; showing money would be fabricated. See follow-up below.
+- [ ] (If wanted) £ earnings — add a pay-rate model (per-worker or per-role/shift hourly rate) so the worker summary can show actual pay. Needs the human (rates are business data).
 
 ## P4 — Code quality & performance
 - [ ] Introduce a shared `frontend/types/api.ts` and start replacing the worst `any` usages (begin with `workers/[id]/page.tsx`)

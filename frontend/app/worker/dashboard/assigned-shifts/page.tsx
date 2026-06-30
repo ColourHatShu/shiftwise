@@ -114,12 +114,43 @@ export default function AssignedShiftsPage() {
     );
   }
 
+  // Read-only summary of the worker's shifts (counts + hours; no pay data exists).
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcomingCount = assignments.filter((a) => new Date(a.shift.shiftDate) >= today).length;
+  const completedCount = assignments.length - upcomingCount;
+  const totalHours = assignments.reduce(
+    (sum, a) => sum + (durationHours(a.shift.startTime, a.shift.endTime) || 0),
+    0
+  );
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">Your Assigned Shifts</h1>
       <p className="text-gray-600 mb-6">
         Shifts you've been assigned. Confirm or decline below.
       </p>
+
+      {assignments.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <Card className="p-4">
+            <p className="text-sm text-gray-600">Assigned</p>
+            <p className="text-2xl font-bold text-gray-900">{assignments.length}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-sm text-gray-600">Upcoming</p>
+            <p className="text-2xl font-bold text-gray-900">{upcomingCount}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-sm text-gray-600">Completed</p>
+            <p className="text-2xl font-bold text-gray-900">{completedCount}</p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-sm text-gray-600">Total hours</p>
+            <p className="text-2xl font-bold text-gray-900">{Math.round(totalHours * 10) / 10}</p>
+          </Card>
+        </div>
+      )}
 
       {assignments.length === 0 ? (
         <Card className="p-8 text-center text-gray-600">

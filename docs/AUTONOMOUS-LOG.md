@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 12:22 — Worker shifts summary (honest "earnings" — no fake £)
+- **Item:** Worker earnings dashboard (read-only summary of completed/assigned shifts)
+- **Outcome:** shipped (as a shifts/hours summary)
+- **Changes:** `worker/dashboard/assigned-shifts/page.tsx` — added a read-only summary stats row (Assigned / Upcoming / Completed / Total hours) computed from the assignments the page already fetches (uses the existing `durationHours` helper). No extra fetch.
+- **Verify:** build ✅ (25/25), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ feat(worker): shifts summary on assigned-shifts
+- **Notes / decisions:** **Refused to fabricate £ earnings** — there is NO pay-rate/wage data anywhere in the schema (grep-confirmed), so a monetary "earnings" figure would be invented numbers (the same trust-hole class as the old `Math.random()` compliance scores the council flagged). Built the honest version — a shifts/hours summary on real data — and queued "£ earnings needs a pay-rate model" as a human-gated follow-up. Also **blocked the recurring auto-poster** (top item): it's a side-effecting scheduler (auto-creates shifts) that needs a design decision + the human's go-ahead — recorded a recommendation in the plan rather than building a shift-spamming cron blind.
+
 ## 2026-06-30 12:12 — Shift templates: frontend (slice 2)
 - **Item:** Shift templates — frontend slice (templates UI + create-from-template)
 - **Outcome:** shipped
