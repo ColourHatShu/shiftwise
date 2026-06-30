@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { FileText, Clock, AlertTriangle, Download, Eye, X, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -241,9 +242,27 @@ export default function ReportsPage() {
 
                         <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-[#F5F7FA]">
                             {isLoading ? (
-                                <div className="flex flex-col items-center justify-center py-20 text-[#5B6E8C] gap-3">
-                                    <Loader2 size={32} className="animate-spin text-[#003087]" />
-                                    <p>Compiling database streams...</p>
+                                <div className="space-y-6" role="status" aria-label="Compiling report">
+                                    {/* Metric cards */}
+                                    <div className="grid grid-cols-3 gap-6">
+                                        {Array.from({ length: 3 }).map((_, i) => (
+                                            <div key={i} className="bg-white border border-[#DDE3EE] rounded-xl p-5 space-y-3">
+                                                <Skeleton className="h-3 w-28" />
+                                                <Skeleton className="h-9 w-20" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Rows */}
+                                    <div className="bg-white border border-[#DDE3EE] rounded-xl p-5 space-y-3">
+                                        {Array.from({ length: 6 }).map((_, i) => (
+                                            <div key={i} className="flex items-center gap-4">
+                                                <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+                                                <Skeleton className="h-4 flex-1" />
+                                                <Skeleton className="h-4 w-24" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <span className="sr-only">Compiling report…</span>
                                 </div>
                             ) : previewData ? (
 

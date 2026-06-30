@@ -13,7 +13,7 @@
 - [x] **(discovered P0)** Fix production build-breaker: `worker/dashboard/shifts/page.tsx` read `localStorage` at render time → `next build` failed for all pages. Moved to a post-mount `useEffect`.
 - [x] Add a responsive mobile sidebar drawer to `frontend/app/dashboard/layout.tsx` (app is currently desktop-only at a fixed 220px sidebar)
 - [x] Add `aria-label`s to all icon-only buttons across `frontend/app/` (19 buttons across 12 files; close/download/edit/delete/pagination controls)
-- [ ] Build a reusable `<Skeleton />` primitive and replace full-page spinners with skeleton loaders on the main list pages (workers, reports, shifts)
+- [x] Build a reusable `<Skeleton />` primitive and replace full-page spinners with skeleton loaders on the main list pages (workers, reports, shifts)
 - [ ] Add request-ID middleware on the backend and attach it as a Sentry correlation tag + return it in error responses
 - [ ] Fix the N+1 query in bulk shift assignment (`backend/src/routes/shift-assignments.js`) — batch the per-worker `findFirst` + compliance validation instead of looping
 
@@ -34,3 +34,4 @@
 - [ ] Introduce a shared `frontend/types/api.ts` and start replacing the worst `any` usages (begin with `workers/[id]/page.tsx`)
 - [ ] Add `useMemo`/`useCallback` + debounced search to heavy tables so they stop re-rendering on every keystroke
 - [ ] Add a custom Helmet CSP to the backend (currently using Helmet defaults)
+- [ ] Extend skeleton loaders (using the new `<Skeleton />`) to the remaining full-page spinners: audit-log, documents, audit-packs, compliance, worker dashboard pages

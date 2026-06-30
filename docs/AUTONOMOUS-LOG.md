@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 09:04 — Skeleton loaders replace full-page spinners
+- **Item:** Build a reusable `<Skeleton />` primitive and replace full-page spinners on the main list pages
+- **Outcome:** shipped
+- **Changes:** new `frontend/components/ui/skeleton.tsx` (animate-pulse primitive, design-system colors, aria-hidden); replaced spinners with layout-matching skeletons in `dashboard/workers/page.tsx` (header + 4 stat cards + table rows), `dashboard/shifts/components/ShiftCalendar.tsx` (toolbar + 7×5 month grid), and `dashboard/reports/page.tsx` (metric cards + rows). Each loading container carries `role="status"` + an `sr-only` label.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ feat(ui): reusable Skeleton primitive + skeleton loaders
+- **Notes / decisions:** Chose layout-mimicking skeletons (perceived-performance win + no layout shift) over a generic block. Kept the primitive lean and composed page-specific shapes inline with Tailwind sizing. `Loader2` import in reports retained (still used by the PDF-download buttons). Many other pages still use full-page spinners (audit-log, documents, worker dashboard, etc.) — added a follow-up backlog item to extend the pattern.
+
 ## 2026-06-30 08:54 — Accessibility: aria-labels on icon-only buttons
 - **Item:** Add `aria-label`s to all icon-only buttons across `frontend/app/`
 - **Outcome:** shipped

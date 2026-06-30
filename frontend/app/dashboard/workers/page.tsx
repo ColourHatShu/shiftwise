@@ -7,6 +7,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import EditWorkerModal from './components/EditWorkerModal';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Worker {
     id: string;
@@ -127,8 +128,52 @@ export default function WorkersPage() {
 
     if (!isLoaded || isLoading) {
         return (
-            <div className="flex h-[50vh] items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003087]"></div>
+            <div className="space-y-6" role="status" aria-label="Loading workers">
+                {/* Header */}
+                <div className="flex justify-between items-center">
+                    <div className="space-y-2">
+                        <Skeleton className="h-7 w-40" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                    <Skeleton className="h-11 w-32 rounded-lg" />
+                </div>
+                {/* Stats Summary */}
+                <div className="grid sm:grid-cols-4 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="bg-white rounded-xl border border-[#DDE3EE] p-4 space-y-3">
+                            <Skeleton className="h-3 w-24" />
+                            <Skeleton className="h-7 w-12" />
+                        </div>
+                    ))}
+                </div>
+                {/* Filters */}
+                <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="h-11 w-full max-w-md rounded-lg" />
+                        <Skeleton className="h-11 w-40 rounded-lg" />
+                    </div>
+                </div>
+                {/* Table */}
+                <div className="bg-white rounded-xl border border-[#DDE3EE] overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA]">
+                        <Skeleton className="h-3 w-full max-w-2xl" />
+                    </div>
+                    <div className="divide-y divide-[#DDE3EE]">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="px-6 py-4 flex items-center gap-4">
+                                <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-4 w-40" />
+                                    <Skeleton className="h-3 w-56" />
+                                </div>
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                                <Skeleton className="h-2 w-28 rounded-full" />
+                                <Skeleton className="h-8 w-24 rounded-lg" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <span className="sr-only">Loading workers…</span>
             </div>
         );
     }

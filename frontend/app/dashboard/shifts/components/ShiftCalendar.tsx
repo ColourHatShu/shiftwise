@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { addMonths, subMonths, format, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
 import type { Shift } from '../types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   'Nurse': { bg: 'bg-blue-50', text: 'text-blue-900', border: 'border-blue-300' },
@@ -31,7 +32,32 @@ export default function ShiftCalendar({ shifts, onSelectShift, onCreateClick, lo
   const [view, setView] = useState<ViewType>('month');
 
   if (loading) {
-    return <div className="flex items-center justify-center h-96">Loading calendar...</div>;
+    return (
+      <div className="bg-white rounded-lg shadow p-6" role="status" aria-label="Loading calendar">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between mb-6">
+          <Skeleton className="h-7 w-48" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-9 rounded-lg" />
+            <Skeleton className="h-9 w-9 rounded-lg" />
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+        </div>
+        {/* Weekday header */}
+        <div className="grid grid-cols-7 gap-2 mb-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-2">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
+        <span className="sr-only">Loading calendar…</span>
+      </div>
+    );
   }
 
   const renderMonthView = () => {
