@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 16:22 — Identity-mismatch audit (fraud/compliance signal)
+- **Item:** Identity-mismatch audit
+- **Outcome:** shipped
+- **Changes:** added `recordIdentityMismatch(doc, worker, detectedName)` to `lib/analysis-failure.js` — writes a `document.identity_mismatch_detected` audit entry with `metadata: { expectedName, detectedName }` (names only, no document numbers; never throws). `routes/documents.js` `analyzeDocument` now calls it after a successful OCR scan, **gated on `analysis.fullName && analysis.nameMatchesWorker === false`**. +3 unit tests.
+- **Verify:** `node --check` documents.js OK; module exports both helpers; analysis-failure suite **8/8**; `npm run test:ci` = **19 suites / 177 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(documents): audit document.identity_mismatch_detected
+- **Notes / decisions:** Checked the extractor first (`lib/extractors/index.ts`) — it defaults `nameMatchesWorker` to `false` and only flips true when an extracted name contains the worker's first/last name. So a naive "if !nameMatchesWorker" would have audited EVERY document where no name was read (false positives). Gating on `analysis.fullName` (a name was actually extracted) makes the signal real: a name was read AND it doesn't match. Picked this over the frontend-test-runner item because it needs no new npm deps (the runner needs `npm install`, which is network-restricted in this sandbox) — so it's the highest-priority item that's actually shippable+verifiable here. Frontend test runner remains the next high-leverage pick (may need the founder/CI to run the install).
+
 ## 2026-06-30 16:12 — Ideation pass (round 2 — backlog refill)
 - **Item:** (no implementation) — ideation pass; clean actionable items hit zero
 - **Outcome:** planning

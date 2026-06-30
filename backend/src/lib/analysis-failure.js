@@ -50,4 +50,29 @@ async function recordAnalysisFailure(doc, reason, error = null) {
     }
 }
 
-module.exports = { recordAnalysisFailure };
+/**
+ * Record a detected identity mismatch (the name OCR-extracted from a document
+ * doesn't match the worker it was uploaded for) as a `document.identity_mismatch_detected`
+ * audit entry. Names only (expected vs detected) — never document numbers or
+ * other extracted PII. Never throws. `doc` must carry { id, agencyId }.
+ */
+async function recordIdentityMismatch(doc, worker, detectedName) {
+    const expectedName = `${worker.firstName || ''} ${worker.lastName || ''}`.trim();
+    console.warn(`[Async OCR] Identity mismatch on document ${doc.id}: expected "${expectedName}", detected "${detectedName}"`);
+    try {
+        await prisma.auditLog.create({
+            data: {
+                agencyId: doc.agencyId,
+                userId: null,
+                action: 'document.identity_mismatch_detected',
+                entity: 'ComplianceDocument',
+                entityId: doc.id,
+                metadata: { expectedName, detectedName }, // names only — no document numbers / other PII
+            },
+        });
+    } catch (e) {
+        console.error(`[Async OCR] Failed to write identity-mismatch audit for ${doc.id}:`, e.message);
+    }
+}
+
+module.exports = { recordAnalysisFailure, recordIdentityMismatch };

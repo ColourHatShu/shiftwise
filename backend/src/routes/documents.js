@@ -12,7 +12,7 @@ const { encryptFile, encryptFileGCM, decryptFileAuto, readAndDecryptFile, valida
 const { validate, documentUploadSchema, documentVerifySchema } = require('../middleware/validation');
 const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
 const { analyzeDocumentImage, shutdownOCR } = require('../lib/ocrService');
-const { recordAnalysisFailure } = require('../lib/analysis-failure');
+const { recordAnalysisFailure, recordIdentityMismatch } = require('../lib/analysis-failure');
 
 const router = express.Router();
 
@@ -157,6 +157,13 @@ const analyzeDocument = async (doc, worker, filePath) => {
                 where: { id: doc.id },
                 data: updateData
             });
+
+            // If the OCR actually read a name and it doesn't match the worker, leave an
+            // identity-mismatch audit trail (fraud/compliance signal). Gated on a name
+            // being extracted so "no name found" never raises a false mismatch.
+            if (analysis.fullName && analysis.nameMatchesWorker === false) {
+                await recordIdentityMismatch(doc, worker, analysis.fullName);
+            }
 
             console.log(`[Async OCR] Analysis complete for document ${doc.id}`);
         } catch (analysisErr) {

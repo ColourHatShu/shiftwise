@@ -9,7 +9,7 @@ jest.mock('@sentry/node');
 
 const prisma = require('../../lib/prisma');
 const Sentry = require('@sentry/node');
-const { recordAnalysisFailure } = require('../../lib/analysis-failure');
+const { recordAnalysisFailure, recordIdentityMismatch } = require('../../lib/analysis-failure');
 
 const DOC = { id: 'doc-1', agencyId: 'agency-1' };
 
@@ -65,5 +65,39 @@ describe('recordAnalysisFailure', () => {
         prisma.complianceDocument.update.mockRejectedValue(new Error('db down'));
         prisma.auditLog.create.mockRejectedValue(new Error('db down'));
         await expect(recordAnalysisFailure(DOC, 'Decryption failed', new Error('x'))).resolves.toBeUndefined();
+    });
+});
+
+describe('recordIdentityMismatch', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        prisma.auditLog = { create: jest.fn().mockResolvedValue({}) };
+    });
+
+    it('writes a document.identity_mismatch_detected audit with expected vs detected names', async () => {
+        await recordIdentityMismatch(DOC, { firstName: 'John', lastName: 'Smith' }, 'Jane Doe');
+        expect(prisma.auditLog.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({
+                agencyId: 'agency-1',
+                action: 'document.identity_mismatch_detected',
+                entity: 'ComplianceDocument',
+                entityId: 'doc-1',
+                metadata: { expectedName: 'John Smith', detectedName: 'Jane Doe' },
+            }),
+        });
+    });
+
+    it('records names only — no document numbers or other PII in metadata', async () => {
+        await recordIdentityMismatch(DOC, { firstName: 'John', lastName: 'Smith' }, 'Jane Doe');
+        const meta = prisma.auditLog.create.mock.calls[0][0].data.metadata;
+        expect(Object.keys(meta).sort()).toEqual(['detectedName', 'expectedName']);
+        expect(meta).not.toHaveProperty('documentNumber');
+    });
+
+    it('never throws if the audit write fails', async () => {
+        prisma.auditLog.create.mockRejectedValue(new Error('db down'));
+        await expect(
+            recordIdentityMismatch(DOC, { firstName: 'A', lastName: 'B' }, 'C D')
+        ).resolves.toBeUndefined();
     });
 });
