@@ -31,7 +31,8 @@ describe('Worker Assignment Confirmation/Decline Endpoints', () => {
         // Setup prisma mocks
         prisma.shiftAssignment = {
             findUnique: jest.fn(),
-            update: jest.fn()
+            update: jest.fn(),
+            findMany: jest.fn()
         };
         prisma.auditLog = {
             create: jest.fn()

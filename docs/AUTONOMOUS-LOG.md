@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 14:52 — Fix worker-assignments test suite (1 of 5)
+- **Item:** Fix the mock-broken backend suites — slice 1
+- **Outcome:** shipped
+- **Changes:** `backend/src/tests/routes/worker-assignments.test.js` — added the missing `findMany: jest.fn()` to the `prisma.shiftAssignment` mock in `beforeEach` (the 2 GET tests used it but it was never stubbed → undefined). Removed `worker-assignments` from the `test:ci` ignore list so CI runs it.
+- **Verify:** worker-assignments file now **10/10** (was 8/10); `npm run test:ci` = **14 suites / 136 tests, 0 failing** (worker-assignments rejoined); full suite **146 passed / 25 failed** (was 144/27).
+- **Commit:** see git — 🛡️ test(workers): fix worker-assignments suite (missing findMany mock)
+- **Notes / decisions:** Confirmed the suite was a pure incomplete-mock bug (the 8 PATCH tests already passed; only the 2 GET tests failed on the missing `findMany`) — not aspirational, so a 1-line fix. **Remaining mock-broken suites: `worker-auth`, `worker-dashboard`, `security-pipeline`** (next firings), plus `worker-e2e` which genuinely needs a live test DB. Slicing item 50 one suite per firing to keep each change small + verified.
+
 ## 2026-06-30 14:42 — Modal focus management (a11y)
 - **Item:** Modal focus management (a11y)
 - **Outcome:** shipped
