@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 13:42 — Fix buggy role test (shift-assignments)
+- **Item:** Fix the buggy `should reject non-OWNER/ADMIN users` test (+ DB-less integration suites — split off)
+- **Outcome:** shipped (test fix); the DB-less-integration half is queued as its own item
+- **Changes:** `backend/src/tests/routes/shift-assignments.test.js` — the `requireAgency` mock previously hardcoded `req.user = OWNER`, which overrode the VIEWER the test set, so the role check never failed. Changed it to respect a pre-set `req.user`/`req.agencyId` (defaulting to OWNER), and cleaned up the test (removed a nonsense `shiftAssignmentsRouter.replace = jest.fn()` line) so it sets a VIEWER before mounting the router.
+- **Verify:** `shift-assignments.test.js` now **8/8** (was 5/8); full backend suite **131 passed / 27 failed** (was 130/28 — one more passing, suite moved from failed→passed). No new failures.
+- **Commit:** see git — 🛡️ test(shifts): fix VIEWER-rejection test (requireAgency mock)
+- **Notes / decisions:** Did only the small, clean test fix this firing. The remaining 27 failures are the integration suites that need a live Postgres (`worker-*`, `security-pipeline`) — split into a separate backlog item since making them DB-less is a test-infra decision (CI Postgres service vs a dedicated Supabase test project vs mocking) that pairs with the GitHub Actions CI item; don't want them hitting the real Supabase DB.
+
 ## 2026-06-30 13:32 — requestId Sentry scope tag + FIX latent Sentry v10 crash (P0)
 - **Item:** Set `requestId` as a per-request Sentry scope tag
 - **Outcome:** shipped (+ discovered/fixed a P0)

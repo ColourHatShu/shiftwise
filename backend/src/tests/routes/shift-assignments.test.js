@@ -15,8 +15,10 @@ const shiftAssignmentsRouter = require('../../routes/shift-assignments');
 jest.mock('../../lib/prisma');
 jest.mock('../../lib/auth', () => ({
     requireAgency: (req, res, next) => {
-        req.agencyId = 'test-agency-1';
-        req.user = { id: 'user-1', role: 'OWNER' };
+        // Respect a user/agency set by an earlier middleware (so tests can exercise
+        // other roles, e.g. VIEWER); otherwise default to an OWNER for convenience.
+        req.agencyId = req.agencyId || 'test-agency-1';
+        req.user = req.user || { id: 'user-1', role: 'OWNER' };
         next();
     },
     requireRole: (allowedRoles) => (req, res, next) => {
@@ -213,21 +215,15 @@ describe('Shift Assignment Endpoints', () => {
         it('should reject non-OWNER/ADMIN users', async () => {
             const shiftId = 'shift-1';
 
-            // Re-mount app with VIEWER role
+            // Re-mount the app, setting a VIEWER user BEFORE the router so the
+            // (now pre-set-respecting) requireAgency mock keeps the VIEWER role.
             app = express();
             app.use(express.json());
-
-            // Override auth middleware with VIEWER role
-            const modifiedRouter = shiftAssignmentsRouter.replace = jest.fn();
-
-            // Actually, let's create a new app with different auth
-            const authMiddleware = (req, res, next) => {
+            app.use((req, res, next) => {
                 req.agencyId = 'test-agency-1';
                 req.user = { id: 'user-1', role: 'VIEWER' };
                 next();
-            };
-
-            app.use(authMiddleware);
+            });
             app.use('/api/shifts/:shiftId', shiftAssignmentsRouter);
 
             const res = await request(app)
