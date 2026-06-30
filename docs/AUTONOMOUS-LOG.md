@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 12:42 — Type the documents page with types/api.ts
+- **Item:** Continue `any` cleanup — adopt shared types in another high-`any` file
+- **Outcome:** shipped
+- **Changes:** `dashboard/documents/page.tsx` — replaced 7 of 8 `any`s with shared types (`workers: Worker[]`, `getComputedStatus(doc: ComplianceDocument | null): string`, `getComplianceScore(docs: ComplianceDocument[])`, the three reduce/map callbacks). Added `Worker.complianceDocuments?: ComplianceDocument[]` to `types/api.ts` (the `/api/documents/agency` shape). Hardened `getComputedStatus` to always return a string (`?? "NOT_UPLOADED"`).
+- **Verify:** build ✅ (✓ Compiled successfully, 25/25), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only)
+- **Commit:** see git — 🛡️ refactor(types): type the documents page
+- **Notes / decisions:** documents/page.tsx was the biggest remaining `any` offender (8); now only the low-value `catch (err: any)` remains there (kept — converting needs `instanceof` guards for little gain). shifts/compliance pages had ≤1 `any` each, so the app-wide `any` cleanup is largely done. Skipped the human-gated £-earnings item again.
+
 ## 2026-06-30 12:32 — Shared types/api.ts + replace worst `any`s
 - **Item:** Introduce `frontend/types/api.ts` and start replacing the worst `any` usages
 - **Outcome:** shipped

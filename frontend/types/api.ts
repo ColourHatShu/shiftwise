@@ -25,6 +25,8 @@ export interface Worker {
     complianceScore?: number;
     documentsUploaded?: number;
     documentsTotal?: number;
+    // Included by GET /api/documents/agency
+    complianceDocuments?: ComplianceDocument[];
 }
 
 export interface DocumentType {

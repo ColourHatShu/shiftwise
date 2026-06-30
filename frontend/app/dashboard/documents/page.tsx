@@ -7,12 +7,13 @@ import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle, Search } f
 import { downloadDocument } from "@/lib/api/documents";
 import { useApi } from "@/lib/use-api";
 import { StatusBadge } from "@/components/ui/status-badge";
+import type { Worker, ComplianceDocument } from "@/types/api";
 import toast from "react-hot-toast";
 
 export default function DocumentsPage() {
     const { getToken, isLoaded, isSignedIn } = useAuth();
     const { apiFetch } = useApi();
-    const [workers, setWorkers] = useState<any[]>([]);
+    const [workers, setWorkers] = useState<Worker[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -41,7 +42,7 @@ export default function DocumentsPage() {
         );
     }
 
-    const getComputedStatus = (doc: any) => {
+    const getComputedStatus = (doc: ComplianceDocument | null): string => {
         if (!doc) return "NOT_UPLOADED";
         if (doc.status === "EXPIRED") return "EXPIRED";
         if (doc.expiryDate) {
@@ -49,10 +50,10 @@ export default function DocumentsPage() {
             const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
             if (exp <= in30 && doc.status === "APPROVED") return "EXPIRING_SOON";
         }
-        return doc.status;
+        return doc.status ?? "NOT_UPLOADED";
     };
 
-    const getComplianceScore = (docs: any[]) => {
+    const getComplianceScore = (docs: ComplianceDocument[]) => {
         if (!docs.length) return null;
         const approved = docs.filter(d => d.status === "APPROVED").length;
         return Math.round((approved / docs.length) * 100);
@@ -97,13 +98,13 @@ export default function DocumentsPage() {
                 <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
                     <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Verified</p>
                     <p className="text-2xl font-medium text-[#166534] mt-1">
-                        {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: any) => d.status === "APPROVED").length || 0), 0)}
+                        {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: ComplianceDocument) => d.status === "APPROVED").length || 0), 0)}
                     </p>
                 </div>
                 <div className="bg-white rounded-xl border border-[#DDE3EE] p-4">
                     <p className="text-[11px] text-[#5B6E8C] uppercase tracking-[0.5px] font-medium">Needs Attention</p>
                     <p className="text-2xl font-medium text-[#991B1B] mt-1">
-                        {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: any) => d.status === "EXPIRED" || d.status === "REJECTED").length || 0), 0)}
+                        {workers.reduce((acc, w) => acc + (w.complianceDocuments?.filter((d: ComplianceDocument) => d.status === "EXPIRED" || d.status === "REJECTED").length || 0), 0)}
                     </p>
                 </div>
             </div>
@@ -124,7 +125,7 @@ export default function DocumentsPage() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {workers.map((worker: any) => {
+                    {workers.map((worker: Worker) => {
                         const docs = worker.complianceDocuments || [];
                         const score = getComplianceScore(docs);
                         const ragColor = getRAGColor(score);
@@ -182,7 +183,7 @@ export default function DocumentsPage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#DDE3EE]">
-                                                    {docs.map((doc: any) => {
+                                                    {docs.map((doc: ComplianceDocument) => {
                                                         const status = getComputedStatus(doc);
                                                         return (
                                                             <tr key={doc.id} className="group hover:bg-[#F5F7FA] transition-colors">
