@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, SignOutButton } from "@clerk/nextjs";
 import { useApi } from "@/lib/use-api";
+import { CommandPalette } from "@/components/ui/command-palette";
 import {
     LayoutDashboard,
     Users,
@@ -94,6 +95,9 @@ export default function DashboardLayout({
 
     return (
         <div className="min-h-screen bg-[#F5F7FA] md:flex">
+            {/* Global ⌘K / Ctrl+K command palette */}
+            <CommandPalette />
+
             {/* ── Mobile Top Bar (hamburger) ── */}
             <header className="md:hidden sticky top-0 z-30 flex items-center gap-3 bg-white border-b border-[#DDE3EE] px-4 py-3 shadow-sm">
                 <button

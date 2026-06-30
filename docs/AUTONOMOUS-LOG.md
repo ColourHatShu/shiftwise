@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 10:54 — Cmd+K command palette (first slice)
+- **Item:** Cmd+K universal search + quick actions
+- **Outcome:** shipped
+- **Changes:** new `frontend/components/ui/command-palette.tsx` — ⌘K/Ctrl+K command palette with client-side fuzzy (substring) filter over navigation + quick actions, full keyboard nav (↑↓/↵/esc), design-system styled. Mounted once in `dashboard/layout.tsx`.
+- **Verify:** build ✅ (24/24), lint ✅ (exit 0), tests ⏭️ skipped (frontend-only). (Two build failures caught + fixed during the gate: missing `React` namespace import, then typing `icon` with lucide's `LucideIcon` instead of a hand-rolled ComponentType.)
+- **Commit:** see git — 🛡️ feat(web): ⌘K command palette for navigation + quick actions
+- **Notes / decisions:** Scoped the first slice to navigation/quick-actions (no backend dependency) for a clean, verifiable win. Queued follow-ups: a visible "Search… ⌘K" affordance for discoverability, and live worker/shift/document data search via `useApi`. Couldn't visually verify (no localhost access from here) — build/lint pass; human to eyeball.
+
 ## 2026-06-30 10:44 — Hide the dead /dashboard/availability route
 - **Item:** Hide or finish the dead `/dashboard/availability` route
 - **Outcome:** shipped

@@ -28,7 +28,8 @@
 - [x] Hide the dead `/dashboard/availability` route — removed the sidebar nav item (page was a non-persisting coordinator stub). Page kept as an unlinked placeholder for the P3 availability calendar.
 
 ## P3 — Feature expansion (Wave C)
-- [ ] Cmd+K universal search + quick actions (workers, shifts, documents) — high demo value, scoped to client-side fuzzy search first
+- [x] Cmd+K command palette (first slice) — `components/ui/command-palette.tsx`, mounted in the dashboard layout; ⌘K/Ctrl+K, client-side fuzzy filter over navigation + quick actions, full keyboard nav
+- [ ] Cmd+K follow-ups: add a visible "Search… ⌘K" affordance (top bar/sidebar) for discoverability, and extend the palette to search live worker/shift/document data (via `useApi`)
 - [ ] Worker availability calendar (mark available/unavailable days; foundation for rota)
 - [ ] Shift templates + recurring auto-poster (saves coordinators hours/week) — start with the template entity + create-from-template flow
 - [ ] Worker earnings dashboard (read-only summary of completed/assigned shifts)
