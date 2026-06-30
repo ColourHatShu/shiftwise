@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Check, XCircle, Eye, EyeOff } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Modal } from "@/components/ui/modal";
 
 interface Document {
     id: string;
@@ -52,7 +53,7 @@ export default function WorkerDetailModal({
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
 
-    if (!isOpen || !worker) return null;
+    if (!worker) return null;
 
     const handleApprove = async (docId: string) => {
         setActionLoading(`approve-${docId}`);
@@ -120,16 +121,7 @@ export default function WorkerDetailModal({
     const pendingDocs = (worker.documents || []).filter(d => d.status === 'PENDING');
 
     return (
-        <>
-            {/* Backdrop */}
-            <div
-                className="fixed inset-0 bg-black/50 z-40 transition-opacity"
-                onClick={onClose}
-            />
-
-            {/* Modal */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <Modal isOpen={isOpen} onClose={onClose} size="lg" padded={false}>
                     {/* Header */}
                     <div className="sticky top-0 bg-white border-b border-[#DDE3EE] p-6 flex items-start justify-between">
                         <div>
@@ -347,8 +339,6 @@ export default function WorkerDetailModal({
                             </>
                         )}
                     </div>
-                </div>
-            </div>
-        </>
+        </Modal>
     );
 }

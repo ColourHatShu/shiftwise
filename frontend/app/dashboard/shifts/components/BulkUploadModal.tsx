@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Download, Upload, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Modal } from "@/components/ui/modal";
 
 interface UploadResult {
   total: number;
@@ -88,11 +89,8 @@ export default function BulkUploadModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+    <Modal isOpen={isOpen} onClose={onClose} size="lg" padded={false}>
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">Bulk Upload Shifts</h2>
           <button
@@ -233,7 +231,6 @@ export default function BulkUploadModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

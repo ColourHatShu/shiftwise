@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Download, X, AlertCircle, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Modal } from "@/components/ui/modal";
 
 interface Worker {
   id: string;
@@ -98,12 +99,9 @@ export default function AuditPackModal({ isOpen, onClose }: AuditPackModalProps)
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-        <div className="flex justify-between items-center mb-6">
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Generate Audit Pack</h2>
           <button
             onClick={onClose}
@@ -212,7 +210,6 @@ export default function AuditPackModal({ isOpen, onClose }: AuditPackModalProps)
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

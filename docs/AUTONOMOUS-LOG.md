@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 12:52 — Modal consolidation complete (design-system canonical)
+- **Item:** Finish modal consolidation (founder greenlit "use design-system, go")
+- **Outcome:** shipped (⚠️ needs a visual pass)
+- **Changes:** `components/ui/modal.tsx` — restyled `<Modal>` to the design system: `rounded-xl`, `border-[#DDE3EE]`, `shadow-2xl`, `bg-black/40 backdrop-blur` overlay, `#0A1628`/`#5B6E8C` header. Migrated the 5 bespoke modals onto `<Modal padded=…>` (removing their own overlay+card + redundant Esc/return-null): `WorkerDetailModal`, `AuditPackModal` (padded default), `BulkUploadModal`, `ShiftModal`, `EditWorkerModal` (isOpen={true}, dropped its manual Esc effect). The modals already using `<Modal>` (AssignModal, ConfirmModal, DeleteConfirmationModal, ConfirmDialog) inherit the new canonical look automatically.
+- **Verify:** build ✅ (✓ Compiled successfully), lint ✅ (0 errors); grep-verified **zero `fixed inset-0` left** in the 5 migrated files + Modal imported in all 5. Done via a 5-agent parallel workflow with tailored per-modal specs.
+- **Commit:** see git — 🛡️ refactor(ui): consolidate all modals onto design-system <Modal>
+- **Notes / decisions:** Every modal in the app now shares one `<Modal>` (single overlay/Esc/click-outside/focus behaviour + one canonical look) — closes the council's duplicated-modal-wrappers finding. This is a broad visual change I can't verify on screen (no localhost here) — **please eyeball the modals**; build/grep gate structure, but shades/spacing want a human glance. ShiftModal/BulkUploadModal keep a now-redundant inner close button (kept per "don't alter inner JSX"); could be removed later.
+
 ## 2026-06-30 12:42 — Type the documents page with types/api.ts
 - **Item:** Continue `any` cleanup — adopt shared types in another high-`any` file
 - **Outcome:** shipped

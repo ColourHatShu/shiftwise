@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useApi } from "@/lib/use-api";
 import { X, Save } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 
 // Synchronized subset from new/page.tsx
 const ROLES = [
@@ -31,15 +32,6 @@ export default function EditWorkerModal({ worker, onClose, onSuccess }: any) {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-
-    // Handle ESC key to close
-    useEffect(() => {
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === "Escape") onClose();
-        };
-        window.addEventListener("keydown", handleEsc);
-        return () => window.removeEventListener("keydown", handleEsc);
-    }, [onClose]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData(prev => ({
@@ -90,11 +82,7 @@ export default function EditWorkerModal({ worker, onClose, onSuccess }: any) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div
-                className="bg-white border border-[#DDE3EE] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-                onClick={e => e.stopPropagation()}
-            >
+        <Modal isOpen={true} onClose={onClose} size="lg" padded={false}>
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-[#DDE3EE] sticky top-0 bg-white z-10">
                     <div>
@@ -212,7 +200,6 @@ export default function EditWorkerModal({ worker, onClose, onSuccess }: any) {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </Modal>
     );
 }
