@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 17:02 — Frontend test runner (Vitest) — establishes the seam
+- **Item:** Frontend test runner
+- **Outcome:** shipped (closes the biggest coverage gap: frontend had *zero* tests)
+- **Changes:** `npm install -D vitest`; added `test`/`test:ci` scripts; `vitest.config.ts` (scoped `include: ['lib/**/*.test.ts']`, node env); `lib/compliance-dashboard.test.ts` (4 tests — `getComplianceStatus` boundaries + `getStatusLabel`); `tsconfig.json` excludes `*.test.ts(x)` so `next build` won't typecheck them; CI frontend job now runs `npm run test:ci`.
+- **Verify:** `npm run test:ci` = **1 file / 4 tests passed**; `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully. (CI `npm ci` will install vitest from the updated lockfile.)
+- **Commit:** see git — 🛡️ test(frontend): add Vitest runner + first lib unit test
+- **Notes / decisions:** Finally tackled this (deferred a few firings on the npm-dep concern) — registry is reachable and the strict build+lint+test gate de-risked it. **Discovered 3 pre-existing `__tests__/` suites** (`worker-compliance`, `worker-offline`, `audit-pack-components`) that were written before any runner and fail today (need `@/` alias + jsdom + `@testing-library/react`). Rather than expand this firing into installing RTL/jsdom + chasing unknown assertion failures, I **scoped the runner to `lib/`** (clean green seam) and queued resurrecting `__tests__/` as a follow-up — same "real tests catch real bugs" upside as the backend placeholder episode. The seam is the win: future frontend tests now have a home + CI enforcement.
+
 ## 2026-06-30 16:52 — Worker re-upload nudge for expiring/expired documents
 - **Item:** Worker document re-upload nudge
 - **Outcome:** shipped
