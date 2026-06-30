@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-06-30 14:02 — Manage Document Types: Settings UI (slice 2 — feature complete)
+- **Item:** Manage Document Types — frontend slice
+- **Outcome:** shipped (feature now complete end-to-end)
+- **Changes:** new `frontend/app/dashboard/settings/components/DocumentTypesManager.tsx` — a self-contained card on the Settings page: lists document types, add/edit via one form (name, description, required?, hasExpiry, expiryWarningDays), delete via ConfirmDialog. All through `/api/document-types` (`useApi`); the backend's "in use" 409 on delete is surfaced as a friendly toast. Rendered below the agency-details form in `settings/page.tsx`.
+- **Verify:** build ✅ (✓ Compiled successfully; settings route 6.62 kB), lint ✅ (0 errors), tests ⏭️ skipped (frontend-only; API tested in slice 1).
+- **Commit:** see git — 🛡️ feat(settings): document types management UI
+- **Notes / decisions:** Coordinators can now manage their required-document config from the UI (previously impossible — only a read endpoint existed). Light design-system themed; ConfirmDialog uses the shared canonical Modal. Couldn't visually verify (no localhost) — build/lint pass; founder to eyeball.
+
 ## 2026-06-30 13:52 — Manage Document Types: backend CRUD (slice 1)
 - **Item:** Manage Document Types (core compliance config) — backend slice
 - **Outcome:** shipped (slice 1 of 2: API; Settings UI next)

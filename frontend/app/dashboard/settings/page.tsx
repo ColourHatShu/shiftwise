@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useApi } from "@/lib/use-api";
 import { Save, Building2, MapPin, Phone } from "lucide-react";
 import toast from "react-hot-toast";
+import DocumentTypesManager from "./components/DocumentTypesManager";
 
 const AGENCY_TYPES = [
     "Recruitment Agency",
@@ -227,6 +228,9 @@ export default function SettingsPage() {
                     </div>
                 </form>
             </div>
+
+            {/* Required compliance documents */}
+            <DocumentTypesManager />
         </div>
     );
 }

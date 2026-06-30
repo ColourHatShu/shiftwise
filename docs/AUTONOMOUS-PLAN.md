@@ -51,7 +51,7 @@
 
 ## P5 — Ideated 2026-06-30 (autonomously buildable, verifiable; not decision-gated)
 - [x] **Manage Document Types — backend slice:** added `routes/document-types.js` (GET/POST/PATCH/DELETE, agency-scoped, dup-name 409, delete-blocked-if-in-use 409) mounted at `/api/document-types`, +8 tests. (Only a list endpoint existed before, at `/api/agencies/document-types`.)
-- [ ] **Manage Document Types — frontend slice:** Settings UI to list/add/edit/delete document types (name, required?, hasExpiry, expiryWarningDays) via `/api/document-types` (`useApi`), with the delete-in-use 409 surfaced as a friendly message.
+- [x] **Manage Document Types — frontend slice:** `DocumentTypesManager` component on the Settings page — list/add/edit/delete document types (name, description, required?, hasExpiry, expiryWarningDays) via `/api/document-types` (`useApi`), ConfirmDialog delete with the in-use 409 surfaced as a toast. **Feature complete end-to-end.**
 - [ ] **Bulk worker CSV import** — mirror the existing shifts-bulk flow: a backend parse/validate endpoint + a frontend upload modal on the Workers page (download a template, upload CSV, show per-row results). Saves coordinators from manual entry.
 - [ ] **GitHub Actions CI** — `.github/workflows/ci.yml` running frontend `npm run build` + `npm run lint` and backend route/unit tests (the mocked-prisma suites; exclude the live-Postgres integration suites). Catches regressions on every push.
 - [ ] **Modal focus management (a11y)** — add a focus trap + focus-the-first-element-on-open + return-focus-on-close to the shared `<Modal>` (now that every modal uses it, this is high-leverage). Verifiable by build; improves keyboard/screen-reader UX.
