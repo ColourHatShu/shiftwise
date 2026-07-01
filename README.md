@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ShiftWise
 
-## Getting Started
+**Compliance management for UK healthcare staffing agencies.**
 
-First, run the development server:
+ShiftWise is a multi-tenant SaaS platform that helps care/nursing staffing agencies stay **audit-ready at all times**. Each agency manages its workers (carers, nurses, support staff) and the compliance documents required to legally place them on shift — DBS checks, Right to Work, training certificates, immunisation records, passports, and more.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**The one thing that must always work:** a coordinator uploads a worker's compliance documents, the system tracks expiry dates automatically, emails the coordinator before anything lapses, and every action is auditable for a CQC inspection.
+
+---
+
+## Monorepo layout
+
+```
+shiftwise/
+├── backend/      Node.js + Express REST API, Prisma ORM (PostgreSQL)
+├── frontend/     Next.js 14 (App Router) + Tailwind CSS
+└── docs/         Planning & the Autonomous Knight logs
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Area            | Choice |
+|-----------------|--------|
+| Backend         | Node.js, Express, Prisma ORM |
+| Database        | PostgreSQL (Supabase in dev) |
+| Frontend        | Next.js 14 App Router, React 18, Tailwind CSS |
+| Auth            | Clerk (agency coordinators) · custom JWT + email OTP (worker portal) |
+| Email           | Resend / Nodemailer |
+| OCR             | Tesseract.js (document scanning) |
+| Observability   | Sentry (errors) · pino (structured logs) |
+| Tests / CI      | Jest (backend) · Vitest + RTL (frontend) · GitHub Actions |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Prerequisites
 
-## Learn More
+- Node.js 20+
+- A PostgreSQL database (a Supabase project works well)
 
-To learn more about Next.js, take a look at the following resources:
+## Getting started
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# 1. Backend
+cd backend
+npm install
+cp .env.example .env        # then fill in the values below
+npx prisma generate
+npx prisma db push          # sync the schema to your database
+npm run dev                 # API on http://localhost:3001
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 2. Frontend (in a second terminal)
+cd frontend
+npm install
+cp .env.example .env.local         # fill in the values below
+npm run dev                 # app on http://localhost:3000
+```
 
-## Deploy on Vercel
+The frontend proxies `/api/*` to the backend (`NEXT_PUBLIC_API_URL`), so run both together in development.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**backend/.env**
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DATABASE_URL` | ✅ always | Postgres connection string (pooled) |
+| `DIRECT_URL` | for migrations | Direct Postgres connection (Prisma migrate/push) |
+| `CLERK_SECRET_KEY` | prod | Coordinator auth (Clerk) |
+| `JWT_SECRET` | prod | Worker-portal JWT signing (must be a strong secret) |
+| `DOCUMENT_ENCRYPTION_KEY` | ✅ for uploads | Key for AES-256-GCM document encryption at rest |
+| `SENTRY_DSN_BACKEND` | optional | Backend error monitoring (leave empty to disable) |
+| `RESEND_API_KEY` | optional | Transactional email (alerts, OTP) |
+| `CORS_ORIGIN` | optional | Allowed frontend origin (default `http://localhost:3000`) |
+| `PORT` | optional | API port (default `3001`) |
+| `LOG_LEVEL` | optional | pino level (default `debug` dev / `info` prod) |
+
+The server **fails fast on boot** if critical config is missing (see `backend/src/lib/validate-env.js`).
+
+**frontend/.env.local**
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend base URL (e.g. `http://localhost:3001`) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `NEXT_PUBLIC_SENTRY_DSN` | Frontend Sentry DSN (optional) |
+
+## Scripts
+
+**Backend** (`cd backend`)
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start the API with nodemon |
+| `npm start` | Start the API |
+| `npm test` | Full Jest suite (some suites need a live Postgres) |
+| `npm run test:ci` | CI suite — mocked/unit + route tests, no DB required |
+| `npm run db:push` / `db:migrate` / `db:studio` | Prisma helpers |
+
+**Frontend** (`cd frontend`)
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Next dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run test` / `test:ci` | Vitest unit + component tests |
+
+## Testing & CI
+
+- **Backend:** Jest. `npm run test:ci` runs the mocked/unit + route suites (no database needed); a few integration suites require a live Postgres and are excluded from CI.
+- **Frontend:** Vitest + React Testing Library (unit + component).
+- **CI:** `.github/workflows/ci.yml` runs the frontend (lint + build + tests) and backend (`prisma generate` + `test:ci`) on every push/PR to `main`.
+
+## Architecture notes
+
+- **Multi-tenancy:** every record is scoped by `agencyId`; API routes enforce it via `requireAgency`.
+- **Two audiences:** coordinators use the Clerk-authenticated dashboard; workers use a separate portal authenticated by email OTP → JWT cookie.
+- **Compliance engine:** `computeCompliance` (`backend/src/lib/compliance-assignment.js`) is the single source of truth for a worker's RAG status; document expiry alerts run on a daily cron (`backend/src/services/cronService.js`).
+- **Documents:** encrypted at rest (AES-256-GCM), scanned with Tesseract OCR; analysis failures and identity mismatches are audited.
+- **Observability:** every request gets a correlation id (`X-Request-Id`) surfaced in structured pino logs and Sentry.
+
+## License
+
+Proprietary — all rights reserved.

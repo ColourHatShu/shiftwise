@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (11) — Real project README (replace create-next-app boilerplate)
+- **Item:** (non-gated backlog empty) — shipped a genuine documentation deliverable instead of a speculative ideation pass
+- **Outcome:** shipped
+- **Changes:** rewrote the root `README.md` (was untouched create-next-app boilerplate that didn't even name the product). Now covers: product summary + core promise, monorepo layout, tech-stack table, prerequisites, backend+frontend setup steps, **env-var tables verified against the actual `backend/.env.example` + `frontend/.env.example`** (fixed the frontend copy path; added `DOCUMENT_ENCRYPTION_KEY`), scripts, testing/CI, and architecture notes (multi-tenancy, coordinator vs worker auth, `computeCompliance` engine, AES-256-GCM document encryption, requestId/pino/Sentry observability).
+- **Verify:** docs only — no build/test impact; cross-checked every env var + script name against source (`.env.example` files, `package.json` scripts) so nothing is aspirational.
+- **Commit:** see git — 🛡️ docs: real project README (replace create-next-app boilerplate)
+- **Notes / decisions:** With the non-gated backlog exhausted (console.* sweep done last firing), chose a concrete, real, verifiable deliverable — accurate onboarding docs for a project that now has a full stack + CI + ~259 tests — over another speculative ideation pass. **This is genuinely the end of the clean autonomous runway.** Everything left is founder-gated: rotate the Supabase password (🔴 still pasted in chat), CSP report-only, auto-poster, £ earnings, worker-e2e test DB. Strongly recommend pausing the 10-min cron or greenlighting one of these; further firings will otherwise be speculative.
+
 ## 2026-07-01 (10) — console.* → pino, batch 8 (libs) — item COMPLETE
 - **Item:** Migrate remaining `console.*` to the logger — **DONE**
 - **Outcome:** shipped — the console.* sweep is complete
