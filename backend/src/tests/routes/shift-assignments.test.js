@@ -370,6 +370,10 @@ describe('Shift Assignment Endpoints', () => {
             expect(res.body.data.map((s) => s.id)).toEqual(['w2', 'w1']); // reliable first, non-compliant excluded
             expect(res.body.data[0]).toMatchObject({ rank: 1, confirmationRate: 100 });
             expect(res.body.meta.compliantCandidates).toBe(2);
+            // excludes deactivated workers: deactivate sets status=INACTIVE (not isActive)
+            expect(prisma.worker.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({ where: expect.objectContaining({ status: 'ACTIVE', isActive: true }) })
+            );
         });
 
         it('404s for a shift not in the agency', async () => {

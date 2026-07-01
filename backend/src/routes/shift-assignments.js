@@ -210,6 +210,7 @@ router.get('/assignable-workers', requireRole(['OWNER', 'ADMIN']), async (req, r
             where: {
                 agencyId: req.agencyId,
                 isActive: true,
+                status: 'ACTIVE', // exclude deactivated workers (deactivate sets status=INACTIVE, not isActive)
                 ...searchFilter
             },
             select: {
@@ -280,6 +281,7 @@ router.get('/assignable-workers', requireRole(['OWNER', 'ADMIN']), async (req, r
             where: {
                 agencyId: req.agencyId,
                 isActive: true,
+                status: 'ACTIVE', // exclude deactivated workers (deactivate sets status=INACTIVE, not isActive)
                 ...searchFilter,
                 NOT: {
                     id: { in: Array.from(assignedIds) }
@@ -322,7 +324,7 @@ router.get('/suggested-workers', requireRole(['OWNER', 'ADMIN']), async (req, re
         const assignedIds = new Set(assigned.map((a) => a.workerId));
 
         const workers = await prisma.worker.findMany({
-            where: { agencyId: req.agencyId, isActive: true },
+            where: { agencyId: req.agencyId, isActive: true, status: 'ACTIVE' }, // exclude deactivated (status=INACTIVE)
             select: { id: true, firstName: true, lastName: true, email: true },
             orderBy: { firstName: 'asc' },
             take: SCAN_CAP,

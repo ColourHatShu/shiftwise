@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (39) — Bug fix: deactivated workers were still assignable to shifts
+- **Item:** Self-review bug-hunt of this session's code → real bug found + fixed
+- **Outcome:** shipped (correctness/safety fix)
+- **Bug:** worker `deactivate` sets `status='INACTIVE'` and never changes `isActive`, but the three shift-assignment routes (`assignable-workers`, `assign-bulk`, and this session's `suggested-workers`) filtered candidates on `isActive: true` only. A deactivated worker (`status=INACTIVE`, `isActive=true`) therefore still showed up as assignable, as a bulk-assign candidate, and as a shift-matcher "top pick" — you could put a worker the agency had deactivated back on a shift. (The route tests mock `worker.findMany`, so the wrong filter passed tests but would misbehave against the real DB.)
+- **Fix:** added `status: 'ACTIVE'` alongside `isActive: true` in all three filters (matches the canonical active-worker filter used by `reports`, `dashboard`, and deactivate/reactivate), plus a regression assertion that `suggested-workers` queries with `status: 'ACTIVE'`.
+- **Verify:** `node --check` OK; shift-assignments suite **11/11**; `npm run test:ci` = **26 suites / 217 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(shifts): exclude deactivated workers from assignment/matcher
+- **Notes / decisions:** With clean feature work exhausted, ran an adversarial self-review of the session's new code instead of manufacturing polish — and it surfaced a genuine bug (in both my new route and two pre-existing ones). This is the highest-value thing available without a founder decision. Still recommend a steer for new modules (matcher weights / no-show tracking / CSP / auto-poster / £ earnings) or a **"pause"**.
+
 ## 2026-07-01 (38) — API reference docs for the session's new endpoints
 - **Item:** Document the new API surface (`docs/API.md`)
 - **Outcome:** shipped (docs)

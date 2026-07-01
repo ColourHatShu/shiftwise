@@ -129,3 +129,6 @@ Until a direction is given, further autonomous firings are marginal polish only 
 
 ## P15 — Documentation
 - [x] **API reference for the session's new endpoints** — added `docs/API.md` documenting the six insight/matching endpoints built this session (shift-coverage, worker-scorecards + `:workerId`, expiring-documents, suggested-workers): method, auth, query params, and exact response shapes. Verified every documented shape against the route code (status enums, summary/meta keys) to avoid drift.
+
+## P16 — Bug fixes (self-review)
+- [x] **Deactivated workers were still assignable to shifts** — `deactivate` sets `status='INACTIVE'` (never touches `isActive`), but all three shift-assignment routes (`assignable-workers`, `assign-bulk`, `suggested-workers`) filtered only on `isActive: true` — so a deactivated worker still appeared in the assignable list, bulk-assign candidates, **and** the shift-matcher "top picks". Added `status: 'ACTIVE'` to all three filters (matches the canonical filter used by reports/dashboard/deactivate) and a regression assertion on the suggested-workers where-clause. Found via a self-review bug-hunt of this session's code; fixes a real correctness/safety hole (could assign a worker the agency had deactivated).
