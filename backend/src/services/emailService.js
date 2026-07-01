@@ -5,6 +5,8 @@ const { Resend } = require('resend');
 // functions below already short-circuit when the key is missing.
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+const log = require('../lib/logger').child({ service: 'email' });
+
 /**
  * Escape user-controlled strings before embedding them in HTML email bodies.
  * Worker names, document types, and rejection reasons all flow through user input —
@@ -31,12 +33,12 @@ function escapeHtml(value) {
  * @param {number} daysUntilExpiry Number of days remaining (e.g., 30, 14, 7)
  */
 const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expiryDate, daysUntilExpiry) => {
-    console.log(`[Email Service] Attempting to send Expiry Alert email for ${workerName}'s ${documentType}`);
-    console.log(`[Email Service] Target Coordinator Email routing to: ${coordinatorEmail}`);
+    log.info({ workerName, documentType }, 'Sending expiry alert email');
+    log.debug({ coordinatorEmail }, 'Coordinator email routing');
 
     // Basic catch if the key is missing during development
     if (!process.env.RESEND_API_KEY) {
-        console.warn(`[WARN] Skipping Expiry Alert email to ${coordinatorEmail} because RESEND_API_KEY is not defined in .env`);
+        log.warn({ coordinatorEmail }, 'Skipping expiry alert — RESEND_API_KEY not set');
         return null;
     }
 
@@ -120,7 +122,7 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
     `;
 
     try {
-        console.log(`[Email Service] Calling Resend API...`);
+        log.debug('Calling Resend API');
         const response = await resend.emails.send({
             from: 'onboarding@resend.dev', // User must configure verified sending domain in production later
             to: [coordinatorEmail],
@@ -128,10 +130,10 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
             html: emailHtml,
         });
 
-        console.log(`[Email Service] Full Resend Response JSON on success:`, JSON.stringify(response));
+        log.debug({ response }, 'Resend API success');
         return response;
     } catch (error) {
-        console.error('[Email Service] Failed to send expiry alert:', error);
+        log.error({ err: error }, 'Failed to send expiry alert');
         throw error;
     }
 };
@@ -146,11 +148,11 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
  * @param {number} daysUntilExpiry Number of days remaining
  */
 const sendWorkerExpiryAlert = async (workerEmail, workerFirstName, documentType, expiryDate, daysUntilExpiry) => {
-    console.log(`[Email Service] Attempting to send Worker Expiry Alert email to ${workerEmail} for ${documentType}`);
+    log.info({ workerEmail, documentType }, 'Sending worker expiry alert email');
 
     // Skip if Resend key not configured
     if (!process.env.RESEND_API_KEY) {
-        console.warn(`[WARN] Skipping Worker Expiry Alert email to ${workerEmail} because RESEND_API_KEY is not defined in .env`);
+        log.warn({ workerEmail }, 'Skipping worker expiry alert — RESEND_API_KEY not set');
         return null;
     }
 
@@ -236,7 +238,7 @@ const sendWorkerExpiryAlert = async (workerEmail, workerFirstName, documentType,
     `;
 
     try {
-        console.log(`[Email Service] Calling Resend API for worker email...`);
+        log.debug('Calling Resend API for worker email');
         const response = await resend.emails.send({
             from: 'onboarding@resend.dev',
             to: [workerEmail],
@@ -244,10 +246,10 @@ const sendWorkerExpiryAlert = async (workerEmail, workerFirstName, documentType,
             html: emailHtml,
         });
 
-        console.log(`[Email Service] Worker alert sent successfully to ${workerEmail}`);
+        log.info({ workerEmail }, 'Worker alert sent');
         return response;
     } catch (error) {
-        console.error(`[Email Service] Failed to send worker expiry alert to ${workerEmail}:`, error);
+        log.error({ err: error, workerEmail }, 'Failed to send worker expiry alert');
         throw error;
     }
 };

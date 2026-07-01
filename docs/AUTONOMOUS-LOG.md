@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (3) — console.* → pino migration, batch 2 (emailService)
+- **Item:** Migrate remaining `console.*` to the logger — batch 2
+- **Outcome:** shipped
+- **Changes:** `services/emailService.js` — all **11** `console.*` migrated to `logger.child({ service: 'email' })` in pino `(obj, msg)` form: send-attempt/success at `info`, routing + Resend API detail at `debug` (was noisy `console.log`), missing-key at `warn`, failures at `error` with `{ err }`. Behaviour unchanged.
+- **Verify:** no `console.` left; `node --check` + `require()` OK; `npm run test:ci` = **22 suites / 192 tests, 0 failing**.
+- **Commit:** see git — 🛡️ refactor(email): migrate console.* to structured pino logger
+- **Notes / decisions:** Picked emailService over the larger `documents.js` for this batch because it's uniform (service-level, no `req` scoping) → a clean, complete, low-risk conversion. Also demoted routing/API-response chatter to `debug` so default `info` logs stay signal-rich. `documents.js` (mixed request-handler + background) is next — needs `req.log` in handlers vs base `logger` in `analyzeDocument`, so it warrants its own careful batch.
+
 ## 2026-07-01 (2) — console.* → pino migration, batch 1 (cronService)
 - **Item:** Migrate remaining `console.*` to the logger — batch 1
 - **Outcome:** shipped
