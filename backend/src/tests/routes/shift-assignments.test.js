@@ -80,7 +80,8 @@ describe('Shift Assignment Endpoints', () => {
             create: jest.fn(),
             findMany: jest.fn(),
             findFirst: jest.fn(),
-            delete: jest.fn()
+            delete: jest.fn(),
+            groupBy: jest.fn().mockResolvedValue([])
         };
         prisma.complianceDocument = {
             findMany: jest.fn()
@@ -280,6 +281,28 @@ describe('Shift Assignment Endpoints', () => {
             expect(res.body.workers).toHaveLength(2);
             expect(res.body.pagination.total).toBe(2);
             expect(res.body.workers[0].complianceScore).toBe(100);
+            // Reliability enrichment: field present, null when no assignment history.
+            expect(res.body.workers[0]).toHaveProperty('confirmationRate', null);
+        });
+
+        it('enriches compliant workers with their confirmation rate', async () => {
+            const shiftId = 'shift-1';
+            prisma.shift.findFirst.mockResolvedValue({ id: shiftId, agencyId: 'test-agency-1' });
+            prisma.shiftAssignment.findMany.mockResolvedValue([]);
+            prisma.worker.findMany.mockResolvedValue([
+                { id: 'w1', firstName: 'John', lastName: 'Doe', email: 'john@example.com', updatedAt: new Date() },
+            ]);
+            prisma.worker.count.mockResolvedValue(1);
+            validateComplianceAtTime.mockResolvedValue({ isCompliant: true, snapshot: { complianceScore: 100, status: 'compliant' } });
+            prisma.shiftAssignment.groupBy.mockResolvedValue([
+                { workerId: 'w1', workerConfirmation: 'confirmed', _count: { _all: 9 } },
+                { workerId: 'w1', workerConfirmation: 'declined', _count: { _all: 1 } },
+            ]);
+
+            const res = await request(app).get(`/api/shifts/${shiftId}/assignable-workers`).query({ page: 1, limit: 25 });
+
+            expect(res.status).toBe(200);
+            expect(res.body.workers[0].confirmationRate).toBe(90);
         });
 
         it('should filter workers by search query', async () => {

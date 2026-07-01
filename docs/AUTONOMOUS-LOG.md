@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (15) — Reliability at the point of assignment (assignable-workers enrichment)
+- **Item:** Reliability in the shift-assignment picker — backend slice
+- **Outcome:** shipped
+- **Changes:** `routes/shift-assignments.js` — after building the compliant-candidate list, `GET /:shiftId/assignable-workers` now enriches each worker with `confirmationRate` via one additive `shiftAssignment.groupBy` over the candidates' history (confirmed ÷ responded, null if none). No change to filtering/pagination/behaviour. Added `groupBy` to the test mock + a new test asserting the rate is computed (90% from 9/1).
+- **Verify:** `node --check` OK; `shift-assignments.test.js` **9/9** (+1); `npm run test:ci` = **23 suites / 198 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(shifts): reliability (confirmationRate) in assignable-workers
+- **Notes / decisions:** Continues the scorecards → shift-matcher thread by putting reliability **at the decision point** (the assignment picker), where it's most useful. Kept it strictly additive to the critical assignment path (extra field only) and verified via the existing suite. Frontend slice (show the badge in the picker) queued, then a rule-based "suggested workers" ordering. Founder-gated items unchanged (CSP report-only, auto-poster, £ earnings, worker-e2e test DB); Supabase password waived.
+
 ## 2026-07-01 (14) — Worker scorecards: coordinator view (feature complete)
 - **Item:** Worker scorecards — frontend slice
 - **Outcome:** shipped (feature complete end-to-end)

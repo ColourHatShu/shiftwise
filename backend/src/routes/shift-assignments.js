@@ -244,6 +244,32 @@ router.get('/assignable-workers', requireRole(['OWNER', 'ADMIN']), async (req, r
             }
         }
 
+        // Enrich each compliant worker with their reliability (confirmation rate) so
+        // coordinators can weigh reliability at the point of assignment. One extra
+        // aggregate query; additive only. confirmationRate = confirmed ÷ responded,
+        // null when the worker has no responded assignments yet.
+        const candidateIds = compliantWorkers.map((w) => w.id);
+        if (candidateIds.length > 0) {
+            const grouped = await prisma.shiftAssignment.groupBy({
+                by: ['workerId', 'workerConfirmation'],
+                where: { agencyId: req.agencyId, workerId: { in: candidateIds } },
+                _count: { _all: true },
+            });
+            const rateMap = new Map();
+            for (const row of grouped) {
+                const s = rateMap.get(row.workerId) || { confirmed: 0, declined: 0 };
+                const c = (row._count && row._count._all) || 0;
+                if (row.workerConfirmation === 'confirmed') s.confirmed += c;
+                else if (row.workerConfirmation === 'declined') s.declined += c;
+                rateMap.set(row.workerId, s);
+            }
+            for (const w of compliantWorkers) {
+                const s = rateMap.get(w.id);
+                const responded = s ? s.confirmed + s.declined : 0;
+                w.confirmationRate = responded > 0 ? Math.round((s.confirmed / responded) * 100) : null;
+            }
+        }
+
         // Get total count for pagination (all workers in agency, not assigned)
         const totalWorkers = await prisma.worker.count({
             where: {
