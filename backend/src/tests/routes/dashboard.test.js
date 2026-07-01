@@ -39,6 +39,18 @@ describe('GET /api/dashboard/stats', () => {
         expect(prisma.worker.count).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ agencyId: 'agency-1' }) }));
     });
 
+    it('excludes workers with an approved-but-expired doc from compliantWorkers', async () => {
+        await request(app).get('/api/dashboard/stats');
+        // compliantWorkers is the 2nd worker.count call.
+        const compliantArg = prisma.worker.count.mock.calls[1][0];
+        const none = compliantArg.where.complianceDocuments.none;
+        // Must catch approved-but-past-expiry docs, not just the (never-set) EXPIRED status.
+        const expiredApproved = none.OR.find((c) => c.status === 'APPROVED');
+        expect(expiredApproved).toBeDefined();
+        expect(expiredApproved.expiryDate).toHaveProperty('lt');
+        expect(expiredApproved.expiryDate.lt.getUTCHours()).toBe(0); // start-of-day boundary
+    });
+
     it('counts "expiring soon" from start-of-day (UTC midnight) so today is included', async () => {
         await request(app).get('/api/dashboard/stats');
         // The expiring-soon count is the 2nd complianceDocument.count call.

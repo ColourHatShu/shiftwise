@@ -42,13 +42,20 @@ router.get('/stats', requireAgency, async (req, res) => {
                 }
             }),
 
-            // Workers with ACTIVE status and no EXPIRED or REJECTED documents
+            // Workers with ACTIVE status and no problem documents. Nothing flips
+            // status to EXPIRED (expiry lives in expiryDate), so we must also catch
+            // approved-but-past-expiry docs — otherwise expired docs read as compliant.
             prisma.worker.count({
                 where: {
                     agencyId,
                     status: 'ACTIVE',
                     complianceDocuments: {
-                        none: { status: { in: ['EXPIRED', 'REJECTED'] } }
+                        none: {
+                            OR: [
+                                { status: { in: ['EXPIRED', 'REJECTED'] } },
+                                { status: 'APPROVED', expiryDate: { lt: startOfToday } }
+                            ]
+                        }
                     }
                 }
             })

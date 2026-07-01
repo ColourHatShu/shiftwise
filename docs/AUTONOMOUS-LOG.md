@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (56) — Bug: dashboard "compliant workers" ignored expiry (same root cause)
+- **Item:** Fix the flagged `dashboard.compliantWorkers` false-green (same phantom-EXPIRED root cause)
+- **Outcome:** shipped — false-green compliance signal now corrected across score + list + dashboard
+- **Bug:** `compliantWorkers` counted ACTIVE workers with `complianceDocuments: { none: { status: { in: ['EXPIRED','REJECTED'] } } }`. Since nothing ever sets `EXPIRED` status, that only excluded REJECTED — a worker with an approved-but-past-expiry doc was still counted as compliant on the dashboard "COMPLIANT" tile.
+- **Fix:** widened `none` to an `OR` that also matches `{ status: 'APPROVED', expiryDate: { lt: startOfToday } }` (approved-but-expired). Chose the patch-the-read approach (option b) — no founder decision needed, consistent with the score fix; the systemic nightly-job (option a) remains an optional enhancement. +1 test asserting the expired-approved condition + start-of-day boundary.
+- **Verify:** `node --check` OK; dashboard suite **4/4**; `npm run test:ci` = **38 suites / 283 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(dashboard): exclude expired-approved docs from compliant count
+- **Notes / decisions:** Fourteenth defect. The hot compliance reads (score, list, dashboard, assignment) are now all expiry-aware; the remaining `status:'EXPIRED'` readers (audit-pack bucket, pdf colour) are display-only and best fixed by the systemic nightly-job — left as a founder decision (plan). Still recommend a steer (matcher weights / no-show / CSP / auto-poster / £ earnings / phantom-EXPIRED approach) or a **"pause"**.
+
 ## 2026-07-01 (55) — 🔴 Bug: compliance score counted EXPIRED docs as compliant
 - **Item:** Self-review of `compliance-service.js` scoring (the core compliance calc)
 - **Outcome:** shipped (high-impact correctness fix + first real tests for the service)
