@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (43) — Test coverage for the untested worker-availability endpoint
+- **Item:** Self-review (security/authz) → coverage gap, not a bug
+- **Outcome:** shipped (test coverage)
+- **Review findings:** audited two worker-related write endpoints. `worker-assignments` (confirm/decline) is **correct + already well-tested** — fetches then checks `assignment.workerId !== req.worker.id` → 403 (cross-worker), uses the right `req.worker.id`, and has 10 tests incl. the ownership case. `worker-availability` (coordinator CRUD) is also **authz-correct** (agency-scoped, verifies worker-in-agency → 404) but had **no tests at all**.
+- **Changes:** new `src/tests/routes/worker-availability.test.js` — 10 tests: 404-for-out-of-agency-worker on GET/POST/DELETE, validation (missing fields, invalid status, invalid date), status upper-casing, date-range filter construction, upsert create-shape, delete success, and P2025→404.
+- **Verify:** new suite **10/10**; `npm run test:ci` = **27 suites / 230 tests, 0 failing**.
+- **Commit:** see git — 🛡️ test(worker-availability): cover authz + validation + CRUD
+- **Notes / decisions:** The self-review's bug hit-rate is (healthily) dropping — this target was clean, so the honest, valuable move was to lock its untested authorization behavior rather than manufacture a "fix". Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings) or a **"pause"**.
+
 ## 2026-07-01 (42) — Bug fix: out-of-scope `req` in checkWorkerCompliance catch
 - **Item:** Self-review — compliance-path consistency review surfaced a logging bug
 - **Outcome:** shipped (logging/observability correctness fix)
