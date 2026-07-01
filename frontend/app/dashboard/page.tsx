@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { Users, FileText, Clock, ShieldCheck, ArrowUpRight } from "lucide-react";
+import { Users, FileText, Clock, ShieldCheck, ArrowUpRight, CalendarClock } from "lucide-react";
 import { useApi } from "@/lib/use-api";
 
 interface Stats {
@@ -19,19 +19,25 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [agencyName, setAgencyName] = useState("");
     const [statsLoading, setStatsLoading] = useState(true);
+    const [shiftsNeedingAttention, setShiftsNeedingAttention] = useState(0);
 
     useEffect(() => {
         const fetchStats = async () => {
             if (!isLoaded || !isSignedIn) return;
             try {
-                const [statsRes, agencyRes] = await Promise.all([
+                const [statsRes, agencyRes, coverageRes] = await Promise.all([
                     apiFetch(`/api/dashboard/stats`),
                     apiFetch(`/api/agencies/me`),
+                    apiFetch(`/api/shift-coverage`),
                 ]);
                 if (statsRes.ok) setStats(await statsRes.json());
                 if (agencyRes.ok) {
                     const { data } = await agencyRes.json();
                     setAgencyName(data.name ?? "");
+                }
+                if (coverageRes.ok) {
+                    const { summary } = await coverageRes.json();
+                    setShiftsNeedingAttention(summary?.needingAttention ?? 0);
                 }
             } catch (err) {
                 console.error("Failed to fetch stats:", err);
@@ -124,6 +130,29 @@ export default function DashboardPage() {
                     <span>100%</span>
                 </div>
             </div>
+
+            {/* Shift coverage alert — only when upcoming shifts are short of workers */}
+            {!statsLoading && shiftsNeedingAttention > 0 && (
+                <Link
+                    href="/dashboard/shifts/coverage"
+                    className="flex items-center justify-between rounded-xl border border-[#FEF3C7] bg-[#FEF3C7]/50 p-5 transition-all hover:border-[#92400E]/30 hover:shadow-sm"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="rounded-lg bg-[#FEF3C7] p-2">
+                            <CalendarClock size={18} className="text-[#92400E]" />
+                        </div>
+                        <div>
+                            <h3 className="font-medium text-[#0A1628]">
+                                {shiftsNeedingAttention} upcoming shift{shiftsNeedingAttention === 1 ? "" : "s"} need{shiftsNeedingAttention === 1 ? "s" : ""} workers
+                            </h3>
+                            <p className="text-sm text-[#5B6E8C]">Not enough confirmed workers yet — review coverage.</p>
+                        </div>
+                    </div>
+                    <span className="flex items-center gap-1 text-sm font-medium text-[#92400E]">
+                        Review coverage <ArrowUpRight size={14} />
+                    </span>
+                </Link>
+            )}
 
             {/* Stats Grid */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

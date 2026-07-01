@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (20) — Surface shift-coverage gaps on the main dashboard
+- **Item:** Shift coverage — surface on the dashboard
+- **Outcome:** shipped
+- **Changes:** `frontend/app/dashboard/page.tsx` — added `/api/shift-coverage` to the dashboard's parallel fetch and an amber **actionable alert card** (CalendarClock, "N upcoming shift(s) need workers", "Review coverage →" linking to `/dashboard/shifts/coverage`), rendered only when `needingAttention > 0` (home stays clean when fully staffed). Correct singular/plural.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully (dashboard 4.16 kB).
+- **Commit:** see git — 🛡️ feat(dashboard): surface shift-coverage gaps alert
+- **Notes / decisions:** Chose a conditional prominent alert over a 5th stat card (a lone 5th card unbalances the 4-col grid; an alert is more actionable + self-hiding when there's nothing to act on). Puts the coverage signal where coordinators start their day. The coverage feature is now: API → dedicated view → dashboard alert. Founder-gated items unchanged.
+
 ## 2026-07-01 (19) — Shift coverage: coordinator gaps view (feature complete)
 - **Item:** Shift coverage — frontend slice
 - **Outcome:** shipped (feature complete end-to-end)
