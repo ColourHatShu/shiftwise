@@ -20,7 +20,7 @@ import type { Worker, DocumentType, ComplianceDocument, DocSlot, AnalysisResult 
 import { reliabilityRateStyle } from "@/lib/reliability";
 
 const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
-    NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-[#EBEEF5] text-[#5B6E8C] border-[#DDE3EE]", icon: XCircle },
+    NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-[#EBEEF5] text-[#52627E] border-[#DDE3EE]", icon: XCircle },
     PENDING: { label: "Pending Review", classes: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
     AI_ANALYSED: { label: "Scanned", classes: "bg-blue-50 text-blue-700 border-blue-200", icon: FileText },
     APPROVED: { label: "Verified", classes: "bg-green-50 text-green-700 border-green-200", icon: CheckCircle2 },
@@ -545,7 +545,7 @@ export default function WorkerProfilePage() {
                             <div className="flex items-center gap-3">
                                 <h1 className="text-2xl font-bold text-[#0A1628]">{worker.firstName} {worker.lastName}</h1>
                                 {worker.status === 'INACTIVE' && (
-                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBEEF5] text-[#5B6E8C] border border-[#DDE3EE]">
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBEEF5] text-[#52627E] border border-[#DDE3EE]">
                                         Inactive
                                     </span>
                                 )}

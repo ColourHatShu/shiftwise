@@ -11,7 +11,8 @@ export function reliabilityRateStyle(rate: number | null): {
     textClass: string;
 } {
     if (rate === null) {
-        return { label: "—", badgeClass: "bg-[#EBEEF5] text-[#5B6E8C]", textClass: "text-[#5B6E8C]" };
+        // #52627E (not the lighter #5B6E8C) so the grey badge clears WCAG AA (4.5:1) on #EBEEF5.
+        return { label: "—", badgeClass: "bg-[#EBEEF5] text-[#52627E]", textClass: "text-[#52627E]" };
     }
     const label = `${rate}%`;
     if (rate >= 80) return { label, badgeClass: "bg-[#DCFCE7] text-[#166534]", textClass: "text-[#166534]" };

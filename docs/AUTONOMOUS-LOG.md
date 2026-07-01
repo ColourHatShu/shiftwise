@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (37) — A11y: contrast audit finds + fixes a real AA failure
+- **Item:** A11y follow-up — icon-only buttons + status-badge contrast
+- **Outcome:** shipped (real WCAG AA failure found + fixed)
+- **Findings/changes:**
+  - **Icon-only buttons:** app-wide regex for `<button>…<Icon/>…</button>` without `aria-label` returned **zero** — already implemented, nothing to do (verified, not assumed).
+  - **Contrast:** computed WCAG ratios for every status/badge pair. All passed except the grey badge `#5B6E8C` on `#EBEEF5` = **4.46 (< AA 4.5)**. Darkened the text to **`#52627E` (5.31:1)** in the shared `components/ui/status-badge.tsx` (INACTIVE, NOT_UPLOADED), `lib/reliability.ts` (no-history badge), and the two worker-profile badges; updated the reliability unit test assertion. Confirmed no instance of the old failing pair remains.
+- **Verify:** frontend `npm run test:ci` = **11 files / 85 tests**; `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ a11y(ui): fix sub-AA grey badge contrast (#5B6E8C→#52627E)
+- **Notes / decisions:** A genuine defect fix, not churn — one status badge was failing WCAG AA and is now compliant across every place it renders (fixed at the shared component so it can't regress per-page). Completes the P14 accessibility thread. **Non-gated backlog now genuinely exhausted** — next value needs a founder decision (matcher weights / CSP report-only / auto-poster / £ earnings / a model-backed module) or a cron pause.
+
 ## 2026-07-01 (36) — A11y: table-header scope sweep across the older core pages
 - **Item:** A11y sweep of the older core pages (table headers)
 - **Outcome:** shipped (header sweep; icon-button aria + contrast deferred)

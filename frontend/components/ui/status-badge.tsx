@@ -10,10 +10,10 @@ type StatusStyle = { label: string; className: string };
 const STATUS_STYLES: Record<string, StatusStyle> = {
     // Worker statuses
     ACTIVE: { label: "Active", className: "bg-[#DCFCE7] text-[#166534]" },
-    INACTIVE: { label: "Inactive", className: "bg-[#EBEEF5] text-[#5B6E8C]" },
+    INACTIVE: { label: "Inactive", className: "bg-[#EBEEF5] text-[#52627E]" },
     SUSPENDED: { label: "Suspended", className: "bg-[#FEF3C7] text-[#92400E]" },
     // Document / compliance statuses
-    NOT_UPLOADED: { label: "Not Uploaded", className: "bg-[#EBEEF5] text-[#5B6E8C]" },
+    NOT_UPLOADED: { label: "Not Uploaded", className: "bg-[#EBEEF5] text-[#52627E]" },
     PENDING: { label: "Pending Review", className: "bg-[#FEF3C7] text-[#92400E]" },
     APPROVED: { label: "Verified", className: "bg-[#DCFCE7] text-[#166534]" },
     EXPIRING_SOON: { label: "Expiring Soon", className: "bg-[#FEF3C7] text-[#92400E]" },

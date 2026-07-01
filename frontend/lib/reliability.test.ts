@@ -5,7 +5,7 @@ describe('reliabilityRateStyle', () => {
     it('returns a grey "—" for no history (null)', () => {
         const s = reliabilityRateStyle(null);
         expect(s.label).toBe('—');
-        expect(s.badgeClass).toContain('#5B6E8C');
+        expect(s.badgeClass).toContain('#52627E'); // AA-compliant grey on #EBEEF5
     });
 
     it('is green at or above 80', () => {
