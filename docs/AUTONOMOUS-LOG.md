@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (33) — Dashboard coverage-alert page test (page-test coverage complete)
+- **Item:** Dashboard coverage-alert test (closes out P13)
+- **Outcome:** shipped — all four new feature surfaces now have page-level tests
+- **Changes:** `frontend/app/dashboard/page.test.tsx` — mocks Clerk `useAuth` (loaded + signed-in) and `useApi` (routed by URL: shift-coverage / agencies-me / dashboard-stats), asserting the coverage **alert shows when `needingAttention > 0`** and is **absent when 0**. Used `findAllByText`/`queryAllByText` since the alert text nests (span inside the anchor).
+- **Verify:** dashboard file **2/2**; frontend `npm run test:ci` = **11 files / 85 tests**; `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ test(frontend): dashboard coverage-alert page test
+- **Notes / decisions:** Completes P13 — the reliability, coverage, expiring-docs, and dashboard-alert surfaces all have page-level regression tests now (backend routes were already covered). First test to mock Clerk in this suite; establishes the pattern for any future Clerk-dependent page. Genuinely no clean non-gated work left after this — remaining is founder-gated (tune shift-matcher weights, CSP report-only, auto-poster, £ earnings, model-backed features, worker-e2e test DB). Recommend a steer or pausing the cron.
+
 ## 2026-07-01 (32) — Page tests for scorecards + expiring views
 - **Item:** Extend page tests to the other new views
 - **Outcome:** shipped (scorecards + expiring; dashboard-alert deferred)
