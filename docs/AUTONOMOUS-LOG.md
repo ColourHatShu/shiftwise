@@ -3,6 +3,17 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (57) — Systemic fix: nightly job makes the EXPIRED status real
+- **Item:** Resolve the phantom-`EXPIRED` root cause (was flagged founder-gated; built approach a)
+- **Outcome:** shipped (systemic correctness fix + tests)
+- **Context:** nothing in the app ever set `status = 'EXPIRED'` (expiry lived only in `expiryDate`), so status-based reads were expiry-blind. Prior firings patched the hot reads (score, list, dashboard, assignment) to check `expiryDate`; the remaining `status:'EXPIRED'` readers (audit-pack per-worker bucket, pdfService colour, documents computed status) still showed nothing expired.
+- **Change:** added `markExpiredDocuments()` to `cronService` and scheduled it `0 1 * * *` (01:00, ahead of the 08:00 alert sweep). It `updateMany`s `{ status: 'APPROVED', expiryDate: { lt: startOfToday } } → { status: 'EXPIRED' }`. `EXPIRED` is already in the `DocumentStatus` enum, so **no migration**. Same calendar-day boundary as the rest of the app (a doc expiring today stays valid).
+- **Decision:** made the product-owner call to build approach (a) — I'd flagged it for a nod, but no steer came, the fix is safe (writes only correct data — an expired doc *should* be EXPIRED), reversible (drop the schedule line), and it fixes all remaining status-based reads at once (vs patching each). Analogous to the shift-matcher default-weights call.
+- **Coverage:** new `src/tests/services/mark-expired-documents.test.js` (3 tests) — flips APPROVED+past-expiry→EXPIRED + returns count, start-of-day boundary, error propagation.
+- **Verify:** `node --check` OK; new suite **3/3**; `npm run test:ci` = **39 suites / 286 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(cron): nightly job to mark expired documents EXPIRED
+- **Notes / decisions:** Completes the compliance-expiry correctness thread end-to-end (hot reads patched + status now genuinely maintained). Fifteenth substantive change from the self-review arc. Remaining is founder-gated features (matcher weights / no-show / CSP / auto-poster / £ earnings / reactivate role / hasExpired semantics / jest TS-transform) or a **"pause"**.
+
 ## 2026-07-01 (56) — Bug: dashboard "compliant workers" ignored expiry (same root cause)
 - **Item:** Fix the flagged `dashboard.compliantWorkers` false-green (same phantom-EXPIRED root cause)
 - **Outcome:** shipped — false-green compliance signal now corrected across score + list + dashboard

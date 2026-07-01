@@ -504,9 +504,37 @@ const generateComplianceSnapshots = async () => {
 };
 
 /**
+ * Flip APPROVED documents whose expiryDate has passed to status EXPIRED.
+ * Nothing else in the app transitions documents to EXPIRED, so without this the
+ * status is a phantom and status-based reads (audit-pack counts, PDF colour,
+ * dashboards) are expiry-blind. A document expiring *today* stays valid (lt
+ * startOfToday), matching the rest of the app's calendar-day expiry semantics.
+ */
+const markExpiredDocuments = async () => {
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    try {
+        const result = await prisma.complianceDocument.updateMany({
+            where: { status: 'APPROVED', expiryDate: { lt: startOfToday } },
+            data: { status: 'EXPIRED' },
+        });
+        log.info({ count: result.count }, 'Marked expired documents');
+        return result.count;
+    } catch (err) {
+        log.error({ err }, 'Failed to mark expired documents');
+        Sentry.captureException(err, { tags: { context: 'markExpiredDocuments' } });
+        throw err;
+    }
+};
+
+/**
  * Maps the cronService to specific intervals. Default is 8:00 AM server time.
  */
 const initCronJobs = () => {
+    // Flip expired documents to EXPIRED at 01:00, before the day's reads/alerts.
+    cron.schedule('0 1 * * *', markExpiredDocuments);
+    log.info('Initialized daily expired-document status sweep (01:00 AM)');
+
     // 0 8 * * * = "At 08:00 every day"
     cron.schedule('0 8 * * *', checkExpiriesAndAlert);
     log.info('Initialized daily background expiry sweep (08:00 AM)');
@@ -523,6 +551,7 @@ const initCronJobs = () => {
 module.exports = {
     initCronJobs,
     checkExpiriesAndAlert,
+    markExpiredDocuments,
     retryFailedAlerts,
     generateComplianceSnapshots
 };
