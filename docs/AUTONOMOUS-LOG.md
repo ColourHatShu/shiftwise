@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (45) — Test coverage for compliance approve/reject/deactivate
+- **Item:** Self-review of the untested, compliance-critical state-changers in `compliance.js`
+- **Outcome:** shipped (coverage; endpoints reviewed clean)
+- **Review:** `POST /document/:id/approve`, `/document/:id/reject`, `/worker/:id/deactivate` are all correctly agency-scoped (`findFirst {id, agencyId}` → 404), role-gated (`requireRole(['OWNER','ADMIN'])`), and audit-logged. No authz or crash bug. Reject-reason defaults to `''` (optional) — a design choice, not a defect.
+- **Changes:** new `src/tests/routes/compliance-actions.test.js` — 6 tests: 404-for-out-of-agency-target on all three, plus approve→APPROVED (+audit log), reject→REJECTED with reason, deactivate→INACTIVE. Mocks prisma / auth / Sentry / compliance-service.
+- **Verify:** new suite **6/6**; `npm run test:ci` = **29 suites / 244 tests, 0 failing**.
+- **Commit:** see git — 🛡️ test(compliance): cover approve/reject/deactivate authz + happy paths
+- **Notes / decisions:** Another clean target → locked its authorization rather than manufacture a fix. Backend route coverage is now broad (assignments, availability, workers, compliance actions, scorecards, coverage, expiring, matcher). Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the `reactivate` role check flagged last firing) or a **"pause"**.
+
 ## 2026-07-01 (44) — Bug + tests for workers.js (PATCH null-field crash)
 - **Item:** Self-review of the untested, core `workers.js` CRUD
 - **Outcome:** shipped (bug fix + coverage; one authz finding flagged for the founder)
