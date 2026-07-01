@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (25) — Core promise: expiring-documents worklist (backend slice)
+- **Item:** Expiring-documents worklist — backend slice (serves the product's core promise)
+- **Outcome:** shipped
+- **Changes:** new `backend/src/routes/expiring-documents.js` — `GET /api/expiring-documents?days=30` (agency-scoped, days clamped 1..365, active workers only) → a flat, `expiryDate asc` list of docs that are overdue or expiring within the window, each with `daysUntilExpiry` (negative = overdue) + `overdue` flag, plus a `{ total, overdue, windowDays }` summary. **Includes already-expired** docs (an overdue doc is an active compliance breach) — unlike the worker-grouped, future-only `reports/expiring`. Mounted at `/api/expiring-documents`. +4 tests.
+- **Verify:** route `require()` loads; `node --check src/server.js` OK; new test **4/4**; `npm run test:ci` = **25 suites / 209 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(documents): expiring/overdue documents worklist API
+- **Notes / decisions:** Found a real core-promise gap: no *actionable* expiring-docs worklist (the dashboard "EXPIRING SOON" count just links to the whole documents page; `reports/expiring` is a future-only, worker-grouped downloadable report). This flat overdue-first worklist is the coordinator's core daily task ("catch expiring docs before they lapse"). Frontend view + re-pointing the dashboard card queued as slice 2 (plan P11). Founder-gated items unchanged.
+
 ## 2026-07-01 (24) — DRY the reliability rate→colour helper (+tests)
 - **Item:** Extract a shared reliability colour helper
 - **Outcome:** shipped

@@ -131,6 +131,9 @@ app.use('/api/documents', documentsRouter);
 const documentTypesRouter = require('./routes/document-types');
 app.use('/api/document-types', documentTypesRouter);
 
+const expiringDocumentsRouter = require('./routes/expiring-documents');
+app.use('/api/expiring-documents', expiringDocumentsRouter);
+
 const alertsRouter = require('./routes/alerts');
 app.use('/api/alerts', alertsRouter);
 
