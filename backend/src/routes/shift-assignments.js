@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma');
 const logger = require('../lib/logger');
 const { requireAgency, requireRole } = require('../lib/auth');
 const { validateComplianceAtTime, validateComplianceForWorkers } = require('../lib/compliance-assignment');
+const { rankSuggestedWorkers } = require('../lib/rank-suggested-workers');
 
 const router = express.Router({ mergeParams: true });
 
@@ -365,20 +366,12 @@ router.get('/suggested-workers', requireRole(['OWNER', 'ADMIN']), async (req, re
             });
         }
 
-        compliant.sort((a, b) => {
-            if (a.confirmationRate !== b.confirmationRate) {
-                if (a.confirmationRate === null) return 1;
-                if (b.confirmationRate === null) return -1;
-                return b.confirmationRate - a.confirmationRate;
-            }
-            if (b.complianceScore !== a.complianceScore) return b.complianceScore - a.complianceScore;
-            return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-        });
+        const ranked = rankSuggestedWorkers(compliant);
 
         res.json({
-            data: compliant.slice(0, limit).map((w, i) => ({ rank: i + 1, ...w })),
+            data: ranked.slice(0, limit).map((w, i) => ({ rank: i + 1, ...w })),
             meta: {
-                compliantCandidates: compliant.length,
+                compliantCandidates: ranked.length,
                 scanned: candidates.length,
                 scanCapped: workers.length >= SCAN_CAP,
                 ranking: 'confirmationRate desc (no-history last), then complianceScore desc',

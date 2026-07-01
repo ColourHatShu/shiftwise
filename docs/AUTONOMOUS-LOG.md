@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (34) — Extract shift-matcher ranking to a pure, tested function
+- **Item:** De-risk the pending weight-tuning by extracting the matcher's ranking
+- **Outcome:** shipped
+- **Changes:** new `backend/src/lib/rank-suggested-workers.js` (`rankSuggestedWorkers`, pure + non-mutating) holding the documented default rule (confirmationRate desc → null last → complianceScore desc → name asc); refactored `routes/shift-assignments.js`'s `suggested-workers` handler to call it (removed the inline sort). +6 focused unit tests (rate-desc, null-last, compliance tie-break, name tie-break, two-null stability, no-mutation).
+- **Verify:** `node --check` + `require()` OK; new unit test **6/6**; matcher route suite still **11/11** (refactor behaviour-preserving); `npm run test:ci` = **26 suites / 217 tests, 0 failing**.
+- **Commit:** see git — 🛡️ refactor(shifts): extract shift-matcher ranking to a pure tested fn
+- **Notes / decisions:** With the clean backlog empty, picked the item that most directly serves the one high-value pending decision (founder ranking weights): the ranking rule now lives in one pure, unit-tested place, so tuning is a single-function edit (and the natural home for distance/skills/rotation). Adds edge-case coverage the happy-path route test didn't have. Not speculative, no migration, behaviour-preserving. **Genuinely nothing clean+non-gated remains** — recommend a steer (tune weights / CSP report-only / auto-poster / £ earnings / model-backed feature) or pausing the cron.
+
 ## 2026-07-01 (33) — Dashboard coverage-alert page test (page-test coverage complete)
 - **Item:** Dashboard coverage-alert test (closes out P13)
 - **Outcome:** shipped — all four new feature surfaces now have page-level tests
