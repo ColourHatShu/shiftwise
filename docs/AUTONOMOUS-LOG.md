@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (12) — Finish compliance-dashboard coverage; founder waived password rotation
+- **Item:** (non-gated backlog empty) — completed unit coverage of the `compliance-dashboard` module
+- **Outcome:** shipped
+- **Changes:** new `frontend/lib/compliance-dashboard.aggregation.test.ts` — 6 tests for `calculateOverallCompliance` (empty → 0, rounded average), `groupByStatus` (partition + empty buckets), `verifyScoreFormula` (100 when none required, rounded %). Combined with earlier work, the whole module (filters/sort/paginate/query-string/status/aggregation) is now unit-tested.
+- **Verify:** new file **6/6**; frontend `npm run test:ci` = **6 files / 73 tests** (was 67); `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ test(frontend): finish compliance-dashboard module coverage
+- **🟢 Founder decision:** the founder said the **Supabase password does NOT need rotating ("its fine")** — so that recommendation is **withdrawn**; the Knight will stop flagging it. (It was only ever a flag in firing summaries, not a plan item.)
+- **Notes / decisions:** Non-gated backlog remains exhausted; chose concrete regression coverage over a speculative ideation pass. Remaining work is founder-gated: **CSP (report-only)**, **auto-poster**, **£ earnings**, and the **worker-e2e test DB**. Recommend pausing the cron or greenlighting one of those; further firings will otherwise be speculative polish.
+
 ## 2026-07-01 (11) — Real project README (replace create-next-app boilerplate)
 - **Item:** (non-gated backlog empty) — shipped a genuine documentation deliverable instead of a speculative ideation pass
 - **Outcome:** shipped
