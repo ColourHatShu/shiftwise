@@ -46,6 +46,16 @@ describe('GET /api/expiring-documents', () => {
         expect(res.body.summary).toMatchObject({ total: 2, overdue: 1, windowDays: 30 });
     });
 
+    it('treats a document expiring today as 0 days out and NOT overdue (no off-by-one)', async () => {
+        prisma.complianceDocument.findMany.mockResolvedValue([
+            { id: 'today', expiryDate: daysFromNow(0), status: 'APPROVED', worker: { id: 'w1', firstName: 'A', lastName: 'B' }, documentType: { name: 'DBS' } },
+        ]);
+        const res = await request(app).get('/api/expiring-documents');
+        expect(res.status).toBe(200);
+        expect(res.body.data[0]).toMatchObject({ daysUntilExpiry: 0, overdue: false });
+        expect(res.body.summary.overdue).toBe(0);
+    });
+
     it('clamps the days window (1..365) and queries active workers only', async () => {
         prisma.complianceDocument.findMany.mockResolvedValue([]);
         const res = await request(app).get('/api/expiring-documents?days=99999');

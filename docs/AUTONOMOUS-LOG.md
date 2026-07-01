@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (41) — Bug fix: off-by-one in expiring-documents (today ≠ overdue)
+- **Item:** Self-review bug-hunt → date off-by-one in the expiring worklist
+- **Outcome:** shipped (correctness fix)
+- **Bug:** `expiring-documents` computed `daysUntilExpiry = Math.floor((expiryDate@midnightUTC − now@currentTime)/day)`. Because `now` carried the current time-of-day while `expiryDate` is midnight, a document expiring **today** evaluated to `−1` → `overdue: true` and a "Expired 1d ago" label, and it inflated `summary.overdue` — even though the document is still valid today. (`shift-coverage.js` was reviewed in the same pass and is correct — no change.)
+- **Fix:** compute a **calendar-day** difference — normalize both `today` and `expiryDate` to UTC midnight and `Math.round` the day delta. Now: expiring today → `0` / not overdue; yesterday → `−1` / overdue; future → positive. Added a regression test (today → `daysUntilExpiry 0`, `overdue false`, `summary.overdue 0`); existing overdue/future assertions still hold (both normalize cleanly).
+- **Verify:** `node --check` OK; expiring suite **5/5**; `npm run test:ci` = **26 suites / 219 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(documents): correct expiring off-by-one (today not overdue)
+- **Notes / decisions:** Third real bug from the self-review thread. Mislabeling a still-valid compliance doc as "expired" is exactly the kind of trust bug that matters for a CQC-audit product. Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings) or a **"pause"**.
+
 ## 2026-07-01 (40) — Bug fix: close the deactivated-worker assign write-path
 - **Item:** Self-review follow-through — the assign *write* path still let deactivated workers through
 - **Outcome:** shipped (defense-in-depth correctness/safety fix)

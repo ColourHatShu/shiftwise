@@ -36,9 +36,14 @@ router.get('/', async (req, res) => {
             orderBy: { expiryDate: 'asc' },
         });
 
-        const now = new Date();
+        // Compare calendar days (both at UTC midnight) so a document expiring *today*
+        // is 0 days out / not overdue — not −1 / "expired" as a time-of-day diff would give.
+        const todayMidnight = new Date();
+        todayMidnight.setUTCHours(0, 0, 0, 0);
         const data = docs.map((d) => {
-            const daysUntilExpiry = Math.floor((new Date(d.expiryDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const expiryMidnight = new Date(d.expiryDate);
+            expiryMidnight.setUTCHours(0, 0, 0, 0);
+            const daysUntilExpiry = Math.round((expiryMidnight.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
             return {
                 documentId: d.id,
                 workerId: d.worker.id,
