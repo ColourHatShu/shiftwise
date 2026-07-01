@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (52) — Test coverage for shift-requirements CRUD (clean)
+- **Item:** Self-review of the untested `shift-requirements.js`
+- **Outcome:** shipped (coverage; reviewed clean)
+- **Review:** POST/GET/PUT/DELETE template endpoints are agency-scoped + `OWNER/ADMIN`-gated. PUT and DELETE fetch by id then verify `template.agencyId !== req.agencyId` → 404 (IDOR-safe), POST validates + dedupes by `agencyId_templateName`. No crash/authz/IDOR bug.
+- **Changes:** new `src/tests/routes/shift-requirements.test.js` (7 tests) — create validation (400) / duplicate (400) / success (201, agency-scoped), cross-agency 404 on PUT + DELETE, update + delete happy paths.
+- **Verify:** new suite **7/7**; `npm run test:ci` = **35 suites / 273 tests, 0 failing**.
+- **Commit:** see git — 🛡️ test(shift-requirements): cover CRUD authz + validation
+- **Notes / decisions:** Clean target → locked its authz. The untested *requirable* route list is nearly exhausted (only `alerts` remains; `documents`/`security-pipeline` need the founder-gated jest TS-transform). Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the flagged `reactivate` + `hasExpired` findings + TS-transform) or a **"pause"**.
+
 ## 2026-07-01 (51) — Bug + tests: dashboard "expiring soon" dropped today
 - **Item:** Self-review of the untested `dashboard.js` (date-filter hypothesis from the reports fix)
 - **Outcome:** shipped (correctness fix + coverage)
