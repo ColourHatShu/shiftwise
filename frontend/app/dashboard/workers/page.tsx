@@ -5,7 +5,7 @@ import React from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight, Upload } from "lucide-react";
+import { Plus, User, Search, Eye, Edit, ArrowUpRight, ChevronLeft, ChevronRight, Upload, TrendingUp } from "lucide-react";
 import EditWorkerModal from './components/EditWorkerModal';
 import WorkerBulkUploadModal from './components/WorkerBulkUploadModal';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -255,6 +255,13 @@ export default function WorkersPage() {
                     <p className="text-[#5B6E8C] mt-1">Manage your agency's healthcare staff</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Link
+                        href="/dashboard/workers/scorecards"
+                        className="flex items-center gap-2 border border-[#DDE3EE] text-[#003087] hover:bg-[#F5F7FA] px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        <TrendingUp size={18} />
+                        Reliability
+                    </Link>
                     <button
                         onClick={() => setShowBulkImport(true)}
                         className="flex items-center gap-2 border border-[#DDE3EE] text-[#003087] hover:bg-[#F5F7FA] px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"

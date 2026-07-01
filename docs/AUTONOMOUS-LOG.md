@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (14) — Worker scorecards: coordinator view (feature complete)
+- **Item:** Worker scorecards — frontend slice
+- **Outcome:** shipped (feature complete end-to-end)
+- **Changes:** new `frontend/app/dashboard/workers/scorecards/page.tsx` — a reliability table (assigned/confirmed/declined/pending + colour-coded confirmation-rate badge: green ≥80, amber ≥50, red, grey "—" for no data), rows link to the worker profile; `useApi` → `/api/worker-scorecards`, `Skeleton` loading + `EmptyState` empty. Added a "Reliability" link (TrendingUp) to the Workers page header.
+- **Verify:** build ✅ (✓ Compiled successfully; new route `/dashboard/workers/scorecards` 3.22 kB), lint ✅ 0 errors, tests ⏭️ (frontend-only; the API was tested in the backend slice).
+- **Commit:** see git — 🛡️ feat(workers): reliability scorecards coordinator view
+- **Notes / decisions:** Completes the worker-scorecards feature (API + UI) — coordinators can now see at a glance who reliably confirms shifts. Design-system styled, consistent with the rest of the dashboard. Couldn't visually verify (no localhost) — build/lint pass; founder to eyeball. Next thread: this is the foundation for the AI shift-matcher (rank assignable workers by reliability + compliance + distance). Remaining gated items unchanged (CSP report-only, auto-poster, £ earnings, worker-e2e test DB).
+
 ## 2026-07-01 (13) — New feature: worker reliability scorecards (backend slice)
 - **Item:** Worker reliability scorecards — backend slice (promoted from IDEAS.md; "keep shipping real value" over speculative polish)
 - **Outcome:** shipped
