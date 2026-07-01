@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (53) — Test coverage for alerts endpoints — route sweep complete
+- **Item:** Self-review of the last untested requirable route, `alerts.js`
+- **Outcome:** shipped (coverage; reviewed clean) — backend route-coverage sweep complete
+- **Review:** `GET /alerts/test` + `DELETE /alerts/reset-test` are `requireAgency` + `OWNER/ADMIN`, blocked in production unless `ALLOW_ALERT_TEST_ENDPOINTS`, and agency-scoped (trigger passes `{agencyId}`; reset deletes only alerts whose `complianceDocument.agencyId` / audit logs whose `agencyId` == caller's). A prior BLOCKER-fix (was unauthenticated/cross-tenant); no bug now.
+- **Changes:** new `src/tests/routes/alerts.test.js` (4 tests) — agency-scoped trigger, prod 403 on trigger, agency-scoped reset (asserts the delete `where` is scoped), prod 403 on reset.
+- **Verify:** new suite **4/4**; `npm run test:ci` = **36 suites / 277 tests, 0 failing**.
+- **Commit:** see git — 🛡️ test(alerts): cover prod-guard + agency-scoped trigger/reset
+- **Milestone:** every backend route is now tested **or** has a documented blocker (`documents.js` + `security-pipeline` need the founder-gated jest TS-transform). The self-review thread (firings 39–53) delivered **11 real defects** (incl. a cross-tenant IDOR + three expiry off-by-ones) and coverage across ~10 previously-untested routes. Backend tests: **60 → 277**.
+- **Notes / decisions:** The systematic self-review is now genuinely complete — further firings would be low-yield without a steer. Strongly recommend the founder pick one: matcher weights / no-show module / CSP report-only / auto-poster / £ earnings / confirm the flagged `reactivate` + `hasExpired` findings / greenlight the jest TS-transform — or **"pause"** the cron.
+
 ## 2026-07-01 (52) — Test coverage for shift-requirements CRUD (clean)
 - **Item:** Self-review of the untested `shift-requirements.js`
 - **Outcome:** shipped (coverage; reviewed clean)
