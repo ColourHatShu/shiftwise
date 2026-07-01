@@ -9,6 +9,17 @@
 > `ef91788`. This backlog is the remaining Wave B polish + Wave C features +
 > quality work. The Knight may re-prioritise and add items as product owner.
 
+## 🧭 NEXT MILESTONE — awaiting founder direction (2026-07-01)
+The safely-buildable, non-gated backlog is **exhausted**. This session shipped a full quality foundation (CI + ~285 tests, structured logging, 3 production-class bug fixes, env/pagination hardening) **and three complete feature threads**: worker **reliability** (scorecards + assignment badges + suggested + profile panel), shift **coverage** (gaps view + dashboard alert), and the core-promise **expiring/overdue documents worklist**. Remaining work needs a founder decision — pick one and the loop runs with it:
+- **AI shift-matcher** (the capstone) — all inputs exist (compliance + reliability on `assignable-workers`). Needs the ranking philosophy. *If greenlit with no preference, the Knight will default to: fully-compliant first, then confirmation-rate desc, new/no-history workers last — tunable later.* Greenlight: **"build the shift-matcher"** (optionally state weights).
+- **Custom Helmet CSP** — ship **report-only first** (non-breaking). Greenlight: **"do the CSP (report-only)"**.
+- **Auto-poster** — needs a spec of what it posts where. Greenlight: **"build the auto-poster"** + a one-line spec.
+- **£ earnings / pay-rate model** — needs the rate data/business rules (per-worker or per-role hourly). Greenlight with the model.
+- **Model-backed features** (each needs a small Prisma model + your nod): in-app **notifications centre**, **no-show/late incident** workflow, **care-home contact rolodex**, **coordinator handoff notes**.
+- **Test infra:** make the `worker-e2e` / `security-pipeline` suites runnable (needs a **test DB** decision — CI Postgres service vs a dedicated Supabase test project).
+
+Until a direction is given, further autonomous firings are marginal polish only — consider pausing the 10-min cron.
+
 ## P1 — Robustness, trust & accessibility
 - [x] **(discovered P0)** Fix production build-breaker: `worker/dashboard/shifts/page.tsx` read `localStorage` at render time → `next build` failed for all pages. Moved to a post-mount `useEffect`.
 - [x] Add a responsive mobile sidebar drawer to `frontend/app/dashboard/layout.tsx` (app is currently desktop-only at a fixed 220px sidebar)

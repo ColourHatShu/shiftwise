@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (28) — Milestone summary + roadmap reset (ideation)
+- **Item:** (0 non-gated actionable items) — milestone summary + roadmap, not marginal polish
+- **Outcome:** planning
+- **Changes:** added a prominent **"🧭 NEXT MILESTONE — awaiting founder direction"** section at the top of `AUTONOMOUS-PLAN.md` with a prioritized menu of the remaining (all founder-gated/decision-needing) work + one-word greenlights: AI shift-matcher (with the default ranking the Knight would use), CSP report-only, auto-poster, £ earnings, model-backed features (notifications / no-show / rolodex / handoff notes), and the worker-e2e test-DB decision.
+- **Verify:** docs only — no code/build impact.
+- **Commit:** see git — 🛡️ docs(knight): milestone summary + next-milestone roadmap
+- **Session recap:** from this morning's state, the loop delivered — CI (GitHub Actions) + ~285 green tests (backend + frontend, from zero frontend tests), structured pino logging across the codebase, **3 production-class bug fixes** (Sentry-on-boot crash, worker-login P0, multi-tenant document leak), env-validation + pagination hardening, a real README, and **3 complete feature threads** (reliability, coverage, expiring-docs worklist) fully surfaced + discoverable. ~30 features/fixes shipped to `main`, all CI-gated.
+- **Decision:** with the clean non-gated backlog genuinely exhausted, chose an honest roadmap reset over manufacturing another marginal change. **Strongly recommend the founder either greenlight one item above or pause the 10-min cron** — further firings would be speculative or trivial. The Knight will keep the repo green and await direction.
+
 ## 2026-07-01 (27) — Expiring worklist discoverability (docs header + ⌘K)
 - **Item:** Make the expiring worklist discoverable
 - **Outcome:** shipped
