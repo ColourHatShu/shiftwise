@@ -165,14 +165,20 @@ const retryFailedAlerts = async () => {
 /**
  * Executes a manual sweep of all ComplianceDocuments, triggering alerts.
  */
-const checkExpiriesAndAlert = async () => {
-    log.info('Starting daily document expiry check');
+const checkExpiriesAndAlert = async (options = {}) => {
+    // Optional agency scope: the nightly cron runs globally (no arg), but the
+    // manual /alerts/test endpoint passes { agencyId } so an admin only triggers
+    // their OWN agency's alerts (not every agency's). node-cron may invoke this
+    // with a Date tick — `options?.agencyId` is undefined for that, so it stays global.
+    const agencyId = options && options.agencyId;
+    log.info({ agencyId: agencyId || 'ALL' }, 'Starting document expiry check');
 
     try {
         // Find all documents that have an expiry date setup, regardless of verification status
         const activeDocuments = await prisma.complianceDocument.findMany({
             where: {
-                expiryDate: { not: null }
+                expiryDate: { not: null },
+                ...(agencyId ? { agencyId } : {})
             },
             include: {
                 worker: true,

@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (54) — Bug: manual alert trigger fired alerts for ALL agencies
+- **Item:** Self-review of the untested `cronService` expiry-alert engine (core promise)
+- **Outcome:** shipped (cross-tenant correctness fix + first cronService tests)
+- **Bug:** `checkExpiriesAndAlert = async () => {}` took no args and queried every document with an expiry (`where: { expiryDate: { not: null } }`, no agency filter). The nightly cron wants that (global). But `/alerts/test` calls `checkExpiriesAndAlert({ agencyId: req.agencyId })` — the arg was **silently ignored**, so an OWNER/ADMIN manually triggering the "test" scan ran it **globally** and sent real expiry-alert emails for **all** agencies' documents (a cross-tenant side-effect; last firing's alerts test asserted the route *passes* agencyId but the engine ignored it). Reset was scoped; trigger was not.
+- **Fix:** `checkExpiriesAndAlert(options = {})` reads `options.agencyId` and adds it to the `where` when present; no arg (or a node-cron Date tick) → global, unchanged. Callers: cron `cron.schedule(..., checkExpiriesAndAlert)` stays global; `/alerts/test` now genuinely scopes to the caller.
+- **Coverage:** new `src/tests/services/cron-expiry-scope.test.js` (3 tests, empty doc-set so the email loop doesn't run) — scoped when `{agencyId}` passed, global on no-arg, global on Date tick. cronService had no tests before.
+- **Verify:** `node --check` OK; new suite **3/3**; `npm run test:ci` = **37 suites / 280 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(cron): scope manual expiry-alert trigger to the caller's agency
+- **Notes / decisions:** Twelfth defect from the self-review thread — and it validates going past the route sweep into services. Gated behind dev-mode + role so limited blast radius, but genuinely wrong (unsafe on shared/staging + prod-with-flag). Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / the flagged reactivate + hasExpired + TS-transform) or a **"pause"**.
+
 ## 2026-07-01 (53) — Test coverage for alerts endpoints — route sweep complete
 - **Item:** Self-review of the last untested requirable route, `alerts.js`
 - **Outcome:** shipped (coverage; reviewed clean) — backend route-coverage sweep complete
