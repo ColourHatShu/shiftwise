@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (59) — Test coverage for the expiry-alert dead-letter retry (clean)
+- **Item:** Self-review of `retryFailedAlerts` (the retry path my emailService fix now feeds)
+- **Outcome:** shipped (coverage; reviewed clean)
+- **Review:** `retryFailedAlerts` fetches `FailedAlert` rows (`PENDING`/`RETRYING`, `retryCount < 3`), marks RETRYING + increments, re-sends via `sendExpiryAlert`; on success → RESOLVED + creates the ExpiryAlert (P2002 dedup handled); on failure → `FAILED_PERMANENTLY` when `retryCount+1 >= 3`, else back to PENDING. Correct + robust, and it composes correctly with the emailService fix (Resend errors now throw → caught → retried/permanently-failed). `getDaysDiff` also reviewed — correct UTC-midnight calendar diff. No bug.
+- **Changes:** new `src/tests/services/retry-failed-alerts.test.js` (3 tests) — resolve+record on success, transient failure → PENDING, max-attempt failure → FAILED_PERMANENTLY.
+- **Verify:** new suite **3/3**; `npm run test:ci` = **41 suites / 292 tests, 0 failing**.
+- **Commit:** see git — 🛡️ test(cron): cover the failed-alert retry state machine
+- **Notes / decisions:** cronService is now fully reviewed + tested (checkExpiriesAndAlert scoping fixed, markExpiredDocuments added, retryFailedAlerts covered; only generateComplianceSnapshots remains). Self-review arc: **16 defects fixed + broad coverage**, backend tests 60 → 292. Still recommend a steer (matcher weights / no-show / CSP / auto-poster / £ earnings / reactivate role / hasExpired / TS-transform) or a **"pause"**.
+
 ## 2026-07-01 (58) — Bug: expiry-alert emails silently dropped on Resend errors
 - **Item:** Self-review of `emailService.js` (the core-promise alert delivery)
 - **Outcome:** shipped (correctness fix + first emailService tests)
