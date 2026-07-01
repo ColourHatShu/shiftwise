@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (42) — Bug fix: out-of-scope `req` in checkWorkerCompliance catch
+- **Item:** Self-review — compliance-path consistency review surfaced a logging bug
+- **Outcome:** shipped (logging/observability correctness fix)
+- **Bug:** `checkWorkerCompliance(workerId, agencyId)` in `shift-assignments.js` is a module-level helper (no `req`), but its `catch` used `(req.log || logger).error(...)`. On a DB error during the compliance check it therefore threw `ReferenceError: req is not defined` instead of logging — the real error was masked (the route's own catch still returns 500, so it's observability, not user-facing). A leftover from the console→pino migration applying the `req.log` pattern to a non-handler.
+- **Fix:** use the module-level `logger`. Grepped every `req.log` in `backend/src` and confirmed this was the **only** occurrence in a non-`(req,res)` scope (all others are route handlers). Added a test that drives the compliance-check error path and asserts a graceful 500.
+- **Verify:** `node --check` OK; shift-assignments suite **13/13**; `npm run test:ci` = **26 suites / 220 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(shifts): use base logger in checkWorkerCompliance (no req in scope)
+- **Notes / decisions:** Fourth real defect from the self-review thread (this one a latent crash-on-error-path). Also confirmed the two compliance code paths (`checkWorkerCompliance` for single-assign vs `validateComplianceForWorkers` for bulk) both key off APPROVED docs + required types — consistent. Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings) or a **"pause"**.
+
 ## 2026-07-01 (41) — Bug fix: off-by-one in expiring-documents (today ≠ overdue)
 - **Item:** Self-review bug-hunt → date off-by-one in the expiring worklist
 - **Outcome:** shipped (correctness fix)

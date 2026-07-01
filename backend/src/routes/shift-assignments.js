@@ -434,7 +434,9 @@ async function checkWorkerCompliance(workerId, agencyId) {
             allDocumentsApproved: approvedDocs.length > 0
         };
     } catch (error) {
-        (req.log || logger).error({ err: error }, 'Error checking compliance');
+        // Module-level helper — no `req` in scope here, so use the base logger
+        // (the previous `req.log` reference threw ReferenceError, masking the real error).
+        logger.error({ err: error }, 'Error checking compliance');
         throw error;
     }
 }

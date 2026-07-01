@@ -456,6 +456,21 @@ describe('Shift Assignment Endpoints', () => {
             expect(res.body.error).toMatch(/deactivated/i);
             expect(prisma.shiftAssignment.create).not.toHaveBeenCalled();
         });
+
+        it('returns 500 (not an unhandled crash) when the compliance check errors', async () => {
+            const shiftId = 'shift-1';
+            const workerId = 'worker-1';
+            prisma.shift.findFirst.mockResolvedValue({ id: shiftId, agencyId: 'test-agency-1' });
+            prisma.worker.findFirst.mockResolvedValue({ id: workerId, agencyId: 'test-agency-1', status: 'ACTIVE' });
+            prisma.shiftAssignment.findFirst.mockResolvedValue(null);
+            // checkWorkerCompliance() is a module-level helper (no `req`); its catch must
+            // use the base logger, not `req.log`, or it would throw ReferenceError here.
+            prisma.documentType.findMany.mockRejectedValue(new Error('db down'));
+
+            const res = await request(app).post(`/api/shifts/${shiftId}/assign`).send({ workerId });
+
+            expect(res.status).toBe(500);
+        });
     });
 
     describe('GET /api/shifts/:shiftId/assignments - List assignments', () => {
