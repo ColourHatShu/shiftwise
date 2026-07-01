@@ -130,6 +130,11 @@ const sendExpiryAlert = async (coordinatorEmail, workerName, documentType, expir
             html: emailHtml,
         });
 
+        // Resend returns { data, error } and does NOT throw on API errors — surface
+        // them so the caller records a failed alert and retries (else silent non-delivery).
+        if (response && response.error) {
+            throw new Error(`Resend API error: ${response.error.message || JSON.stringify(response.error)}`);
+        }
         log.debug({ response }, 'Resend API success');
         return response;
     } catch (error) {
@@ -246,6 +251,9 @@ const sendWorkerExpiryAlert = async (workerEmail, workerFirstName, documentType,
             html: emailHtml,
         });
 
+        if (response && response.error) {
+            throw new Error(`Resend API error: ${response.error.message || JSON.stringify(response.error)}`);
+        }
         log.info({ workerEmail }, 'Worker alert sent');
         return response;
     } catch (error) {

@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (58) — Bug: expiry-alert emails silently dropped on Resend errors
+- **Item:** Self-review of `emailService.js` (the core-promise alert delivery)
+- **Outcome:** shipped (correctness fix + first emailService tests)
+- **Bug:** `sendExpiryAlert` / `sendWorkerExpiryAlert` did `const response = await resend.emails.send(...); return response;` inside a try/catch that only fires on a thrown exception. The Resend SDK returns `{ data, error }` and does **not** throw on API-level failures (invalid recipient, unverified sending domain, rate limit). So a rejected send returned normally → cronService treated the alert as sent (recorded the ExpiryAlert, incremented `alertsSent`) and never retried → **silent non-delivery** of the product's core "email before it lapses" alert.
+- **Fix:** both functions now `throw new Error('Resend API error: …')` when `response.error` is set, so cronService's existing catch → `recordFailedAlert` → hourly retry handles it.
+- **Coverage:** new `src/tests/services/email-service-errors.test.js` (3 tests) — throws on Resend error object (coordinator + worker), resolves on success. Sets `RESEND_API_KEY` before require + mocks the Resend client; emailService had no tests.
+- **Verify:** `node --check` OK; new suite **3/3**; `npm run test:ci` = **40 suites / 289 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(email): surface Resend API errors so alerts retry (no silent drop)
+- **Notes / decisions:** Sixteenth defect — directly protects the core promise (an expiry warning that Resend rejects is now retried, not silently lost). Still recommend a steer (matcher weights / no-show / CSP / auto-poster / £ earnings / reactivate role / hasExpired / TS-transform) or a **"pause"**.
+
 ## 2026-07-01 (57) — Systemic fix: nightly job makes the EXPIRED status real
 - **Item:** Resolve the phantom-`EXPIRED` root cause (was flagged founder-gated; built approach a)
 - **Outcome:** shipped (systemic correctness fix + tests)
