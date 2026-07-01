@@ -2,6 +2,7 @@ const express = require('express');
 const { createClerkClient } = require('@clerk/backend');
 const { verifyClerkToken, requireAgency, requireRole } = require('../lib/auth');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
 
 const router = express.Router();
@@ -59,7 +60,7 @@ router.post('/setup', async (req, res) => {
             }
         });
 
-        console.log(`✅ Agency created for ${email}: ${agency.id}`);
+        (req.log || logger).info({ email, agencyId: agency.id }, 'Agency created');
         // Seed standard document types for this new agency
         await seedDocumentTypes(agency.id, prisma);
         return res.status(201).json({ data: agency, created: true });
@@ -70,7 +71,7 @@ router.post('/setup', async (req, res) => {
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'An agency with this email already exists' });
         }
-        console.error('Error in agency setup:', error);
+        (req.log || logger).error({ err: error }, 'Error in agency setup');
         res.status(500).json({ error: 'Failed to setup agency' });
     }
 });
@@ -94,7 +95,7 @@ router.put('/onboard', requireAgency, async (req, res) => {
         await seedDocumentTypes(req.agencyId, prisma);
         return res.json({ data: agency });
     } catch (error) {
-        console.error('Error completing onboarding:', error);
+        (req.log || logger).error({ err: error }, 'Error completing onboarding');
         res.status(500).json({ error: 'Failed to save onboarding details' });
     }
 });
@@ -113,7 +114,7 @@ router.get('/me', requireAgency, async (req, res) => {
 
         return res.json({ data: agency });
     } catch (error) {
-        console.error('Error fetching agency:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching agency');
         res.status(500).json({ error: 'Failed to fetch agency' });
     }
 });
@@ -139,7 +140,7 @@ router.patch('/update', requireAgency, requireRole(['OWNER', 'ADMIN']), async (r
 
         return res.json({ message: 'Settings saved successfully', data: updatedAgency });
     } catch (error) {
-        console.error('Error updating agency settings:', error);
+        (req.log || logger).error({ err: error }, 'Error updating agency settings');
         res.status(500).json({ error: 'Failed to update agency settings' });
     }
 });
@@ -189,7 +190,7 @@ router.put('/compliance-thresholds', requireAgency, requireRole(['OWNER', 'ADMIN
             }
         });
     } catch (error) {
-        console.error('Error updating compliance thresholds:', error);
+        (req.log || logger).error({ err: error }, 'Error updating compliance thresholds');
         res.status(500).json({ error: 'Failed to update compliance thresholds' });
     }
 });
@@ -230,7 +231,7 @@ router.get('/compliance-thresholds', requireAgency, async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching compliance thresholds:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching compliance thresholds');
         res.status(500).json({ error: 'Failed to fetch compliance thresholds' });
     }
 });
@@ -248,7 +249,7 @@ router.get('/document-types', requireAgency, async (req, res) => {
             data: docTypes
         });
     } catch (error) {
-        console.error('Error fetching document types:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching document types');
         res.status(500).json({ error: 'Failed to fetch document types' });
     }
 });

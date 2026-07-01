@@ -2,6 +2,7 @@ const express = require('express');
 const Sentry = require('@sentry/node');
 const { requireAgency, requireRole } = require('../lib/auth');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const {
     calculateScore,
     getWorkersWithScores,
@@ -89,7 +90,7 @@ router.get('/workers', async (req, res) => {
             cacheAge: 0
         });
     } catch (error) {
-        console.error('Error fetching compliance workers:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching compliance workers');
 
         Sentry.captureException(error, {
             tags: {
@@ -144,14 +145,14 @@ router.post('/export', requireRole(['OWNER', 'ADMIN']), async (req, res) => {
                 }
             });
         } catch (auditError) {
-            console.warn('Failed to log audit entry:', auditError);
+            (req.log || logger).warn({ err: auditError }, 'Failed to log audit entry');
         }
 
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.send(data);
     } catch (error) {
-        console.error('Error exporting compliance data:', error);
+        (req.log || logger).error({ err: error }, 'Error exporting compliance data');
 
         Sentry.captureException(error, {
             tags: {
@@ -178,7 +179,7 @@ router.get('/alerts', async (req, res) => {
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        console.error('Error fetching compliance alerts:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching compliance alerts');
 
         Sentry.captureException(error, {
             tags: {
@@ -214,7 +215,7 @@ router.get('/score/:workerId', async (req, res) => {
 
         res.json({ data: score });
     } catch (error) {
-        console.error('Error calculating score:', error);
+        (req.log || logger).error({ err: error }, 'Error calculating score');
 
         Sentry.captureException(error, {
             tags: {
@@ -276,7 +277,7 @@ router.post('/document/:documentId/approve', requireRole(['OWNER', 'ADMIN']), as
 
         res.json({ data: updatedDoc, message: 'Document approved' });
     } catch (error) {
-        console.error('Error approving document:', error);
+        (req.log || logger).error({ err: error }, 'Error approving document');
 
         Sentry.captureException(error, {
             tags: {
@@ -341,7 +342,7 @@ router.post('/document/:documentId/reject', requireRole(['OWNER', 'ADMIN']), asy
 
         res.json({ data: updatedDoc, message: 'Document rejected' });
     } catch (error) {
-        console.error('Error rejecting document:', error);
+        (req.log || logger).error({ err: error }, 'Error rejecting document');
 
         Sentry.captureException(error, {
             tags: {
@@ -398,7 +399,7 @@ router.post('/worker/:workerId/deactivate', requireRole(['OWNER', 'ADMIN']), asy
 
         res.json({ data: updatedWorker, message: 'Worker deactivated' });
     } catch (error) {
-        console.error('Error deactivating worker:', error);
+        (req.log || logger).error({ err: error }, 'Error deactivating worker');
 
         Sentry.captureException(error, {
             tags: {

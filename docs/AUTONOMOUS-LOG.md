@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (5) — console.* → pino, batch 4 (compliance + agencies) + reprioritize
+- **Item:** Migrate remaining `console.*` to the logger — batch 4
+- **Outcome:** shipped (2 files) + **reprioritized the item**
+- **Changes:** `routes/compliance.js` (8) and `routes/agencies.js` (8) — all `console.*` → `(req.log||logger)` in pino `(obj,msg)` form (handler catch blocks; `agency created` at info). Added the logger import to each.
+- **Verify:** no `console.` left in either; `node --check` both OK; `npm run test:ci` = **22 suites / 192 tests, 0 failing**.
+- **Commit:** see git — 🛡️ refactor(routes): migrate compliance+agencies console.* to logger
+- **⚠️ Reprioritization (product-owner call):** surveyed the full scope and found **~130 `console.*` across ~32 files** — far more than the plan implied. Grinding one file per firing would waste ~20 firings on marginal pre-deploy polish while all high-value work is founder-gated. Updated item 77: do the remaining tail in **large batches (5–8 files/firing)** to finish in ~2–3 firings, **or defer** until nearer deploy; and explicitly scoped OUT `server.js` boot logs + `src/tests/` (those should stay `console`). 5 files / ~74 calls migrated so far (the highest-signal ones).
+- **Note to founder:** the loop has genuinely exhausted high-value autonomous work — the remaining backlog is this marginal sweep + founder-gated items (Supabase password rotation, CSP report-only, auto-poster, £ earnings, worker-e2e test DB). Consider pausing the 10-min cron or greenlighting a gated item.
+
 ## 2026-07-01 (4) — console.* → pino migration, batch 3 (documents.js)
 - **Item:** Migrate remaining `console.*` to the logger — batch 3
 - **Outcome:** shipped
