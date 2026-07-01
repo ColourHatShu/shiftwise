@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (44) — Bug + tests for workers.js (PATCH null-field crash)
+- **Item:** Self-review of the untested, core `workers.js` CRUD
+- **Outcome:** shipped (bug fix + coverage; one authz finding flagged for the founder)
+- **Bug:** `PATCH /api/workers/:id` set `updateData.phone = phone.trim()` / `notes = notes.trim()` guarded only by `!== undefined`. Since create allows `phone/notes = null`, a client clearing a field with `PATCH { phone: null }` (the code comment literally says "Allow emptying") hit `null.trim()` → `TypeError` → **500**. Fixed to `x === null ? null : x.trim()`.
+- **Coverage:** `workers.js` (core entity CRUD, previously **zero tests**) now has an 8-test suite — create validation (400) / duplicate email (409) / success (201, agency-scoped, status ACTIVE), GET-by-id 404, the PATCH null-field regression (200, `update` gets `phone/notes: null`), PATCH 404, DELETE 404 + success.
+- **Finding (flagged, not changed):** `PATCH /:id/reactivate` has **no `requireRole`**, while `/deactivate` requires `OWNER/ADMIN` — a privilege asymmetry (a lower-privilege coordinator can reactivate a worker an admin deactivated). Likely an oversight, but since tightening authz could break an intended flow, I left it for the founder to confirm rather than change behavior unprompted (see plan P17).
+- **Verify:** `node --check` OK; new suite **8/8**; `npm run test:ci` = **28 suites / 238 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(workers): PATCH null phone/notes no longer 500s (+ tests)
+- **Notes / decisions:** Fifth real defect from the self-review thread, plus a flagged authz finding. Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the reactivate role check) or a **"pause"**.
+
 ## 2026-07-01 (43) — Test coverage for the untested worker-availability endpoint
 - **Item:** Self-review (security/authz) → coverage gap, not a bug
 - **Outcome:** shipped (test coverage)

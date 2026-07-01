@@ -211,10 +211,10 @@ router.patch('/:id', requireAgency, async (req, res) => {
         if (firstName) updateData.firstName = firstName.trim();
         if (lastName) updateData.lastName = lastName.trim();
         if (email) updateData.email = email.trim().toLowerCase();
-        if (phone !== undefined) updateData.phone = phone.trim(); // Allow emptying
+        if (phone !== undefined) updateData.phone = phone === null ? null : phone.trim(); // Allow emptying (null clears)
         if (jobRole) updateData.jobTitle = jobRole.trim();
         if (startDate) updateData.startDate = new Date(startDate);
-        if (notes !== undefined) updateData.notes = notes.trim();
+        if (notes !== undefined) updateData.notes = notes === null ? null : notes.trim();
 
         const updatedWorker = await prisma.worker.update({
             where: { id },
