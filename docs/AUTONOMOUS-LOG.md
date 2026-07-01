@@ -3,6 +3,18 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (55) — 🔴 Bug: compliance score counted EXPIRED docs as compliant
+- **Item:** Self-review of `compliance-service.js` scoring (the core compliance calc)
+- **Outcome:** shipped (high-impact correctness fix + first real tests for the service)
+- **Root cause:** grepped the codebase — **nothing ever assigns `status = 'EXPIRED'`** (all 'EXPIRED' references are reads/filters). Document expiry is tracked solely by `expiryDate`. So any compliance read keyed only on `status` silently ignores expiry.
+- **Bug:** `calculateScore` (count `status: 'APPROVED'`) and `getWorkersWithScores` (in-memory `filter(d => d.status === 'APPROVED')`) both counted expired-but-approved required docs as compliant → a worker with an expired DBS showed **green / 100%** on the compliance score/list. That's the precise false-confidence the product is meant to prevent, and it disagrees with the assignment path (`computeCompliance`/`checkWorkerCompliance`), which correctly treats expired docs as non-compliant.
+- **Fix:** both now require `expiryDate` null OR `>= startOfToday` (UTC midnight) — valid-through-expiry-date semantics, consistent with the worklist/report/dashboard date fixes.
+- **Coverage:** new `src/tests/lib/compliance-score-expiry.test.js` (2 tests) — functional (`getWorkersWithScores`: expired→0/red, valid→100/green) + query guard (`calculateScore` uses the expiry OR). The real service functions had no tests (routes always mock them).
+- **Flagged (not fixed here — same root cause, needs a founder decision):** `dashboard.js` `compliantWorkers` and audit-pack's "EXPIRED" bucket also rely on the phantom `EXPIRED` status. Recommended systemic fix: a nightly job that flips expired `APPROVED` docs to `EXPIRED` (fixes all status-based reads at once) rather than patching each read. See plan.
+- **Verify:** `node --check` OK; new suite **2/2**; `npm run test:ci` = **38 suites / 282 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(compliance): exclude expired documents from the compliance score
+- **Notes / decisions:** Thirteenth defect — likely the highest *product-value* fix of the self-review (the compliance score is the product's headline signal, and it was showing false green). Strongly recommend the founder decide the phantom-EXPIRED systemic fix + a steer (matcher weights / no-show / CSP / auto-poster / £ earnings) or a **"pause"**.
+
 ## 2026-07-01 (54) — Bug: manual alert trigger fired alerts for ALL agencies
 - **Item:** Self-review of the untested `cronService` expiry-alert engine (core promise)
 - **Outcome:** shipped (cross-tenant correctness fix + first cronService tests)

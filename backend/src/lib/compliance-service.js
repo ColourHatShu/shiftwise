@@ -29,13 +29,18 @@ async function calculateScore(workerId, agencyId) {
             return { score: 100, completedDocs: 0, totalRequiredDocs: 0, status: 'green' };
         }
 
-        // Count approved compliance documents for this worker
+        // Count approved, NON-EXPIRED required documents. An expired-but-APPROVED
+        // doc must not count as compliant — expiry lives in expiryDate and nothing
+        // flips status to EXPIRED, so status alone would report a false green.
+        const startOfToday = new Date();
+        startOfToday.setUTCHours(0, 0, 0, 0);
         const approvedDocs = await prisma.complianceDocument.count({
             where: {
                 workerId,
                 agencyId,
                 documentTypeId: { in: requiredDocTypes.map(d => d.id) },
-                status: 'APPROVED'
+                status: 'APPROVED',
+                OR: [{ expiryDate: null }, { expiryDate: { gte: startOfToday } }]
             }
         });
 
@@ -127,8 +132,13 @@ async function getWorkersWithScores(agencyId, options = {}) {
         });
 
         // Calculate scores and add status in-memory
+        const startOfToday = new Date();
+        startOfToday.setUTCHours(0, 0, 0, 0);
         const workersWithScores = workers.map(worker => {
-            const approvedDocs = worker.complianceDocuments.filter(d => d.status === 'APPROVED').length;
+            // Exclude expired-but-APPROVED docs — an expired document isn't compliant.
+            const approvedDocs = worker.complianceDocuments.filter(
+                d => d.status === 'APPROVED' && (!d.expiryDate || new Date(d.expiryDate) >= startOfToday)
+            ).length;
             const totalRequired = requiredDocTypeIds.length || 1;
             const score = totalRequired > 0 ? Math.round((approvedDocs / totalRequired) * 100) : 100;
 
