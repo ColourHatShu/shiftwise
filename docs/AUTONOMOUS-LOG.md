@@ -3,6 +3,17 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (50) — IDOR sweep (clean) + fix empty-agency false "CQC ready"
+- **Item:** Continue the IDOR/authz self-review; review the CQC readiness endpoint
+- **Outcome:** shipped (one edge-case fix + coverage; IDOR sweep came back clean)
+- **IDOR sweep:** after last firing's audit-pack IDOR, audited the other by-ID/download endpoints — `documents /:id/download` (decrypt+stream), `documents /:id/status`, `/:id/analyse`, `/:id/verify`, and `shift-assignments /assignments/:assignmentId` (GET + DELETE) are **all correctly agency-scoped** (`findFirst {id, agencyId}` → 404). Audit-pack was the only broken one. Tried to add a *real* supertest test for the document-download authz but `documents.js` imports `ocrService.ts` and the backend jest has no TS transform (require fails) — which is also why `file-download.test.js` only asserts inline mock logic and `security-pipeline` is excluded. Noted as a separate infra task.
+- **Bug fixed:** `GET /readiness` — `readyForCQC = expiredCount === 0 && compliantCount === workers.length` is vacuously **true when there are 0 workers**, so a new/empty agency was reported 🟢 "Ready for CQC". Added `workers.length > 0 &&` (empty → yellow). Div-by-zero on `compliancePercentage` was already handled (`|| 0`).
+- **Coverage:** new `compliance-checklist.test.js` (4 tests) — empty-not-green, all-compliant→green, expired→red, non-compliant→yellow.
+- **Flagged (not changed):** `/readiness` `hasExpired` counts ANY expired document (including optional/rejected) toward "red" — arguably should be required+approved only; left as a compliance-semantics call for the founder.
+- **Verify:** `node --check` OK; new suite **4/4**; `npm run test:ci` = **33 suites / 263 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(compliance): empty agency isn't "CQC ready" (+ readiness tests)
+- **Notes / decisions:** Tenth defect from the self-review thread. IDOR class now confirmed clean across the app (bar the fixed audit-pack). Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm `reactivate` role check / the `hasExpired` semantics) or a **"pause"**.
+
 ## 2026-07-01 (49) — 🔴 SECURITY: fix cross-agency audit-pack download (IDOR)
 - **Item:** Self-review (authz) of the untested `audit-pack.js` — found a real cross-tenant leak
 - **Outcome:** shipped (highest-severity fix of the session)

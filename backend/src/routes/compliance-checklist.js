@@ -241,7 +241,9 @@ router.get('/readiness', async (req, res) => {
       }
     });
 
-    const readyForCQC = expiredCount === 0 && compliantCount === workers.length;
+    // Require at least one worker — an empty agency isn't "CQC ready", it just
+    // hasn't started (otherwise 0-of-0 compliant reads as a misleading green).
+    const readyForCQC = workers.length > 0 && expiredCount === 0 && compliantCount === workers.length;
     const status = readyForCQC ? 'green' : expiredCount > 0 ? 'red' : 'yellow';
 
     res.status(200).json({
