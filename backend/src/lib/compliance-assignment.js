@@ -138,8 +138,10 @@ async function validateComplianceForWorkers(workerIds, shiftId, agencyId) {
     }
 
     // All requested workers fetched in a single query (existence + agency scope).
+    // status: 'ACTIVE' excludes deactivated workers so they can't be assigned via
+    // the bulk path (deactivate sets status=INACTIVE); they fall through to notFound.
     const workers = await prisma.worker.findMany({
-        where: { id: { in: workerIds }, agencyId },
+        where: { id: { in: workerIds }, agencyId, status: 'ACTIVE' },
         select: { id: true }
     });
     const foundIds = new Set(workers.map(w => w.id));

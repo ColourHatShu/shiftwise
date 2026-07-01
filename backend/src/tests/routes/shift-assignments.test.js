@@ -398,7 +398,8 @@ describe('Shift Assignment Endpoints', () => {
                 id: workerId,
                 firstName: 'John',
                 lastName: 'Doe',
-                agencyId: 'test-agency-1'
+                agencyId: 'test-agency-1',
+                status: 'ACTIVE'
             });
 
             prisma.shiftAssignment.findFirst.mockResolvedValue(null);
@@ -439,6 +440,21 @@ describe('Shift Assignment Endpoints', () => {
 
             expect(res.status).toBe(201);
             expect(res.body.data.complianceCheckPassed).toBe(true);
+        });
+
+        it('refuses to assign a deactivated worker (status=INACTIVE)', async () => {
+            const shiftId = 'shift-1';
+            const workerId = 'worker-x';
+            prisma.shift.findFirst.mockResolvedValue({ id: shiftId, agencyId: 'test-agency-1' });
+            prisma.worker.findFirst.mockResolvedValue({
+                id: workerId, firstName: 'De', lastName: 'Activated', agencyId: 'test-agency-1', status: 'INACTIVE'
+            });
+
+            const res = await request(app).post(`/api/shifts/${shiftId}/assign`).send({ workerId });
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toMatch(/deactivated/i);
+            expect(prisma.shiftAssignment.create).not.toHaveBeenCalled();
         });
     });
 

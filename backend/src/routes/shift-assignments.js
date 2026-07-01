@@ -476,6 +476,11 @@ router.post('/assign', async (req, res) => {
             return res.status(404).json({ error: 'Worker not found' });
         }
 
+        // Deactivated workers can't be assigned (deactivate sets status=INACTIVE).
+        if (worker.status !== 'ACTIVE') {
+            return res.status(400).json({ error: 'Cannot assign a deactivated worker' });
+        }
+
         // Check if worker is already assigned to this shift
         const existingAssignment = await prisma.shiftAssignment.findFirst({
             where: {

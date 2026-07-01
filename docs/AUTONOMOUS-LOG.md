@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (40) — Bug fix: close the deactivated-worker assign write-path
+- **Item:** Self-review follow-through — the assign *write* path still let deactivated workers through
+- **Outcome:** shipped (defense-in-depth correctness/safety fix)
+- **Bug:** last firing fixed the candidate *lists*, but the write endpoints were still open: `POST /assign` checked only agency membership (not `status`), and `POST /assign-bulk` relied on `validateComplianceForWorkers`, whose worker fetch (`where: { id in …, agencyId }`) had no status filter. A direct API call (or a stale/hand-crafted request) could therefore assign a deactivated worker regardless of the UI list fix.
+- **Fix:** (1) `POST /assign` now returns **400 "Cannot assign a deactivated worker"** when `worker.status !== 'ACTIVE'`; (2) `validateComplianceForWorkers` worker fetch gained `status: 'ACTIVE'` so deactivated workers fall through to `notFound` and are skipped by bulk-assign. Added a regression test (deactivated → 400, no assignment created) and updated the happy-path test's worker mock to include `status: 'ACTIVE'`.
+- **Verify:** `node --check` + `require()` OK; shift-assignments suite **12/12**; `npm run test:ci` = **26 suites / 218 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(shifts): reject deactivated workers at the assign write-path
+- **Notes / decisions:** Completes the deactivated-worker hole end-to-end (lists + both write paths). The self-review thread has now found + fixed two related real bugs — genuinely the highest-value work available without a founder decision. Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings) or a **"pause"**.
+
 ## 2026-07-01 (39) — Bug fix: deactivated workers were still assignable to shifts
 - **Item:** Self-review bug-hunt of this session's code → real bug found + fixed
 - **Outcome:** shipped (correctness/safety fix)
