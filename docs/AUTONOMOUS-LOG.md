@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (10) — console.* → pino, batch 8 (libs) — item COMPLETE
+- **Item:** Migrate remaining `console.*` to the logger — **DONE**
+- **Outcome:** shipped — the console.* sweep is complete
+- **Changes:** 6 libs migrated to base `logger` (pino `(obj,msg)`): `encryption.js` (7), `nodemailer.js` (5, child `service:'mail'`), `compliance-service.js` (5), `auth.js` (3), `compliance-assignment.js` (2), `email-templates.js` (2, child `service:'mail'`). Imports added (`./logger`).
+- **Intentionally kept as `console` (documented judgment):** `server.js` boot logs, `worker-auth.js` JWT boot warning, `lib/fetchWithRetry.js` (generic util; its unit test spies on console), `lib/analysis-failure.js` (last-resort fallbacks — console is the safe path if the logger/DB itself is failing), and `src/tests/`.
+- **Verify:** no `console.` in the 6 migrated libs; `node --check` + `require()` all 6 OK; `npm run test:ci` = **22 suites / 192 tests, 0 failing** (encryption-roundtrip + auth/mailer-mocked suites unaffected).
+- **Commit:** see git — 🛡️ refactor(lib): finish console.* → structured logger migration
+- **Notes / decisions:** **Item 78 complete — ~30 files / ~162 console.* calls migrated to structured pino logging** with requestId correlation in handlers, secret redaction, and Sentry preserved. **This exhausts the entire non-gated backlog.** Every remaining plan item is founder-gated: £ earnings (business data), CSP (needs greenlight), the DB-dependent test suites (worker-e2e needs a test DB; security-pipeline is an aspirational spec). **Recommend pausing the 10-min cron or greenlighting a gated item** (rotate Supabase password, CSP report-only, auto-poster) — further autonomous firings would only ideate or do speculative work.
+
 ## 2026-07-01 (9) — console.* → pino, batch 7 (finish ALL route files)
 - **Item:** Migrate remaining `console.*` to the logger — batch 7 (routes complete)
 - **Outcome:** shipped — **every route file is now migrated**

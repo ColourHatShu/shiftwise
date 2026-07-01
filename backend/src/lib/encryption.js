@@ -8,6 +8,7 @@
  */
 
 const crypto = require('crypto');
+const logger = require('./logger');
 const fs = require('fs');
 const path = require('path');
 
@@ -64,7 +65,7 @@ const encryptFile = (fileBuffer) => {
         // Prepend IV to encrypted data (IV is not secret, just needs to be unique)
         return Buffer.concat([iv, encrypted]);
     } catch (error) {
-        console.error('[Encryption] Failed to encrypt file:', error.message);
+        logger.error({ err: error }, '[Encryption] Failed to encrypt file');
         throw new Error('Document encryption failed');
     }
 };
@@ -89,7 +90,7 @@ const decryptFile = (encryptedBuffer) => {
         
         return decrypted;
     } catch (error) {
-        console.error('[Encryption] Failed to decrypt file:', error.message);
+        logger.error({ err: error }, '[Encryption] Failed to decrypt file');
         throw new Error('Document decryption failed - file may be corrupted or encryption key mismatch');
     }
 };
@@ -119,7 +120,7 @@ const encryptAndSaveFile = async (sourcePath, destPath) => {
             encryptionAlgorithm: ALGORITHM
         };
     } catch (error) {
-        console.error('[Encryption] encryptAndSaveFile failed:', error.message);
+        logger.error({ err: error }, '[Encryption] encryptAndSaveFile failed');
         throw error;
     }
 };
@@ -139,7 +140,7 @@ const readAndDecryptFile = (encryptedPath) => {
         const encryptedBuffer = fs.readFileSync(encryptedPath);
         return decryptFile(encryptedBuffer);
     } catch (error) {
-        console.error('[Encryption] readAndDecryptFile failed:', error.message);
+        logger.error({ err: error }, '[Encryption] readAndDecryptFile failed');
         throw error;
     }
 };
@@ -164,7 +165,7 @@ const encryptFileGCM = (fileBuffer) => {
         // Prepend IV and authTag to ciphertext
         return Buffer.concat([iv, authTag, encrypted]);
     } catch (error) {
-        console.error('[Encryption GCM] Failed to encrypt file:', error.message);
+        logger.error({ err: error }, '[Encryption GCM] Failed to encrypt file');
         throw new Error('Document GCM encryption failed');
     }
 };
@@ -200,7 +201,7 @@ const decryptFileGCM = (encryptedBuffer) => {
             gcmError.code = 'GCM_AUTH_FAIL';
             throw gcmError;
         }
-        console.error('[Encryption GCM] Failed to decrypt file:', error.message);
+        logger.error({ err: error }, '[Encryption GCM] Failed to decrypt file');
         const decryptError = new Error('Document GCM decryption failed');
         decryptError.code = 'GCM_DECRYPT_ERROR';
         throw decryptError;
@@ -243,7 +244,7 @@ const validateEncryptionSetup = () => {
         getEncryptionKey();
         return true;
     } catch (error) {
-        console.error('[Encryption] Setup validation failed:', error.message);
+        logger.error({ err: error }, '[Encryption] Setup validation failed');
         return false;
     }
 };

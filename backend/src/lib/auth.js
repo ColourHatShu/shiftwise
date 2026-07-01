@@ -15,6 +15,7 @@
  */
 
 const { verifyToken } = require('@clerk/backend');
+const logger = require('./logger');
 const prisma = require('./prisma');
 
 // ─── Error Classes ─────────────────────────────────────────────────────────
@@ -62,7 +63,7 @@ const verifyClerkToken = async (req) => {
     const secretKey = process.env.CLERK_SECRET_KEY;
 
     if (!secretKey) {
-        console.error('❌ CLERK_SECRET_KEY is not set!');
+        logger.error('CLERK_SECRET_KEY is not set');
         throw new Error('Server misconfiguration: CLERK_SECRET_KEY not set');
     }
 
@@ -74,7 +75,7 @@ const verifyClerkToken = async (req) => {
             clockSkewInMs: 300000  // 5 min tolerance for clock skew
         });
     } catch (err) {
-        console.error('❌ Token verification failed:', err.message);
+        logger.warn({ err }, 'Token verification failed');
         throw new UnauthorizedError('Unauthorized: Invalid or expired token');
     }
 
@@ -125,7 +126,7 @@ const requireAgency = async (req, res, next) => {
         if (error instanceof ForbiddenError) {
             return res.status(403).json({ error: error.message });
         }
-        console.error('Error in requireAgency middleware:', error);
+        logger.error({ err: error }, 'Error in requireAgency middleware');
         return res.status(500).json({ error: 'Internal server error' });
     }
 };

@@ -1,4 +1,5 @@
 const prisma = require('./prisma');
+const logger = require('./logger');
 const { Parser } = require('json2csv');
 const PDFDocument = require('pdfkit');
 
@@ -53,7 +54,7 @@ async function calculateScore(workerId, agencyId) {
             status
         };
     } catch (error) {
-        console.error('Error calculating compliance score:', error);
+        logger.error({ err: error }, 'Error calculating compliance score');
         throw error;
     }
 }
@@ -175,7 +176,7 @@ async function getWorkersWithScores(agencyId, options = {}) {
             limit
         };
     } catch (error) {
-        console.error('Error fetching workers with scores:', error);
+        logger.error({ err: error }, 'Error fetching workers with scores');
         throw error;
     }
 }
@@ -235,7 +236,7 @@ async function generateCSV(agencyId, options = {}) {
         const csv = new Parser().parse(filtered);
         return csv;
     } catch (error) {
-        console.error('Error generating CSV:', error);
+        logger.error({ err: error }, 'Error generating CSV');
         throw error;
     }
 }
@@ -338,7 +339,7 @@ async function generatePDF(agencyId, agencyName = 'Agency', options = {}) {
             doc.end();
         });
     } catch (error) {
-        console.error('Error generating PDF:', error);
+        logger.error({ err: error }, 'Error generating PDF');
         throw error;
     }
 }
@@ -444,7 +445,7 @@ async function aggregateAlerts(agencyId) {
             alerts: alerts.slice(0, 10) // Return top 10 alerts
         };
     } catch (error) {
-        console.error('Error aggregating alerts:', error);
+        logger.error({ err: error }, 'Error aggregating alerts');
         throw error;
     }
 }

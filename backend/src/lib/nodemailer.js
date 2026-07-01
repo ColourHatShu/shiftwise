@@ -7,6 +7,7 @@
  */
 
 const nodemailer = require('nodemailer');
+const logger = require('./logger').child({ service: 'mail' });
 const Sentry = require('@sentry/node');
 
 // Initialize transporter based on environment
@@ -27,9 +28,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     // Development: use test account (logs to console)
     transporter = {
         sendMail: async (mailOptions) => {
-            console.log('[DEV] Email not sent (configure SMTP for production)');
-            console.log('  To:', mailOptions.to);
-            console.log('  Subject:', mailOptions.subject);
+            logger.info({ to: mailOptions.to, subject: mailOptions.subject }, '[DEV] Email not sent (configure SMTP for production)');
             return { messageId: 'dev-' + Math.random().toString(36).substr(2, 9) };
         },
     };
@@ -68,7 +67,7 @@ async function sendWorkerOtpEmail(email, firstName, otp) {
         };
 
         const result = await transporter.sendMail(mailOptions);
-        console.log('OTP email sent:', result.messageId);
+        logger.info({ messageId: result.messageId }, 'OTP email sent');
         return result;
     } catch (error) {
         Sentry.captureException(error, {
@@ -127,7 +126,7 @@ async function sendCoordinatorUploadNotification(coordinatorEmail, workerName, d
         };
 
         const result = await transporter.sendMail(mailOptions);
-        console.log('Coordinator notification sent:', result.messageId);
+        logger.info({ messageId: result.messageId }, 'Coordinator notification sent');
         return result;
     } catch (error) {
         Sentry.captureException(error, {

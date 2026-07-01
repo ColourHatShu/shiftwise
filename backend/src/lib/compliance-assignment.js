@@ -1,4 +1,5 @@
 const prisma = require('./prisma');
+const logger = require('./logger');
 
 /**
  * Compliance Assignment Library
@@ -113,7 +114,7 @@ async function validateComplianceAtTime(workerId, shiftId, agencyId) {
 
         return computeCompliance(requiredDocTypes, workerDocs);
     } catch (error) {
-        console.error('Error validating compliance at assignment time:', error);
+        logger.error({ err: error }, 'Error validating compliance at assignment time');
         throw error;
     }
 }
@@ -228,7 +229,7 @@ async function checkComplianceForShift(shiftId, agencyId) {
             snapshot_details: details
         };
     } catch (error) {
-        console.error('Error checking shift compliance:', error);
+        logger.error({ err: error }, 'Error checking shift compliance');
         throw error;
     }
 }

@@ -1,4 +1,5 @@
 const nodemailer = require('./nodemailer');
+const logger = require('./logger').child({ service: 'mail' });
 
 /**
  * Send worker assignment notification email
@@ -99,10 +100,10 @@ async function sendWorkerAssignmentEmail(assignment, shift, worker, coordinator,
             html
         });
 
-        console.log(`Email sent to ${worker.email} for shift assignment`);
+        logger.info({ workerEmail: worker.email }, 'Shift assignment email sent');
         return { success: true, messageId: result.messageId };
     } catch (error) {
-        console.error('Error sending assignment email:', error);
+        logger.error({ err: error }, 'Error sending assignment email');
         // Create FailedAlert for retry (Phase 4 pattern)
         // This is deferred to async processing
         throw error;
