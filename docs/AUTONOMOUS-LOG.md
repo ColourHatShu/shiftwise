@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (47) — Bug + tests: agency settings PATCH null-field crash
+- **Item:** Self-review of the untested `agencies.js` (settings + thresholds)
+- **Outcome:** shipped (bug fix + coverage)
+- **Bug:** `PATCH /api/agencies/update` set `address/city/postcode/phone/agencyType` via `!== undefined` + `.trim()`. Clearing an optional field with an explicit `null` (e.g. `{ address: null }`) hit `null.trim()` → `TypeError` → **500**. Same class as the `workers` PATCH bug fixed earlier; `name` was already null-safe (truthy check).
+- **Fix:** `x === null ? null : x.trim()` for all five fields. Reviewed the `compliance-thresholds` PUT in the same pass — well-validated (array + integer + 1..365 range, role-gated, agency-scoped); no bug.
+- **Coverage:** new `src/tests/routes/agencies.test.js` (6 tests) — null-field regression, string trimming, thresholds validation (non-array / out-of-range / non-integer → 400), valid thresholds save (agency-scoped `{t1:30,t2:60}` map). `agencies.js` was previously untested.
+- **Verify:** `node --check` OK; new suite **6/6**; `npm run test:ci` = **31 suites / 253 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(agencies): PATCH /update no longer 500s on null fields (+ tests)
+- **Notes / decisions:** Seventh real defect from the self-review thread (the `null.trim()` class has now recurred in two route files — `workers` and `agencies` — worth a lint rule eventually). Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the `reactivate` role check) or a **"pause"**.
+
 ## 2026-07-01 (46) — Bug + tests: expiring report dropped today's expiries
 - **Item:** Self-review of the untested `reports.js` (targeted date-filter hypothesis)
 - **Outcome:** shipped (correctness fix + coverage)

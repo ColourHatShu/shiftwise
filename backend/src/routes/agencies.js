@@ -127,11 +127,12 @@ router.patch('/update', requireAgency, requireRole(['OWNER', 'ADMIN']), async (r
 
         const updateData = {};
         if (name) updateData.name = name.trim();
-        if (address !== undefined) updateData.address = address.trim();
-        if (city !== undefined) updateData.city = city.trim();
-        if (postcode !== undefined) updateData.postcode = postcode.trim();
-        if (phone !== undefined) updateData.phone = phone.trim();
-        if (agencyType !== undefined) updateData.agencyType = agencyType.trim();
+        // Guard against explicit null (clearing an optional field) — null.trim() would 500.
+        if (address !== undefined) updateData.address = address === null ? null : address.trim();
+        if (city !== undefined) updateData.city = city === null ? null : city.trim();
+        if (postcode !== undefined) updateData.postcode = postcode === null ? null : postcode.trim();
+        if (phone !== undefined) updateData.phone = phone === null ? null : phone.trim();
+        if (agencyType !== undefined) updateData.agencyType = agencyType === null ? null : agencyType.trim();
 
         const updatedAgency = await prisma.agency.update({
             where: { id: req.agencyId },
