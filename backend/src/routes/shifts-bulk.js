@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 const csv = require('csv-parse/sync');
 
@@ -152,7 +153,7 @@ router.post('/upload', async (req, res) => {
             }))
         });
     } catch (error) {
-        console.error('Error uploading shifts:', error);
+        (req.log || logger).error({ err: error }, 'Error uploading shifts');
         res.status(500).json({ error: 'Failed to upload shifts' });
     }
 });

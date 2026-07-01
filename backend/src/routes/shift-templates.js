@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 
 const router = express.Router();
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
         });
         res.json({ data: templates });
     } catch (error) {
-        console.error('Error fetching shift templates:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching shift templates');
         res.status(500).json({ error: 'Failed to fetch shift templates' });
     }
 });
@@ -56,7 +57,7 @@ router.post('/', async (req, res) => {
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'A template with this name already exists' });
         }
-        console.error('Error creating shift template:', error);
+        (req.log || logger).error({ err: error }, 'Error creating shift template');
         res.status(500).json({ error: 'Failed to create shift template' });
     }
 });
@@ -77,7 +78,7 @@ router.delete('/:id', async (req, res) => {
         await prisma.shiftTemplate.delete({ where: { id } });
         res.json({ message: 'Template deleted successfully' });
     } catch (error) {
-        console.error('Error deleting shift template:', error);
+        (req.log || logger).error({ err: error }, 'Error deleting shift template');
         res.status(500).json({ error: 'Failed to delete shift template' });
     }
 });

@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 
 const router = express.Router();
@@ -105,7 +106,7 @@ router.get('/dashboard', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching shift analytics:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching shift analytics');
         res.status(500).json({ error: 'Failed to fetch analytics' });
     }
 });
@@ -147,7 +148,7 @@ router.get('/heatmap', async (req, res) => {
             data: availability
         });
     } catch (error) {
-        console.error('Error fetching heatmap:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching heatmap');
         res.status(500).json({ error: 'Failed to fetch heatmap' });
     }
 });

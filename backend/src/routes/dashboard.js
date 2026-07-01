@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAgency } = require('../lib/auth');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.get('/stats', requireAgency, async (req, res) => {
 
         res.json({ totalWorkers, documentsPending, expiringSoon, compliantWorkers });
     } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching dashboard stats');
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
 });

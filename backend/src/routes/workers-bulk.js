@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 const csv = require('csv-parse/sync');
 
@@ -86,7 +87,7 @@ router.post('/upload', async (req, res) => {
             createdWorkers: created,
         });
     } catch (error) {
-        console.error('Error bulk-uploading workers:', error);
+        (req.log || logger).error({ err: error }, 'Error bulk-uploading workers');
         res.status(500).json({ error: 'Failed to upload workers' });
     }
 });

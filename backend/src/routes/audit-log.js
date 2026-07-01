@@ -2,6 +2,7 @@ const express = require('express');
 const Sentry = require('@sentry/node');
 const { requireAgency, requireRole } = require('../lib/auth');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -114,7 +115,7 @@ router.get('/', requireRole(['OWNER', 'ADMIN']), async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching audit log:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching audit log');
 
         // Log to Sentry
         Sentry.captureException(error, {

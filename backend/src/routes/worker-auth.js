@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { sendWorkerOtpEmail } = require('../lib/nodemailer');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const Sentry = require('@sentry/node');
 
 const OTP_EXPIRY_MINUTES = 10;
@@ -88,7 +89,7 @@ async function handleWorkerSignin(req, res) {
                 tags: { workerId: worker.id, agencyId: worker.agencyId, context: 'worker.otp-email' },
                 extra: { email: worker.email },
             });
-            console.error('OTP email send failed (will be retried)', emailError.message);
+            (req.log || logger).error({ err: emailError }, 'OTP email send failed (will be retried)');
         }
 
         res.status(200).json({ message: 'OTP sent to email' });
@@ -96,7 +97,7 @@ async function handleWorkerSignin(req, res) {
         Sentry.captureException(error, {
             tags: { context: 'worker.signin' },
         });
-        console.error('Worker signin error:', error);
+        (req.log || logger).error({ err: error }, 'Worker signin error');
         res.status(500).json({ error: 'Signin failed' });
     }
 }
@@ -191,7 +192,7 @@ async function handleVerifyCode(req, res) {
         Sentry.captureException(error, {
             tags: { context: 'worker.verify-code' },
         });
-        console.error('Verify code error:', error);
+        (req.log || logger).error({ err: error }, 'Verify code error');
         res.status(500).json({ error: 'Verification failed' });
     }
 }

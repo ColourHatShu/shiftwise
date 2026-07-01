@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { workerAuthMiddleware } = require('./worker-auth');
 
 const router = express.Router();
@@ -118,7 +119,7 @@ router.patch('/:assignmentId', async (req, res) => {
 
         res.json(updatedAssignment);
     } catch (error) {
-        console.error('Error confirming/declining assignment:', error);
+        (req.log || logger).error({ err: error }, 'Error confirming/declining assignment');
         res.status(500).json({ error: 'Failed to update assignment status' });
     }
 });
@@ -156,7 +157,7 @@ router.get('/', async (req, res) => {
 
         res.json({ data: assignments });
     } catch (error) {
-        console.error('Error fetching worker assignments:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching worker assignments');
         res.status(500).json({ error: 'Failed to fetch assignments' });
     }
 });

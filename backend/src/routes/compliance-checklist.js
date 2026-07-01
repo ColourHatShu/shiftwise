@@ -1,6 +1,7 @@
 const express = require('express');
 const Sentry = require('@sentry/node');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency, requireRole } = require('../lib/auth');
 
 const router = express.Router();
@@ -184,7 +185,7 @@ router.get('/cqc-checklist', async (req, res) => {
       data: checklist
     });
   } catch (error) {
-    console.error('Error fetching CQC checklist:', error);
+    (req.log || logger).error({ err: error }, 'Error fetching CQC checklist');
     Sentry.captureException(error, {
       tags: { context: 'cqcChecklistFetch' }
     });
@@ -255,7 +256,7 @@ router.get('/readiness', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching readiness:', error);
+    (req.log || logger).error({ err: error }, 'Error fetching readiness');
     Sentry.captureException(error, {
       tags: { context: 'readinessFetch' }
     });

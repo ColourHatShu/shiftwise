@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (9) — console.* → pino, batch 7 (finish ALL route files)
+- **Item:** Migrate remaining `console.*` to the logger — batch 7 (routes complete)
+- **Outcome:** shipped — **every route file is now migrated**
+- **Changes:** 9 remaining route files — `worker-auth` (3 handler calls; kept its module-scope JWT boot `console.warn`), `worker-assignments` (2), `shift-templates` (3), `shifts-analytics` (2), `shifts-bulk` (1), `workers-bulk` (1), `dashboard` (1), `compliance-checklist` (2), `audit-log` (1) — 16 calls → `(req.log||logger)` pino form; logger imported in each.
+- **Verify:** the only `console` left in `src/routes/` is `worker-auth.js`'s intentional boot warning; `node --check` all 9 OK; `npm run test:ci` = **22 suites / 192 tests, 0 failing** (worker-assignments/shift-templates/shifts-analytics/shifts-bulk/workers-bulk/audit-log suites all green, exercising the `(req.log||logger)` fallback since tests don't set `req.log`).
+- **Commit:** see git — 🛡️ refactor(routes): finish console.* migration for all route files
+- **Notes / decisions:** **All 24 route files (~138 calls) done.** Item 78 now has only the **libs** left (`encryption`, `nodemailer`, `compliance-service`, `auth`, `compliance-assignment`, `email-templates`, `fetchWithRetry`, `analysis-failure`) — all base-logger, some are boot/fallback logs that may be fine as `console` (per-file judgment). One more batch finishes it. Then the entire non-gated backlog is exhausted; only founder-gated items remain (Supabase password rotation, CSP report-only, auto-poster, £ earnings, worker-e2e test DB).
+
 ## 2026-07-01 (8) — console.* → pino, batch 6 (6 more route files)
 - **Item:** Migrate remaining `console.*` to the logger — batch 6
 - **Outcome:** shipped
