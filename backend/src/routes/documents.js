@@ -13,6 +13,7 @@ const { validate, documentUploadSchema, documentVerifySchema } = require('../mid
 const { aiAnalysisLimiter, documentUploadLimiter } = require('../middleware/rateLimiter');
 const { analyzeDocumentImage, shutdownOCR } = require('../lib/ocrService');
 const { recordAnalysisFailure, recordIdentityMismatch } = require('../lib/analysis-failure');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.use(requireAgency);
 
 // ─── Encryption Setup Validation ──────────────────────────────────────────────
 if (!validateEncryptionSetup()) {
-    console.error('❌ [Documents] Encryption setup validation failed. Document uploads will fail.');
+    logger.error('Encryption setup validation failed. Document uploads will fail.');
 }
 
 // ─── Multer memory storage (encrypt before writing to disk) ─────────────────────
@@ -55,7 +56,7 @@ fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 const analyzeDocument = async (doc, worker, filePath) => {
     try {
         if (!fs.existsSync(filePath)) {
-            console.error(`[Async OCR] File not found: ${filePath}`);
+            logger.error({ filePath }, '[OCR] File not found');
             return;
         }
 
@@ -77,7 +78,7 @@ const analyzeDocument = async (doc, worker, filePath) => {
                 imageBuffer = decryptedBuffer;
             } else if (isPdf) {
                 try {
-                    console.log(`[Async OCR] Converting PDF to image...`);
+                    logger.debug({ documentId: doc.id }, '[OCR] Converting PDF to image');
                     const tempPath = path.join(UPLOADS_DIR, `temp-${Date.now()}.pdf`);
                     fs.writeFileSync(tempPath, decryptedBuffer);
 
@@ -91,7 +92,7 @@ const analyzeDocument = async (doc, worker, filePath) => {
                     try {
                         fs.unlinkSync(tempPath);
                     } catch (cleanupErr) {
-                        console.error('[Async OCR] Cleanup error:', cleanupErr.message);
+                        logger.warn({ err: cleanupErr }, '[OCR] Temp-file cleanup error');
                     }
 
                     if (!firstPageBuffer) {
@@ -112,7 +113,7 @@ const analyzeDocument = async (doc, worker, filePath) => {
 
         // Run Tesseract OCR and extract
         try {
-            console.log(`[Async OCR] Analyzing document ${doc.id}...`);
+            logger.info({ documentId: doc.id }, '[OCR] Analyzing document');
             const workerData = { firstName: worker.firstName, lastName: worker.lastName };
             const ocrResult = await analyzeDocumentImage(imageBuffer, workerData);
 
@@ -165,7 +166,7 @@ const analyzeDocument = async (doc, worker, filePath) => {
                 await recordIdentityMismatch(doc, worker, analysis.fullName);
             }
 
-            console.log(`[Async OCR] Analysis complete for document ${doc.id}`);
+            logger.info({ documentId: doc.id }, '[OCR] Analysis complete');
         } catch (analysisErr) {
             await recordAnalysisFailure(doc, 'Analysis exception', analysisErr);
         }
@@ -218,7 +219,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
                     fs.writeFileSync(oldPath, overwriteBuffer);
                     fs.unlinkSync(oldPath);
                 } catch (err) {
-                    console.error('Failed to securely delete old file:', err.message);
+                    (req.log || logger).warn({ err }, 'Failed to securely delete old file');
                 }
             }
             await prisma.complianceDocument.delete({ where: { id: existing.id } });
@@ -275,7 +276,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
             }
         });
 
-        console.log(`[Documents] Encrypted and stored document: ${encryptedFilename} (${encrypted.length} bytes)`);
+        (req.log || logger).info({ file: encryptedFilename, bytes: encrypted.length }, 'Encrypted and stored document');
 
         // Return 201 immediately (non-blocking)
         res.status(201).json({
@@ -294,7 +295,7 @@ router.post('/upload', documentUploadLimiter, upload.single('file'), validate(do
             await analyzeDocument(doc, worker, filePath);
         });
     } catch (error) {
-        console.error('Upload error:', error);
+        (req.log || logger).error({ err: error }, 'Upload error');
         res.status(500).json({ error: 'Failed to upload document', details: error.message });
     }
 });
@@ -319,7 +320,7 @@ router.get('/:id/status', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching document status:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching document status');
         res.status(500).json({ error: 'Failed to fetch status' });
     }
 });
@@ -364,7 +365,7 @@ router.get('/worker/:workerId', async (req, res) => {
 
         res.json({ data: merged });
     } catch (error) {
-        console.error('Error fetching worker documents:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching worker documents');
         res.status(500).json({ error: 'Failed to fetch documents' });
     }
 });
@@ -406,7 +407,7 @@ router.get('/agency', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching agency documents:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching agency documents');
         res.status(500).json({ error: 'Failed to fetch documents' });
     }
 });
@@ -424,7 +425,7 @@ router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
 
         // Return current analysis if available
         if (doc.analysisResult) {
-            console.log(`Serving cached analysis for document ${doc.id}`);
+            (req.log || logger).debug({ documentId: doc.id }, 'Serving cached analysis');
             return res.json({ data: doc.analysisResult });
         }
 
@@ -442,7 +443,7 @@ router.post('/:id/analyse', aiAnalysisLimiter, async (req, res) => {
             await analyzeDocument(doc, doc.worker, filePath);
         });
     } catch (error) {
-        console.error('AI Analysis API error:', error);
+        (req.log || logger).error({ err: error }, 'AI analysis API error');
         res.status(500).json({ error: 'Failed to analyse document with AI' });
     }
 });
@@ -510,7 +511,7 @@ router.patch('/:id/verify', validate(documentVerifySchema), requireRole(['OWNER'
             version: updated.updatedAt 
         });
     } catch (error) {
-        console.error('Error verifying document:', error);
+        (req.log || logger).error({ err: error }, 'Error verifying document');
         res.status(500).json({ error: 'Failed to verify document' });
     }
 });
@@ -540,7 +541,7 @@ router.get('/:id/download', async (req, res) => {
 
         // Check if file exists on disk
         if (!fs.existsSync(filePath)) {
-            console.error(`[Documents] File missing on disk for document ${document.id}: ${filePath}`);
+            (req.log || logger).error({ documentId: document.id, filePath }, 'File missing on disk');
             return res.status(500).json({ error: 'Document file unavailable' });
         }
 
@@ -560,11 +561,11 @@ router.get('/:id/download', async (req, res) => {
             } catch (err) {
                 // Handle GCM auth failures with structured logging
                 if (err.code === 'GCM_AUTH_FAIL') {
-                    console.error('[encryption] GCM auth failure', {
+                    (req.log || logger).error({
                         documentId: document.id,
                         agencyId: req.agencyId,
-                        error: 'GCM_AUTH_FAIL'
-                    });
+                        reason: 'GCM_AUTH_FAIL'
+                    }, 'GCM auth failure');
                     // Log to Sentry
                     Sentry.captureException(err, {
                         tags: {
@@ -592,7 +593,7 @@ router.get('/:id/download', async (req, res) => {
             // Send decrypted buffer
             res.send(decryptedBuffer);
         } catch (decryptError) {
-            console.error(`[Documents] Decryption failed for document ${document.id}:`, decryptError.message);
+            (req.log || logger).error({ err: decryptError, documentId: document.id }, 'Decryption failed');
             // Log to Sentry
             Sentry.captureException(decryptError, {
                 tags: {
@@ -606,7 +607,7 @@ router.get('/:id/download', async (req, res) => {
             return res.status(500).json({ error: 'Document decryption failed' });
         }
     } catch (error) {
-        console.error('Error in download endpoint:', error);
+        (req.log || logger).error({ err: error }, 'Error in download endpoint');
         // Log to Sentry
         Sentry.captureException(error, {
             tags: {

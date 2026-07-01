@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (4) — console.* → pino migration, batch 3 (documents.js)
+- **Item:** Migrate remaining `console.*` to the logger — batch 3
+- **Outcome:** shipped
+- **Changes:** `routes/documents.js` — all **19** `console.*` migrated. The 6 in the background `analyzeDocument` + module scope use the base `logger`; the 13 in request handlers use **`(req.log || logger)`** so they carry the requestId when the request-logger middleware ran, and safely fall back otherwise. Converted to pino `(obj, msg)` form (e.g. GCM-auth-failure object arg, decryption/upload errors as `{ err }`). Verbose OCR/cache chatter demoted to `debug`.
+- **Verify:** no `console.` left; `node --check src/routes/documents.js` OK; `npm run test:ci` = **22 suites / 192 tests, 0 failing**. (A plain `node -e require()` of the route fails on its `../lib/ocrService` **.ts** import — pre-existing, unrelated to logging; the app runs it through a TS transform, and jest handles it in-suite.)
+- **Commit:** see git — 🛡️ refactor(documents): migrate console.* to structured logger
+- **Notes / decisions:** Used the `(req.log || logger)` pattern (same as server.js's error handler) so handler logs get requestId correlation without assuming the middleware ran (safe in isolated tests too). This is the biggest route file done; remaining console.* are the smaller route files + `lib/encryption.js`. Backend console.* is now ~58 calls migrated across the 3 highest-volume files (cron 28 + email 11 + documents 19).
+
 ## 2026-07-01 (3) — console.* → pino migration, batch 2 (emailService)
 - **Item:** Migrate remaining `console.*` to the logger — batch 2
 - **Outcome:** shipped
