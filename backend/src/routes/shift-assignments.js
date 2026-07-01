@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency, requireRole } = require('../lib/auth');
 const { validateComplianceAtTime, validateComplianceForWorkers } = require('../lib/compliance-assignment');
 
@@ -162,7 +163,7 @@ router.post('/assign-bulk', requireRole(['OWNER', 'ADMIN']), async (req, res) =>
             summary
         });
     } catch (error) {
-        console.error('Error bulk assigning workers:', error);
+        (req.log || logger).error({ err: error }, 'Error bulk assigning workers');
         res.status(500).json({ error: 'Failed to bulk assign workers' });
     }
 });
@@ -265,7 +266,7 @@ router.get('/assignable-workers', requireRole(['OWNER', 'ADMIN']), async (req, r
             }
         });
     } catch (error) {
-        console.error('Error fetching assignable workers:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching assignable workers');
         res.status(500).json({ error: 'Failed to fetch assignable workers' });
     }
 });
@@ -319,7 +320,7 @@ async function checkWorkerCompliance(workerId, agencyId) {
             allDocumentsApproved: approvedDocs.length > 0
         };
     } catch (error) {
-        console.error('Error checking compliance:', error);
+        (req.log || logger).error({ err: error }, 'Error checking compliance');
         throw error;
     }
 }
@@ -409,7 +410,7 @@ router.post('/assign', async (req, res) => {
         // The coordinator can see the failure and decide accordingly
         res.status(201).json({ data: assignment });
     } catch (error) {
-        console.error('Error assigning worker to shift:', error);
+        (req.log || logger).error({ err: error }, 'Error assigning worker to shift');
         res.status(500).json({ error: 'Failed to assign worker to shift' });
     }
 });
@@ -452,7 +453,7 @@ router.get('/assignments', async (req, res) => {
 
         res.json({ data: assignments });
     } catch (error) {
-        console.error('Error fetching shift assignments:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching shift assignments');
         res.status(500).json({ error: 'Failed to fetch assignments' });
     }
 });
@@ -498,7 +499,7 @@ router.get('/assignments/:assignmentId', async (req, res) => {
 
         res.json({ data: assignment });
     } catch (error) {
-        console.error('Error fetching assignment:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching assignment');
         res.status(500).json({ error: 'Failed to fetch assignment' });
     }
 });
@@ -527,7 +528,7 @@ router.delete('/assignments/:assignmentId', async (req, res) => {
 
         res.json({ message: 'Assignment removed successfully' });
     } catch (error) {
-        console.error('Error deleting assignment:', error);
+        (req.log || logger).error({ err: error }, 'Error deleting assignment');
         res.status(500).json({ error: 'Failed to delete assignment' });
     }
 });

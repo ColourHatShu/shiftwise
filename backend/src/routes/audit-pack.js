@@ -1,6 +1,7 @@
 const express = require('express');
 const Sentry = require('@sentry/node');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency, requireRole } = require('../lib/auth');
 const {
   generateAuditPack,
@@ -53,7 +54,7 @@ router.post('/:workerId', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error generating audit pack:', error);
+    (req.log || logger).error({ err: error }, 'Error generating audit pack');
     Sentry.captureException(error, {
       tags: { context: 'auditPackGenerate' }
     });
@@ -94,7 +95,7 @@ router.post('/bulk/export', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error generating bulk export:', error);
+    (req.log || logger).error({ err: error }, 'Error generating bulk export');
     Sentry.captureException(error, {
       tags: { context: 'bulkExportGenerate' }
     });
@@ -122,7 +123,7 @@ router.post('/report/generate', async (req, res) => {
 
     res.send(result.buffer);
   } catch (error) {
-    console.error('Error generating compliance report:', error);
+    (req.log || logger).error({ err: error }, 'Error generating compliance report');
     Sentry.captureException(error, {
       tags: { context: 'complianceReportGenerate' }
     });
@@ -147,7 +148,7 @@ router.get('/snapshot', async (req, res) => {
       data: snapshot
     });
   } catch (error) {
-    console.error('Error generating snapshot:', error);
+    (req.log || logger).error({ err: error }, 'Error generating snapshot');
     Sentry.captureException(error, {
       tags: { context: 'snapshotGenerate' }
     });
@@ -171,7 +172,7 @@ router.get('/download/:packId', async (req, res) => {
 
     pack.stream.pipe(res);
   } catch (error) {
-    console.error('Error downloading audit pack:', error);
+    (req.log || logger).error({ err: error }, 'Error downloading audit pack');
     Sentry.captureException(error, {
       tags: { context: 'auditPackDownload' }
     });
@@ -200,7 +201,7 @@ router.post('/cleanup/expired', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error cleaning up expired packs:', error);
+    (req.log || logger).error({ err: error }, 'Error cleaning up expired packs');
     Sentry.captureException(error, {
       tags: { context: 'cleanupExpiredPacks' }
     });

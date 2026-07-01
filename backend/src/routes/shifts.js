@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 
 const router = express.Router();
@@ -67,7 +68,7 @@ router.post('/', async (req, res) => {
 
         res.status(201).json({ data: shift });
     } catch (error) {
-        console.error('Error creating shift:', error);
+        (req.log || logger).error({ err: error }, 'Error creating shift');
         res.status(500).json({ error: 'Failed to create shift' });
     }
 });
@@ -124,7 +125,7 @@ router.get('/', async (req, res) => {
 
         res.json({ data: shifts });
     } catch (error) {
-        console.error('Error fetching shifts:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching shifts');
         res.status(500).json({ error: 'Failed to fetch shifts' });
     }
 });
@@ -154,7 +155,7 @@ router.get('/:id', async (req, res) => {
 
         res.json({ data: shift });
     } catch (error) {
-        console.error('Error fetching shift:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching shift');
         res.status(500).json({ error: 'Failed to fetch shift' });
     }
 });
@@ -221,7 +222,7 @@ router.patch('/:id', async (req, res) => {
         if (error.code === 'P2025') {
             return res.status(404).json({ error: 'Shift not found' });
         }
-        console.error('Error updating shift:', error);
+        (req.log || logger).error({ err: error }, 'Error updating shift');
         res.status(500).json({ error: 'Failed to update shift' });
     }
 });
@@ -250,7 +251,7 @@ router.delete('/:id', async (req, res) => {
 
         res.json({ message: 'Shift deleted successfully' });
     } catch (error) {
-        console.error('Error deleting shift:', error);
+        (req.log || logger).error({ err: error }, 'Error deleting shift');
         res.status(500).json({ error: 'Failed to delete shift' });
     }
 });

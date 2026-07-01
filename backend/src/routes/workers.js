@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAgency, requireRole } = require('../lib/auth');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -75,7 +76,7 @@ router.get('/', requireAgency, async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching workers:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching workers');
         res.status(500).json({ error: 'Failed to fetch workers' });
     }
 });
@@ -94,7 +95,7 @@ router.get('/:id', requireAgency, async (req, res) => {
 
         res.json({ data: worker });
     } catch (error) {
-        console.error('Error fetching worker:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching worker');
         res.status(500).json({ error: 'Failed to fetch worker details' });
     }
 });
@@ -133,7 +134,7 @@ router.post('/', requireAgency, async (req, res) => {
 
         res.status(201).json({ data: worker });
     } catch (error) {
-        console.error('Error creating worker:', error);
+        (req.log || logger).error({ err: error }, 'Error creating worker');
         res.status(500).json({ error: 'Failed to create worker' });
     }
 });
@@ -159,7 +160,7 @@ router.patch('/:id/reactivate', requireAgency, async (req, res) => {
 
         res.json({ message: 'Worker reactivated successfully', data: updatedWorker });
     } catch (error) {
-        console.error('Error reactivating worker:', error);
+        (req.log || logger).error({ err: error }, 'Error reactivating worker');
         res.status(500).json({ error: 'Failed to reactivate worker' });
     }
 });
@@ -185,7 +186,7 @@ router.patch('/:id/deactivate', requireAgency, requireRole(['OWNER', 'ADMIN']), 
 
         res.json({ message: 'Worker deactivated successfully', data: updatedWorker });
     } catch (error) {
-        console.error('Error deactivating worker:', error);
+        (req.log || logger).error({ err: error }, 'Error deactivating worker');
         res.status(500).json({ error: 'Failed to deactivate worker' });
     }
 });
@@ -223,7 +224,7 @@ router.patch('/:id', requireAgency, async (req, res) => {
         res.json({ message: 'Worker updated successfully', data: updatedWorker });
 
     } catch (error) {
-        console.error('Error updating worker:', error);
+        (req.log || logger).error({ err: error }, 'Error updating worker');
         // Handle unique constraint violations
         if (error.code === 'P2002') {
             return res.status(400).json({ error: 'Email already exists' });
@@ -254,7 +255,7 @@ router.delete('/:id', requireAgency, requireRole(['OWNER', 'ADMIN']), async (req
 
         res.json({ message: 'Worker and associated documents permanently deleted.' });
     } catch (error) {
-        console.error('Error deleting worker:', error);
+        (req.log || logger).error({ err: error }, 'Error deleting worker');
         res.status(500).json({ error: 'Failed to delete worker' });
     }
 });

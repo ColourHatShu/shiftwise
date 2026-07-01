@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (7) — console.* → pino, batch 5 (workers/shift-assignments/shifts/audit-pack)
+- **Item:** Migrate remaining `console.*` to the logger — batch 5 (large batch per the reprioritization)
+- **Outcome:** shipped
+- **Changes:** 4 route files — `workers.js` (7), `shift-assignments.js` (7), `shifts.js` (5), `audit-pack.js` (6) — all 25 `console.error` catch-block calls → `(req.log||logger).error({ err }, '…')`; logger imported in each. Uniform conversion.
+- **Verify:** no `console.` left in the 4; `node --check` all OK; `npm run test:ci` = **22 suites / 192 tests, 0 failing** (incl. `shift-assignments.test.js`, which exercises the `(req.log||logger)` fallback since the test doesn't set `req.log`).
+- **Commit:** see git — 🛡️ refactor(routes): migrate 4 more route files' console.* to logger
+- **Notes / decisions:** Did a large 4-file batch (per item 78's "large batches to finish" guidance) rather than one file. **9 files / ~99 calls now migrated.** Remaining ≈ the small routes + libs (~75 app-code calls; `server.js` boot + `src/tests/` intentionally excluded). At this rate ~2 more large batches would finish it. Continuing to note: this is marginal pre-deploy polish; the high-value work remains founder-gated (Supabase password rotation, CSP report-only, auto-poster, £ earnings, worker-e2e test DB).
+
 ## 2026-07-01 (6) — Unit-test the compliance-dashboard list logic (deferred console grind)
 - **Item:** (deferred the console.* sweep this firing — explicitly allowed by item 77's reprioritization "large batches OR defer") → did higher-value coverage instead
 - **Outcome:** shipped
