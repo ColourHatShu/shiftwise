@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (38) — API reference docs for the session's new endpoints
+- **Item:** Document the new API surface (`docs/API.md`)
+- **Outcome:** shipped (docs)
+- **Changes:** new `docs/API.md` — reference for the six insight/matching endpoints added this session (shift-coverage; worker-scorecards + `/:workerId`; expiring-documents; shifts/:shiftId/suggested-workers): auth, query params, and exact response shapes with annotated examples. Cross-checked every documented field against the route code (coverage status enum + summary keys, expiring summary keys, matcher `meta` keys) — all match.
+- **Verify:** docs-only, no code/build impact; accuracy verified by shape-matching against the handlers.
+- **Commit:** see git — 🛡️ docs(api): reference for new insight + matcher endpoints
+- **Notes / decisions:** With safe non-gated code work exhausted, and having (a) committed to *not* pausing the cron unilaterally — per my standing offer to pause only on the founder's word — and (b) declined to make an unverifiable live-DB migration bet alone, chose the remaining genuinely-useful, zero-risk deliverable: the new endpoints were undocumented, and an accurate reference helps the founder evaluate what shipped + decide next steps. **Non-gated backlog remains exhausted** — the next substantive value needs a founder decision (tune matcher weights / greenlight a model-backed module like no-show tracking / CSP report-only / auto-poster / £ earnings) or a **"pause"**.
+
 ## 2026-07-01 (37) — A11y: contrast audit finds + fixes a real AA failure
 - **Item:** A11y follow-up — icon-only buttons + status-badge contrast
 - **Outcome:** shipped (real WCAG AA failure found + fixed)
