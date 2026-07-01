@@ -143,6 +143,9 @@ app.use('/api/audit-log', auditLogRouter);
 const shiftsRouter = require('./routes/shifts');
 app.use('/api/shifts', shiftsRouter);
 
+const shiftCoverageRouter = require('./routes/shift-coverage');
+app.use('/api/shift-coverage', shiftCoverageRouter);
+
 const shiftAssignmentsRouter = require('./routes/shift-assignments');
 // Mount shift-assignments router with :shiftId param for Phase 8 endpoints
 // Routes within the router use paths like /assign-bulk, /assignable-workers, etc.

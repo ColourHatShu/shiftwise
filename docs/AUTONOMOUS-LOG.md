@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (18) — New feature: shift coverage / staffing gaps (backend slice)
+- **Item:** Shift coverage — backend slice (new feature line; keep shipping real value)
+- **Outcome:** shipped
+- **Changes:** new `backend/src/routes/shift-coverage.js` — `GET /api/shift-coverage` (agency-scoped) returns upcoming shifts (shiftDate ≥ today, ordered soonest-first) with required/assigned/confirmed counts, `shortfall` (required − confirmed, floored 0), and `status` (filled / understaffed / unfilled), plus a `{ totalUpcoming, needingAttention }` summary. Pure aggregation of existing Shift + ShiftAssignment data — **no schema change**. Mounted at `/api/shift-coverage`. +4 tests.
+- **Verify:** route `require()` loads; `node --check src/server.js` OK; new test **4/4**; `npm run test:ci` = **24 suites / 202 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(shifts): coverage/staffing-gaps API
+- **Notes / decisions:** Opened a second read-only feature line (like scorecards — no migration, low risk) answering a core coordinator question: *which upcoming shifts still need workers?* Coordinator "gaps" view queued as slice 2 (plan P9). This complements the reliability thread: reliability tells you *who* to pick, coverage tells you *where* you still need to pick. Founder-gated items unchanged (CSP report-only, auto-poster, £ earnings, worker-e2e test DB).
+
 ## 2026-07-01 (17) — Rule-based "suggested workers" hint (feature complete)
 - **Item:** Rule-based "suggested workers" hint
 - **Outcome:** shipped end-to-end (both slices, both small)
