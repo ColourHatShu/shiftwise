@@ -343,6 +343,42 @@ describe('Shift Assignment Endpoints', () => {
         });
     });
 
+    describe('GET /api/shifts/:shiftId/suggested-workers (rule-based matcher)', () => {
+        it('ranks compliant candidates by reliability and excludes non-compliant', async () => {
+            const shiftId = 'shift-1';
+            prisma.shift.findFirst.mockResolvedValue({ id: shiftId, agencyId: 'test-agency-1' });
+            prisma.shiftAssignment.findMany.mockResolvedValue([]); // none assigned
+            prisma.worker.findMany.mockResolvedValue([
+                { id: 'w1', firstName: 'Low', lastName: 'Rate', email: 'l@x.com' },
+                { id: 'w2', firstName: 'High', lastName: 'Rate', email: 'h@x.com' },
+                { id: 'w3', firstName: 'Not', lastName: 'Compliant', email: 'n@x.com' },
+            ]);
+            validateComplianceForWorkers.mockResolvedValue(new Map([
+                ['w1', { notFound: false, isCompliant: true, snapshot: { complianceScore: 100 } }],
+                ['w2', { notFound: false, isCompliant: true, snapshot: { complianceScore: 100 } }],
+                ['w3', { notFound: false, isCompliant: false, snapshot: { complianceScore: 50 } }],
+            ]));
+            prisma.shiftAssignment.groupBy.mockResolvedValue([
+                { workerId: 'w1', workerConfirmation: 'confirmed', _count: { _all: 1 } },
+                { workerId: 'w1', workerConfirmation: 'declined', _count: { _all: 3 } }, // 25%
+                { workerId: 'w2', workerConfirmation: 'confirmed', _count: { _all: 4 } }, // 100%
+            ]);
+
+            const res = await request(app).get(`/api/shifts/${shiftId}/suggested-workers`).query({ limit: 5 });
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.map((s) => s.id)).toEqual(['w2', 'w1']); // reliable first, non-compliant excluded
+            expect(res.body.data[0]).toMatchObject({ rank: 1, confirmationRate: 100 });
+            expect(res.body.meta.compliantCandidates).toBe(2);
+        });
+
+        it('404s for a shift not in the agency', async () => {
+            prisma.shift.findFirst.mockResolvedValue(null);
+            const res = await request(app).get('/api/shifts/nope/suggested-workers');
+            expect(res.status).toBe(404);
+        });
+    });
+
     describe('POST /api/shifts/:shiftId/assign - Assign single worker (existing functionality)', () => {
         it('should assign worker to shift', async () => {
             const shiftId = 'shift-1';

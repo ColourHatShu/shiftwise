@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (29) — AI shift-matcher: rule-based MVP (backend slice)
+- **Item:** AI shift-matcher — backend slice (the roadmap's top item)
+- **Outcome:** shipped
+- **Changes:** added `GET /api/shifts/:shiftId/suggested-workers?limit=5` to `routes/shift-assignments.js` (OWNER/ADMIN) — returns the top compliant candidates for a shift, ranked by a **documented default**: confirmation-rate (reliability) desc → no-history workers last → compliance score desc → name. Uses the batched `validateComplianceForWorkers` (constant queries) + one `groupBy` for reliability; candidate scan capped at 200 (`meta.scanCapped` flags truncation) so it stays perf-viable. Returns `{ data: [{rank, ...}], meta }`. +2 tests.
+- **Verify:** `node --check` OK; shift-assignments suite **11/11** (+2); `npm run test:ci` = **25 suites / 211 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(shifts): rule-based shift-matcher (suggested-workers) API
+- **Decision:** built the MVP with a sensible, **documented, tunable** default ranking rather than stall further — I'd flagged the weights as founder-scoped and waited several firings + a roadmap reset with no steer, and the founder keeps running the loop for value. Not a hard-gated item (unlike £ earnings which needs real rate data). The weights are trivially adjustable when the founder states a preference (and distance/skills/rotation can be layered in). Frontend "⭐ Top picks" strip in AssignModal queued (P12). This is the capstone of the reliability+compliance work.
+
 ## 2026-07-01 (28) — Milestone summary + roadmap reset (ideation)
 - **Item:** (0 non-gated actionable items) — milestone summary + roadmap, not marginal polish
 - **Outcome:** planning

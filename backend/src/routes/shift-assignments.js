@@ -301,6 +301,95 @@ router.get('/assignable-workers', requireRole(['OWNER', 'ADMIN']), async (req, r
     }
 });
 
+// ─── GET /api/shifts/:shiftId/suggested-workers - Rule-based shift-matcher (MVP) ──
+// Returns the top compliant candidates for a shift, ranked by a documented default:
+//   1) compliant only (already compliance-filtered),
+//   2) confirmation rate (reliability) desc — workers with no history rank last,
+//   3) then compliance score desc, then name.
+// Weights are a sensible DEFAULT — tune when the founder specifies a preference.
+// Candidate scan is capped at SCAN_CAP for perf (meta.scanCapped flags truncation).
+router.get('/suggested-workers', requireRole(['OWNER', 'ADMIN']), async (req, res) => {
+    try {
+        const { shiftId } = req.params;
+        const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 5));
+        const SCAN_CAP = 200;
+
+        const shift = await prisma.shift.findFirst({ where: { id: shiftId, agencyId: req.agencyId } });
+        if (!shift) return res.status(404).json({ error: 'Shift not found' });
+
+        const assigned = await prisma.shiftAssignment.findMany({ where: { shiftId }, select: { workerId: true } });
+        const assignedIds = new Set(assigned.map((a) => a.workerId));
+
+        const workers = await prisma.worker.findMany({
+            where: { agencyId: req.agencyId, isActive: true },
+            select: { id: true, firstName: true, lastName: true, email: true },
+            orderBy: { firstName: 'asc' },
+            take: SCAN_CAP,
+        });
+        const candidates = workers.filter((w) => !assignedIds.has(w.id));
+        const candidateIds = candidates.map((w) => w.id);
+
+        // Compliance for all candidates in a constant number of queries (batched).
+        const complianceByWorker = await validateComplianceForWorkers(candidateIds, shiftId, req.agencyId);
+
+        // Reliability (confirmation rate) for the candidates in one aggregate query.
+        const rateMap = new Map();
+        if (candidateIds.length > 0) {
+            const grouped = await prisma.shiftAssignment.groupBy({
+                by: ['workerId', 'workerConfirmation'],
+                where: { agencyId: req.agencyId, workerId: { in: candidateIds } },
+                _count: { _all: true },
+            });
+            for (const row of grouped) {
+                const s = rateMap.get(row.workerId) || { confirmed: 0, declined: 0 };
+                const c = (row._count && row._count._all) || 0;
+                if (row.workerConfirmation === 'confirmed') s.confirmed += c;
+                else if (row.workerConfirmation === 'declined') s.declined += c;
+                rateMap.set(row.workerId, s);
+            }
+        }
+
+        const compliant = [];
+        for (const w of candidates) {
+            const v = complianceByWorker.get(w.id);
+            if (!v || v.notFound || !v.isCompliant) continue;
+            const s = rateMap.get(w.id);
+            const responded = s ? s.confirmed + s.declined : 0;
+            compliant.push({
+                id: w.id,
+                firstName: w.firstName,
+                lastName: w.lastName,
+                email: w.email,
+                complianceScore: (v.snapshot && v.snapshot.complianceScore) != null ? v.snapshot.complianceScore : 100,
+                confirmationRate: responded > 0 ? Math.round((s.confirmed / responded) * 100) : null,
+            });
+        }
+
+        compliant.sort((a, b) => {
+            if (a.confirmationRate !== b.confirmationRate) {
+                if (a.confirmationRate === null) return 1;
+                if (b.confirmationRate === null) return -1;
+                return b.confirmationRate - a.confirmationRate;
+            }
+            if (b.complianceScore !== a.complianceScore) return b.complianceScore - a.complianceScore;
+            return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        });
+
+        res.json({
+            data: compliant.slice(0, limit).map((w, i) => ({ rank: i + 1, ...w })),
+            meta: {
+                compliantCandidates: compliant.length,
+                scanned: candidates.length,
+                scanCapped: workers.length >= SCAN_CAP,
+                ranking: 'confirmationRate desc (no-history last), then complianceScore desc',
+            },
+        });
+    } catch (error) {
+        (req.log || logger).error({ err: error }, 'Error building suggested workers');
+        res.status(500).json({ error: 'Failed to build suggested workers' });
+    }
+});
+
 // ─── Helper: Check compliance for a worker ────────────────────────────────────
 async function checkWorkerCompliance(workerId, agencyId) {
     try {
