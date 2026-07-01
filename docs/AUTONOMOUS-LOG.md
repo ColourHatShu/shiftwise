@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (17) — Rule-based "suggested workers" hint (feature complete)
+- **Item:** Rule-based "suggested workers" hint
+- **Outcome:** shipped end-to-end (both slices, both small)
+- **Changes:** backend `routes/shift-assignments.js` — `assignable-workers` now sets `suggested = confirmationRate !== null && confirmationRate >= 80` per candidate (all candidates are already compliance-filtered). Frontend `AssignModal.tsx` — `suggested?` added to the Worker type + a "⭐ Suggested" badge next to the worker name. +2 backend test assertions (suggested true at 90%, false with no history).
+- **Verify:** `node --check` OK; shift-assignments suite **9/9**; backend `npm run test:ci` = **23 suites / 198 tests, 0 failing**; frontend `npm run lint` 0 + `npm run build` ✓.
+- **Commit:** see git — 🛡️ feat(shifts): flag + badge "suggested" (reliable, compliant) workers
+- **Notes / decisions:** Deliberately a per-candidate **flag/badge, not a reorder** — the endpoint paginates by firstName at the DB layer, so a within-page reliability re-sort would be inconsistent across pages. A true global "best candidates" ranking needs the endpoint to fetch-all → rank → paginate, and with distance/skill weighting that becomes the **AI shift-matcher** — logged as a likely own-milestone (bigger, may warrant founder input on the ranking weights). The scorecards → reliability → suggested thread is now shipped end-to-end. Founder-gated items unchanged.
+
 ## 2026-07-01 (16) — Reliability badge in the assignment picker (feature complete)
 - **Item:** Reliability in the shift-assignment picker — frontend slice
 - **Outcome:** shipped (reliability-at-point-of-assignment complete end-to-end)

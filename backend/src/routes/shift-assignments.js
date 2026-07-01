@@ -267,6 +267,10 @@ router.get('/assignable-workers', requireRole(['OWNER', 'ADMIN']), async (req, r
                 const s = rateMap.get(w.id);
                 const responded = s ? s.confirmed + s.declined : 0;
                 w.confirmationRate = responded > 0 ? Math.round((s.confirmed / responded) * 100) : null;
+                // "Suggested" = already compliant (all here are) AND a proven high
+                // confirmation rate. New workers (no history) aren't suggested but
+                // aren't penalised either.
+                w.suggested = w.confirmationRate !== null && w.confirmationRate >= 80;
             }
         }
 

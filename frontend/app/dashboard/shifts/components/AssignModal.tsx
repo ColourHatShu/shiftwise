@@ -17,6 +17,7 @@ interface Worker {
   complianceScore: number;
   complianceStatus: 'compliant' | 'non-compliant';
   confirmationRate: number | null;
+  suggested?: boolean;
   lastUpdated: string;
 }
 
@@ -209,8 +210,15 @@ export default function AssignModal({
                     onChange={() => toggleWorker(worker.id)}
                   />
                   <div className="flex-1">
-                    <div className="font-medium">
-                      {worker.firstName} {worker.lastName}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {worker.firstName} {worker.lastName}
+                      </span>
+                      {worker.suggested && (
+                        <Badge className="bg-blue-100 text-blue-800" title="Compliant and reliably confirms shifts">
+                          ⭐ Suggested
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-sm text-gray-600">{worker.email}</div>
                   </div>

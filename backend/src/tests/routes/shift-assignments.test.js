@@ -283,6 +283,7 @@ describe('Shift Assignment Endpoints', () => {
             expect(res.body.workers[0].complianceScore).toBe(100);
             // Reliability enrichment: field present, null when no assignment history.
             expect(res.body.workers[0]).toHaveProperty('confirmationRate', null);
+            expect(res.body.workers[0].suggested).toBe(false); // no history → not suggested
         });
 
         it('enriches compliant workers with their confirmation rate', async () => {
@@ -303,6 +304,7 @@ describe('Shift Assignment Endpoints', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.workers[0].confirmationRate).toBe(90);
+            expect(res.body.workers[0].suggested).toBe(true); // compliant + ≥80% → suggested
         });
 
         it('should filter workers by search query', async () => {
