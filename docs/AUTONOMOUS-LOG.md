@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (24) — DRY the reliability rate→colour helper (+tests)
+- **Item:** Extract a shared reliability colour helper
+- **Outcome:** shipped
+- **Changes:** new `frontend/lib/reliability.ts` — `reliabilityRateStyle(rate)` returns `{ label, badgeClass, textClass }` for the green ≥80 / amber ≥50 / red / grey-null thresholds (single source of truth). Adopted in `workers/scorecards/page.tsx` (was a local `rateStyle`) and the `workers/[id]` reliability panel (was an inline ternary), removing two divergent copies. +4 unit tests (`reliability.test.ts`).
+- **Verify:** new test **4/4**; frontend `npm run test:ci` = **7 files / 77 tests**; `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ refactor(ui): shared reliabilityRateStyle helper (+tests)
+- **Notes / decisions:** Chose a concrete DRY refactor of the code I'd just written (thresholds were duplicated in two places and could drift) over speculative feature-invention or another planning-only ideation pass — real maintainability value + a tested util, bounded and verifiable. Left `AssignModal`'s badge on its local generic-Tailwind style deliberately (it matches that modal's compliance badge). **Genuinely at the end of the clean autonomous runway now** — the reliability + coverage milestone is fully built, surfaced, and tidied. Next substantive work is founder-gated: **AI shift-matcher** (ranking weights), CSP report-only, auto-poster, £ earnings, worker-e2e test DB. Recommend a steer or pausing the cron.
+
 ## 2026-07-01 (23) — Discoverability: new views in the ⌘K command palette
 - **Item:** Add scorecards + coverage to the command palette
 - **Outcome:** shipped

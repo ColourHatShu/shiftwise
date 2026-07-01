@@ -17,6 +17,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { downloadDocument, getDocumentStatus, pollDocumentStatus } from "@/lib/api/documents";
 import { useApi } from "@/lib/use-api";
 import type { Worker, DocumentType, ComplianceDocument, DocSlot, AnalysisResult } from "@/types/api";
+import { reliabilityRateStyle } from "@/lib/reliability";
 
 const statusConfig: Record<string, { label: string; classes: string; icon: any }> = {
     NOT_UPLOADED: { label: "Not Uploaded", classes: "bg-[#EBEEF5] text-[#5B6E8C] border-[#DDE3EE]", icon: XCircle },
@@ -608,7 +609,7 @@ export default function WorkerProfilePage() {
                             {reliability.confirmationRate === null ? (
                                 <span className="text-sm text-[#5B6E8C]">No history yet</span>
                             ) : (
-                                <span className={`text-2xl font-medium ${reliability.confirmationRate >= 80 ? "text-[#166534]" : reliability.confirmationRate >= 50 ? "text-[#92400E]" : "text-[#991B1B]"}`}>
+                                <span className={`text-2xl font-medium ${reliabilityRateStyle(reliability.confirmationRate).textClass}`}>
                                     {reliability.confirmationRate}%
                                 </span>
                             )}

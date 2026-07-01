@@ -6,6 +6,7 @@ import { ArrowLeft, TrendingUp } from "lucide-react";
 import { useApi } from "@/lib/use-api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { reliabilityRateStyle } from "@/lib/reliability";
 
 interface Scorecard {
     workerId: string;
@@ -16,13 +17,6 @@ interface Scorecard {
     declined: number;
     pending: number;
     confirmationRate: number | null;
-}
-
-function rateStyle(rate: number | null): { label: string; cls: string } {
-    if (rate === null) return { label: "—", cls: "bg-[#EBEEF5] text-[#5B6E8C]" };
-    if (rate >= 80) return { label: `${rate}%`, cls: "bg-[#DCFCE7] text-[#166534]" };
-    if (rate >= 50) return { label: `${rate}%`, cls: "bg-[#FEF3C7] text-[#92400E]" };
-    return { label: `${rate}%`, cls: "bg-[#FEE2E2] text-[#991B1B]" };
 }
 
 export default function WorkerScorecardsPage() {
@@ -50,7 +44,7 @@ export default function WorkerScorecardsPage() {
     const rows = useMemo(
         () =>
             scorecards.map((s) => {
-                const r = rateStyle(s.confirmationRate);
+                const r = reliabilityRateStyle(s.confirmationRate);
                 return (
                     <tr key={s.workerId} className="border-t border-[#DDE3EE]">
                         <td className="px-4 py-3">
@@ -63,7 +57,7 @@ export default function WorkerScorecardsPage() {
                         <td className="px-4 py-3 text-center text-[#991B1B]">{s.declined}</td>
                         <td className="px-4 py-3 text-center text-[#5B6E8C]">{s.pending}</td>
                         <td className="px-4 py-3 text-center">
-                            <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${r.cls}`}>{r.label}</span>
+                            <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${r.badgeClass}`}>{r.label}</span>
                         </td>
                     </tr>
                 );
