@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (6) — Unit-test the compliance-dashboard list logic (deferred console grind)
+- **Item:** (deferred the console.* sweep this firing — explicitly allowed by item 77's reprioritization "large batches OR defer") → did higher-value coverage instead
+- **Outcome:** shipped
+- **Changes:** new `frontend/lib/compliance-dashboard.filters.test.ts` — 14 tests covering `filterWorkers` (name/email/jobTitle, case-insensitive, empty + no-match), `sortWorkers` (score/name/updated, asc+desc, **non-mutating**), `paginateWorkers` (slice, totalPages, partial last page, empty), and `buildQueryString`/`parseQueryString` (defaults omitted + full round-trip). These pure functions drive the coordinator compliance list and were entirely untested.
+- **Verify:** new file **14/14**; full frontend `npm run test:ci` = **5 files / 67 tests** (was 53); `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ test(frontend): cover compliance-dashboard filter/sort/paginate logic
+- **Notes / decisions:** Judged this real regression protection on core list UX (a bug in sort/filter silently shows coordinators wrong data) to be more valuable than another marginal console.* batch — and item 77 already permits deferral. The console.* tail (~remaining files) is still queued; recommend doing it in one large batch near deploy, or leaving it. Still flagging: the loop has exhausted high-value autonomous work; the meaningful next steps are all founder-gated (Supabase password rotation, CSP report-only, auto-poster, £ earnings, worker-e2e test DB) — pausing the cron or greenlighting one of these would beat continued polish.
+
 ## 2026-07-01 (5) — console.* → pino, batch 4 (compliance + agencies) + reprioritize
 - **Item:** Migrate remaining `console.*` to the logger — batch 4
 - **Outcome:** shipped (2 files) + **reprioritized the item**
