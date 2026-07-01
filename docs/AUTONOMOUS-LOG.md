@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (27) — Expiring worklist discoverability (docs header + ⌘K)
+- **Item:** Make the expiring worklist discoverable
+- **Outcome:** shipped
+- **Changes:** `app/dashboard/documents/page.tsx` — header is now a flex row with an "Expiring & overdue" link (Clock) to `/dashboard/documents/expiring`. `components/ui/command-palette.tsx` — added an "Expiring Documents" nav entry (Clock icon + keywords: expiry/overdue/renew/lapse/due-soon) and imported `Clock`.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully.
+- **Commit:** see git — 🛡️ feat(nav): make expiring-documents worklist discoverable
+- **Notes / decisions:** The core worklist is now reachable three ways (dashboard "EXPIRING SOON" card, Documents page header, ⌘K). Small, clean polish completing the feature's integration. Genuinely at the end of the clean non-gated runway again — three feature threads (reliability, coverage, expiring-docs) are fully built + surfaced + discoverable. Highest-value next work is founder-gated: **AI shift-matcher** (ranking weights), CSP report-only, auto-poster, £ earnings, worker-e2e test DB. Recommend a steer or pausing the cron.
+
 ## 2026-07-01 (26) — Expiring-documents worklist view (core promise, feature complete)
 - **Item:** Expiring-documents worklist — frontend slice
 - **Outcome:** shipped (core-promise feature complete end-to-end)

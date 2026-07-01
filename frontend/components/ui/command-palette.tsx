@@ -17,6 +17,7 @@ import {
     Loader2,
     TrendingUp,
     CalendarClock,
+    Clock,
     type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ const COMMANDS: Command[] = [
     { id: "add-worker", label: "Add Worker", hint: "Create", icon: UserPlus, href: "/dashboard/workers/new", keywords: "new staff create" },
     { id: "worker-reliability", label: "Worker Reliability", icon: TrendingUp, href: "/dashboard/workers/scorecards", keywords: "scorecards confirmation rate reliable staffing" },
     { id: "documents", label: "Documents", icon: FileText, href: "/dashboard/documents", keywords: "compliance files dbs" },
+    { id: "expiring-documents", label: "Expiring Documents", icon: Clock, href: "/dashboard/documents/expiring", keywords: "expiry overdue renew lapse due soon" },
     { id: "shifts", label: "Shifts", icon: Calendar, href: "/dashboard/shifts", keywords: "rota calendar schedule" },
     { id: "shift-coverage", label: "Shift Coverage", icon: CalendarClock, href: "/dashboard/shifts/coverage", keywords: "gaps understaffed unfilled needs workers" },
     { id: "audit-log", label: "Audit Log", icon: FileText, href: "/dashboard/audit-log", keywords: "history activity" },

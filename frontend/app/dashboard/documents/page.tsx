@@ -129,9 +129,18 @@ export default function DocumentsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-medium text-[#0A1628]">Documents</h1>
-                <p className="text-[#5B6E8C] mt-1">Compliance documents across all workers</p>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-medium text-[#0A1628]">Documents</h1>
+                    <p className="text-[#5B6E8C] mt-1">Compliance documents across all workers</p>
+                </div>
+                <Link
+                    href="/dashboard/documents/expiring"
+                    className="flex shrink-0 items-center gap-2 border border-[#DDE3EE] text-[#003087] hover:bg-[#F5F7FA] px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                    <Clock size={18} />
+                    Expiring &amp; overdue
+                </Link>
             </div>
 
             {/* Summary Stats */}
