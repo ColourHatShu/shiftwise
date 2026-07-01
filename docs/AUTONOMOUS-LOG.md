@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (30) — AI shift-matcher "Top picks" UI (MVP complete end-to-end)
+- **Item:** Shift-matcher — frontend slice
+- **Outcome:** shipped (rule-based shift-matcher MVP complete end-to-end)
+- **Changes:** `frontend/app/dashboard/shifts/components/AssignModal.tsx` — fetches `/api/shifts/:shiftId/suggested-workers?limit=5` on open and renders a "⭐ Top picks for this shift" strip above the worker list: ranked candidate chips (name + reliability %, with compliance/reliability in the `title` tooltip), each **one-click selectable** (toggles into the same `selectedWorkers` set, filled style when selected). Non-blocking — hidden if there are no suggestions or the fetch fails.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully. (Frontend-only; the API was tested in the backend slice.)
+- **Commit:** see git — 🛡️ feat(shifts): "top picks" shift-matcher strip in AssignModal
+- **Notes / decisions:** The capstone is live — when a coordinator opens "Assign Workers", the app now recommends the best compliant + reliable candidates and lets them add them in one click. Completes the reliability → compliance → matcher arc. Ranking weights remain a documented default, one line to tune on founder preference (+ distance/skills/rotation as future inputs). Couldn't visually verify (no localhost); build/lint pass. Remaining founder-gated: CSP report-only, auto-poster, £ earnings, model-backed features, worker-e2e test DB.
+
 ## 2026-07-01 (29) — AI shift-matcher: rule-based MVP (backend slice)
 - **Item:** AI shift-matcher — backend slice (the roadmap's top item)
 - **Outcome:** shipped

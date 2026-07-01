@@ -42,6 +42,7 @@ export default function AssignModal({
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState('');
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; firstName: string; lastName: string; complianceScore: number; confirmationRate: number | null; rank: number }>>([]);
 
   // Debounced search
   useEffect(() => {
@@ -58,8 +59,24 @@ export default function AssignModal({
   useEffect(() => {
     if (isOpen) {
       fetchWorkers(1, search);
+      fetchSuggestions();
     }
   }, [isOpen]);
+
+  // Rule-based "top picks" for this shift (best compliant + reliable candidates).
+  const fetchSuggestions = async () => {
+    try {
+      const res = await fetch(`/api/shifts/${shiftId}/suggested-workers?limit=5`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('coordinatorToken')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data.data || []);
+      }
+    } catch {
+      // Non-critical: the full list below still works if suggestions fail.
+    }
+  };
 
   const fetchWorkers = async (pageNum: number, searchQuery: string) => {
     try {
@@ -170,6 +187,35 @@ export default function AssignModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Assign Workers to Shift">
       <div className="space-y-4">
+        {/* Top picks — rule-based shift-matcher suggestions (click to select) */}
+        {suggestions.length > 0 && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <p className="mb-2 text-xs font-semibold text-blue-900">⭐ Top picks for this shift</p>
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((s) => {
+                const selected = selectedWorkers.has(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => toggleWorker(s.id)}
+                    title={`Compliance ${s.complianceScore}% · Reliability ${s.confirmationRate === null ? 'no history' : s.confirmationRate + '%'}`}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors ${
+                      selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-300 bg-white text-blue-800 hover:bg-blue-100'
+                    }`}
+                  >
+                    {selected && <span aria-hidden>✓</span>}
+                    {s.firstName} {s.lastName}
+                    {s.confirmationRate !== null && (
+                      <span className={`text-xs ${selected ? 'opacity-80' : 'opacity-60'}`}>· {s.confirmationRate}%</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Search Input */}
         <Input
           placeholder="Search by name or email..."
