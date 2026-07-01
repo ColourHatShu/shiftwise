@@ -9,6 +9,7 @@ const multer = require('multer');
 const Sentry = require('@sentry/node');
 const prisma = require('./lib/prisma');
 const { getEnvErrors } = require('./lib/validate-env');
+const logger = require('./lib/logger');
 const { initCronJobs, checkExpiriesAndAlert } = require('./services/cronService');
 
 const app = express();
@@ -39,6 +40,8 @@ app.use(helmet());
 app.use((req, res, next) => {
     req.requestId = req.headers['x-request-id'] || require('crypto').randomUUID();
     res.setHeader('X-Request-Id', req.requestId);
+    // Per-request structured logger — every line carries the correlation id.
+    req.log = logger.child({ requestId: req.requestId });
     next();
 });
 
@@ -217,7 +220,9 @@ app.use((req, res) => {
 // Prisma error text, file paths, stack snippets). Keep details server-side / in Sentry.
 app.use((err, req, res, next) => {
     const requestId = req.requestId || 'unknown';
-    console.error(`[req=${requestId}]`, err.stack || err);
+    // Structured, correlated error log (falls back to the base logger if the
+    // request-scoped child wasn't attached, e.g. very early failures).
+    (req.log || logger).error({ err, userId: req.user?.id, agencyId: req.agencyId }, 'Unhandled request error');
 
     if (SENTRY_DSN) {
         Sentry.captureException(err, {

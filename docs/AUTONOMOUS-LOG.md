@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 — Structured logger (pino) core + request correlation
+- **Item:** Structured logger (pino)
+- **Outcome:** shipped (bounded slice: logger + server.js request/error wiring; broad console.* migration split into a follow-up)
+- **Changes:** `npm install pino`; new `backend/src/lib/logger.js` (level from `LOG_LEVEL`/NODE_ENV; JSON; redacts authorization/cookie/password/otp/token). `server.js`: requires it, attaches `req.log = logger.child({ requestId })` in the request-id middleware, and the global error handler now emits a structured correlated line (`(req.log||logger).error({ err, userId, agencyId }, 'Unhandled request error')`). +2 smoke tests (`tests/unit/logger.test.js`, LOG_LEVEL=silent).
+- **Verify:** logger `require()` OK (guards the redact config, which throws on bad paths); `node --check src/server.js` OK; new test **2/2**; `npm run test:ci` = **22 suites / 192 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(backend): pino structured logger + request-scoped logging
+- **Notes / decisions:** Did the high-value bounded slice (logger + request correlation + error handler) rather than a churny mass `console.*` replacement — the sweep is queued as a follow-up to do in small verifiable batches. Skipped `pino-pretty` (JSON-only) to avoid a second dep + transport worker-thread complexity; JSON is deploy-standard and pairs with the requestId/Sentry pipeline. **This clears the last clean no-decision item** — remaining backlog is founder-gated (£ earnings, CSP report-only, auto-poster) or large/infra (security-pipeline features, worker-e2e test DB), plus the mechanical console.* sweep. Next firing: the console.* sweep batch, or ideate/await a founder unlock.
+
 ## 2026-06-30 17:22 — Resurrect the audit-pack component test → frontend testing complete (53 tests)
 - **Item:** Resurrect `__tests__/audit-pack-components.test.tsx`
 - **Outcome:** shipped — all 3 pre-existing frontend suites now run; **component-testing seam established**
