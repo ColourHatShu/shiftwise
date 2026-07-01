@@ -24,7 +24,7 @@ describe('GET /api/worker-scorecards', () => {
         jest.clearAllMocks();
         app = express();
         app.use(express.json());
-        prisma.worker = { findMany: jest.fn() };
+        prisma.worker = { findMany: jest.fn(), findFirst: jest.fn() };
         prisma.shiftAssignment = { groupBy: jest.fn() };
         app.use('/api/worker-scorecards', scorecardsRouter);
     });
@@ -90,5 +90,56 @@ describe('GET /api/worker-scorecards', () => {
         prisma.shiftAssignment.groupBy.mockResolvedValue([]);
         const res = await request(app).get('/api/worker-scorecards');
         expect(res.status).toBe(500);
+    });
+});
+
+describe('GET /api/worker-scorecards/:workerId', () => {
+    let app;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        app = express();
+        app.use(express.json());
+        prisma.worker = { findFirst: jest.fn() };
+        prisma.shiftAssignment = { groupBy: jest.fn() };
+        app.use('/api/worker-scorecards', scorecardsRouter);
+    });
+
+    it('returns a single worker scorecard', async () => {
+        prisma.worker.findFirst.mockResolvedValue({ id: 'w1', firstName: 'Jane', lastName: 'Doe' });
+        prisma.shiftAssignment.groupBy.mockResolvedValue([
+            { workerConfirmation: 'confirmed', _count: { _all: 7 } },
+            { workerConfirmation: 'declined', _count: { _all: 3 } },
+            { workerConfirmation: 'pending', _count: { _all: 2 } },
+        ]);
+
+        const res = await request(app).get('/api/worker-scorecards/w1');
+
+        expect(res.status).toBe(200);
+        expect(res.body.data).toMatchObject({
+            workerId: 'w1',
+            totalAssignments: 12,
+            confirmed: 7,
+            declined: 3,
+            pending: 2,
+            confirmationRate: 70, // 7 of 10 responded
+        });
+        expect(prisma.shiftAssignment.groupBy).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { agencyId: 'agency-1', workerId: 'w1' } })
+        );
+    });
+
+    it('404s for a worker not in the agency', async () => {
+        prisma.worker.findFirst.mockResolvedValue(null);
+        const res = await request(app).get('/api/worker-scorecards/nope');
+        expect(res.status).toBe(404);
+    });
+
+    it('reports a null rate when the worker has no responded assignments', async () => {
+        prisma.worker.findFirst.mockResolvedValue({ id: 'w2', firstName: 'New', lastName: 'Hire' });
+        prisma.shiftAssignment.groupBy.mockResolvedValue([{ workerConfirmation: 'pending', _count: { _all: 2 } }]);
+        const res = await request(app).get('/api/worker-scorecards/w2');
+        expect(res.status).toBe(200);
+        expect(res.body.data).toMatchObject({ totalAssignments: 2, confirmed: 0, confirmationRate: null });
     });
 });

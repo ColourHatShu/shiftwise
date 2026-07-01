@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (21) — Per-worker scorecard endpoint (for the profile)
+- **Item:** Per-worker scorecard — backend slice
+- **Outcome:** shipped
+- **Changes:** `routes/worker-scorecards.js` — added `GET /api/worker-scorecards/:workerId` (agency-scoped; 404 if the worker isn't in the agency) returning one worker's reliability (total/confirmed/declined/pending + `confirmationRate`) via a single-key `groupBy(['workerConfirmation'])`. Test mock now includes `worker.findFirst`; +3 tests.
+- **Verify:** route `require()` loads; scorecards suite **8/8** (was 5); `npm run test:ci` = **24 suites / 205 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(workers): per-worker scorecard endpoint
+- **Notes / decisions:** Small backend slice to power a reliability panel on the worker profile (avoids the profile fetching the whole all-workers list). Confirmed `reports/expiring` already covers expiring-docs surfacing, so didn't duplicate that. Profile surfacing queued as slice 2 (plan P10). Founder-gated items unchanged.
+
 ## 2026-07-01 (20) — Surface shift-coverage gaps on the main dashboard
 - **Item:** Shift coverage — surface on the dashboard
 - **Outcome:** shipped

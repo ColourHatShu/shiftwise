@@ -73,4 +73,55 @@ router.get('/', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/worker-scorecards/:workerId
+ * The same reliability scorecard for a single worker (for the worker profile).
+ */
+router.get('/:workerId', async (req, res) => {
+    try {
+        const { workerId } = req.params;
+        const worker = await prisma.worker.findFirst({
+            where: { id: workerId, agencyId: req.agencyId },
+            select: { id: true, firstName: true, lastName: true },
+        });
+        if (!worker) {
+            return res.status(404).json({ error: 'Worker not found' });
+        }
+
+        const grouped = await prisma.shiftAssignment.groupBy({
+            by: ['workerConfirmation'],
+            where: { agencyId: req.agencyId, workerId },
+            _count: { _all: true },
+        });
+
+        let confirmed = 0;
+        let declined = 0;
+        let pending = 0;
+        for (const row of grouped) {
+            const c = (row._count && row._count._all) || 0;
+            if (row.workerConfirmation === 'confirmed') confirmed += c;
+            else if (row.workerConfirmation === 'declined') declined += c;
+            else pending += c;
+        }
+        const totalAssignments = confirmed + declined + pending;
+        const responded = confirmed + declined;
+
+        res.json({
+            data: {
+                workerId: worker.id,
+                firstName: worker.firstName,
+                lastName: worker.lastName,
+                totalAssignments,
+                confirmed,
+                declined,
+                pending,
+                confirmationRate: responded > 0 ? Math.round((confirmed / responded) * 100) : null,
+            },
+        });
+    } catch (error) {
+        (req.log || logger).error({ err: error }, 'Error building worker scorecard');
+        res.status(500).json({ error: 'Failed to build worker scorecard' });
+    }
+});
+
 module.exports = router;
