@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (23) — Discoverability: new views in the ⌘K command palette
+- **Item:** Add scorecards + coverage to the command palette
+- **Outcome:** shipped
+- **Changes:** `frontend/components/ui/command-palette.tsx` — added two nav entries: "Worker Reliability" (`/dashboard/workers/scorecards`, TrendingUp) and "Shift Coverage" (`/dashboard/shifts/coverage`, CalendarClock), each with search keywords. Imported the two icons.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully.
+- **Commit:** see git — 🛡️ feat(nav): add reliability + coverage to command palette
+- **Notes / decisions:** The two new views were only reachable via in-page header links; adding them to ⌘K makes them quick-navigable without cluttering the persistent sidebar (contextual sub-features belong in the palette, not the main nav). Small, clean discoverability polish. The reliability + coverage feature set is now fully built + surfaced (dedicated pages, assignment picker, dashboard alert, worker profile, and quick-nav). Highest-value next work is founder-gated: **AI shift-matcher** (ranking weights), CSP report-only, auto-poster, £ earnings, worker-e2e test DB.
+
 ## 2026-07-01 (22) — Reliability panel on the worker profile (feature complete)
 - **Item:** Per-worker scorecard — profile surfacing
 - **Outcome:** shipped (feature complete end-to-end)

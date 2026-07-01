@@ -15,6 +15,8 @@ import {
     Settings,
     User,
     Loader2,
+    TrendingUp,
+    CalendarClock,
     type LucideIcon,
 } from "lucide-react";
 
@@ -34,8 +36,10 @@ const COMMANDS: Command[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", keywords: "home overview" },
     { id: "workers", label: "Workers", icon: Users, href: "/dashboard/workers", keywords: "staff carers nurses" },
     { id: "add-worker", label: "Add Worker", hint: "Create", icon: UserPlus, href: "/dashboard/workers/new", keywords: "new staff create" },
+    { id: "worker-reliability", label: "Worker Reliability", icon: TrendingUp, href: "/dashboard/workers/scorecards", keywords: "scorecards confirmation rate reliable staffing" },
     { id: "documents", label: "Documents", icon: FileText, href: "/dashboard/documents", keywords: "compliance files dbs" },
     { id: "shifts", label: "Shifts", icon: Calendar, href: "/dashboard/shifts", keywords: "rota calendar schedule" },
+    { id: "shift-coverage", label: "Shift Coverage", icon: CalendarClock, href: "/dashboard/shifts/coverage", keywords: "gaps understaffed unfilled needs workers" },
     { id: "audit-log", label: "Audit Log", icon: FileText, href: "/dashboard/audit-log", keywords: "history activity" },
     { id: "audit-packs", label: "Audit Packs", icon: Archive, href: "/dashboard/audit-packs", keywords: "cqc export zip" },
     { id: "reports", label: "Reports", icon: BarChart3, href: "/dashboard/reports", keywords: "pdf compliance export" },
