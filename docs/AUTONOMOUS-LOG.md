@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (31) — Establish frontend page-level tests (coverage page)
+- **Item:** Page/component test coverage for app routes
+- **Outcome:** shipped
+- **Changes:** widened `frontend/vitest.config.ts` `include` to `app/**/*.test.{ts,tsx}`; added `app/dashboard/shifts/coverage/page.test.tsx` — mocks `@/lib/use-api` and asserts (a) a coverage row renders with facility + "Understaffed" status + "1 / 3" counts, and (b) the empty state shows when there are no upcoming shifts. Confirms client pages render under jsdom + RTL.
+- **Verify:** new file **2/2**; frontend `npm run test:ci` = **8 files / 79 tests**; `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ test(frontend): page-level tests + coverage-page test
+- **Notes / decisions:** With the feature arc complete and clean gated work absent, chose genuine quality coverage over marginal churn — the new views had lib tests but no page-level tests. This establishes the page-testing seam (the `app/**` glob + a working mocked-`useApi` render); the other new pages (scorecards, expiring, dashboard alert) are now mechanical follow-ups (P13). Founder-gated items unchanged (tune shift-matcher weights, CSP report-only, auto-poster, £ earnings, worker-e2e test DB).
+
 ## 2026-07-01 (30) — AI shift-matcher "Top picks" UI (MVP complete end-to-end)
 - **Item:** Shift-matcher — frontend slice
 - **Outcome:** shipped (rule-based shift-matcher MVP complete end-to-end)

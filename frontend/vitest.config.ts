@@ -16,6 +16,7 @@ export default defineConfig({
         setupFiles: ['./vitest.setup.ts'],
         include: [
             'lib/**/*.test.ts',
+            'app/**/*.test.{ts,tsx}',
             '__tests__/worker-compliance.test.ts',
             '__tests__/worker-offline.test.ts',
             '__tests__/audit-pack-components.test.tsx',
