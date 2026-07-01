@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (16) — Reliability badge in the assignment picker (feature complete)
+- **Item:** Reliability in the shift-assignment picker — frontend slice
+- **Outcome:** shipped (reliability-at-point-of-assignment complete end-to-end)
+- **Changes:** `frontend/app/dashboard/shifts/components/AssignModal.tsx` — added `confirmationRate` to the Worker interface and a reliability badge per candidate row: colour-coded `{rate}% conf` (green ≥80 / amber ≥50 / red), or a muted **"New"** badge when `confirmationRate` is null (no history). Matches the component's existing badge styling; `title` tooltips explain the metric.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully. (Frontend-only; the API field was tested in the backend slice.)
+- **Commit:** see git — 🛡️ feat(shifts): show worker reliability in the assignment picker
+- **Notes / decisions:** Coordinators now see each candidate's reliability *inline while choosing* — the highest-value placement. Kept it consistent with the modal's current (generic-Tailwind) badge style rather than restyling the whole modal. Next thread step (queued): a rule-based "suggested workers" ordering (sort/tag by reliability + compliance) → the AI shift-matcher foundation. Couldn't visually verify (no localhost); build/lint pass. Founder-gated items unchanged.
+
 ## 2026-07-01 (15) — Reliability at the point of assignment (assignable-workers enrichment)
 - **Item:** Reliability in the shift-assignment picker — backend slice
 - **Outcome:** shipped

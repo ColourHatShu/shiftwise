@@ -16,6 +16,7 @@ interface Worker {
   email: string;
   complianceScore: number;
   complianceStatus: 'compliant' | 'non-compliant';
+  confirmationRate: number | null;
   lastUpdated: string;
 }
 
@@ -158,6 +159,13 @@ export default function AssignModal({
     return 'bg-red-100 text-red-800';
   };
 
+  // Reliability = how often this worker confirms shifts they're assigned.
+  const getReliabilityBadgeColor = (rate: number) => {
+    if (rate >= 80) return 'bg-green-100 text-green-800';
+    if (rate >= 50) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Assign Workers to Shift">
       <div className="space-y-4">
@@ -212,6 +220,15 @@ export default function AssignModal({
                   <Badge variant={worker.complianceStatus === 'compliant' ? 'success' : 'destructive'}>
                     {worker.complianceStatus === 'compliant' ? 'Compliant' : 'Non-compliant'}
                   </Badge>
+                  {worker.confirmationRate === null || worker.confirmationRate === undefined ? (
+                    <Badge className="bg-gray-100 text-gray-600" title="No shift-confirmation history yet">
+                      New
+                    </Badge>
+                  ) : (
+                    <Badge className={getReliabilityBadgeColor(worker.confirmationRate)} title="Shift confirmation rate (reliability)">
+                      {worker.confirmationRate}% conf
+                    </Badge>
+                  )}
                 </label>
               ))}
             </>
