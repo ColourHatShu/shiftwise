@@ -113,6 +113,9 @@ app.use('/api/workers/bulk', workersBulkRouter);
 const workersRouter = require('./routes/workers');
 app.use('/api/workers', workersRouter);
 
+const workerScorecardsRouter = require('./routes/worker-scorecards');
+app.use('/api/worker-scorecards', workerScorecardsRouter);
+
 const workerAvailabilityRouter = require('./routes/worker-availability');
 app.use('/api/workers/:workerId/availability', workerAvailabilityRouter);
 

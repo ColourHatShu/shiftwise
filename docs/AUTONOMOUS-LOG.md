@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (13) — New feature: worker reliability scorecards (backend slice)
+- **Item:** Worker reliability scorecards — backend slice (promoted from IDEAS.md; "keep shipping real value" over speculative polish)
+- **Outcome:** shipped
+- **Changes:** new `backend/src/routes/worker-scorecards.js` — `GET /api/worker-scorecards` (agency-scoped) aggregates existing `ShiftAssignment` data per worker via `groupBy(['workerId','workerConfirmation'])`: total / confirmed / declined / pending + `confirmationRate` (confirmed ÷ responded, null if none responded), sorted best-first (no-data workers last). Mounted at `/api/worker-scorecards`. **No schema change** — pure aggregation of existing data. +5 tests.
+- **Verify:** route `require()` loads; `node --check src/server.js` OK; new test **5/5**; `npm run test:ci` = **23 suites / 197 tests, 0 failing**.
+- **Commit:** see git — 🛡️ feat(workers): reliability scorecard API (from assignment data)
+- **Notes / decisions:** With the non-gated backlog exhausted, chose to **build a vetted feature** (IDEAS.md worker scorecards) rather than more marginal polish — it needs no founder decision and no risky migration (reads existing assignment confirmations), and it's the foundation for the future AI shift-matcher. Frontend coordinator view queued as slice 2 (plan P8). 🟢 Reminder: founder waived the Supabase password rotation. Remaining gated items: CSP (report-only), auto-poster, £ earnings, worker-e2e test DB.
+
 ## 2026-07-01 (12) — Finish compliance-dashboard coverage; founder waived password rotation
 - **Item:** (non-gated backlog empty) — completed unit coverage of the `compliance-dashboard` module
 - **Outcome:** shipped

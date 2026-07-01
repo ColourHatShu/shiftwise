@@ -22,7 +22,7 @@
 - Pino structured logger (replace `console.log`) · GitHub Actions CI · `Idempotency-Key` support on POSTs · file content-hash dedup · encryption `keyVersion` column for key rotation · migrate local disk → Cloudflare R2 at first real customer.
 
 ## Surfaced 2026-06-30 (during ideation — promote when scoped)
-- **Worker reliability scorecards** — derive per-worker stats from assignment data (shifts confirmed vs declined, no-shows, total hours) → a scorecard coordinators can sort by. Foundation for the AI shift-matcher. *(value: better staffing decisions; effort: medium; builds on existing ShiftAssignment data.)*
+- **Worker reliability scorecards** — 🚧 **IN PROGRESS (promoted to plan P8):** backend `GET /api/worker-scorecards` shipped (confirmed/declined/pending + confirmationRate from existing ShiftAssignment data); frontend view pending. Future extension: no-shows + total hours once attendance tracking exists. Foundation for the AI shift-matcher.
 - **No-show / late incident workflow** — coordinator logs an incident against a worker+shift (reason, severity); feeds the scorecard. *(needs a small Incident model; medium.)*
 - **In-app notifications centre** — today alerts are email-only; add a bell/inbox so coordinators see expiry/upload/assignment events in-app. *(value: daily engagement; effort: medium — new Notification model + polling.)*
 - **Worker document re-upload nudges** — when a doc is rejected or expiring, surface a clear "re-upload" prompt in the worker portal (data already exists). *(value: faster compliance; effort: low-medium, frontend-led.)*
