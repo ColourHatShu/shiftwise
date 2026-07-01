@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (49) — 🔴 SECURITY: fix cross-agency audit-pack download (IDOR)
+- **Item:** Self-review (authz) of the untested `audit-pack.js` — found a real cross-tenant leak
+- **Outcome:** shipped (highest-severity fix of the session)
+- **Vulnerability (IDOR / broken object-level authorization):** `GET /api/agency/audit-pack/download/:packId` → `downloadAuditPack(packId)` streamed `uploads/audit-packs/{packId}.zip` directly off disk with **no ownership check**. The route is behind `requireAgency` + `requireRole(['OWNER','ADMIN'])`, but that only proves you're an admin of *some* agency — not that the pack is yours. There's no `AuditPack` DB row (files are flat on disk) and the single-worker packId (`audit-pack-<workerId>-<ts>`) didn't even encode the agency. So an OWNER/ADMIN of agency A could download agency B's audit pack — B's workers' compliance documents (DBS, passport, Right-to-Work) and PII — by knowing/guessing a packId. Serious cross-tenant data leak for a CQC/healthcare product.
+- **Fix:** embed the owning `agencyId` in every packId (single-worker now `audit-pack-<agencyId>-<workerId>-<ts>`; bulk already `bulk-export-<agencyId>-<ts>`), and gate `downloadAuditPack(packId, agencyId)` on `isAuditPackOwnedByAgency` — the packId must start with `audit-pack-<agencyId>-` or `bulk-export-<agencyId>-` (trailing '-' delimiter prevents agency-id prefix collisions, e.g. agency-1 vs agency-12). Same "not found" error so a foreign pack's existence isn't leaked. Route now passes `req.agencyId`. Guard lives in a **dependency-free** `lib/audit-pack-ownership.js` (the full service pulls `archiver`, which ships ESM jest can't parse) so it's unit-testable in isolation.
+- **Verify:** `node --check` (service + new module + route) OK; new unit suite **5/5** (owned single/bulk, foreign rejected, prefix-collision rejected, missing-arg); `npm run test:ci` = **32 suites / 259 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(audit-pack): scope pack download to the owning agency (IDOR)
+- **Notes / decisions:** Ninth and most serious defect from the self-review thread — a genuine cross-tenant PII/document leak, the exact class as the earlier worker-dashboard document leak. Old-format packs (pre-fix, no agencyId in id) will now 404 on download, but packs expire in 7 days so that's transient. **Strongly recommend the founder note this one.** Remaining: a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the `reactivate` role check) or a **"pause"**.
+
 ## 2026-07-01 (48) — Bug-class sweep: unsafe .trim() on null/non-string input
 - **Item:** Systematic sweep of the recurring `.trim()`-on-bad-input crash class
 - **Outcome:** shipped (sweep complete; one more instance fixed)

@@ -4,6 +4,7 @@ const archiver = require('archiver');
 const PDFDocument = require('pdfkit');
 const prisma = require('./prisma');
 const Sentry = require('@sentry/node');
+const { isAuditPackOwnedByAgency } = require('./audit-pack-ownership');
 
 /**
  * Audit Pack Service
@@ -78,7 +79,7 @@ async function generateAuditPack(workerId, agencyId) {
     );
 
     // Create ZIP
-    const packId = `audit-pack-${worker.id}-${Date.now()}`;
+    const packId = `audit-pack-${agencyId}-${worker.id}-${Date.now()}`;
     const zipPath = path.join(UPLOADS_DIR, `${packId}.zip`);
 
     return new Promise((resolve, reject) => {
@@ -554,8 +555,14 @@ function calculateWorkerComplianceScore(worker, requiredDocTypes) {
 /**
  * Download audit pack file
  */
-async function downloadAuditPack(packId, expiryHours = 168) {
+async function downloadAuditPack(packId, agencyId, expiryHours = 168) {
   try {
+    // Reject packs that don't belong to the caller's agency (same message as
+    // a missing file so we don't leak whether another agency's pack exists).
+    if (!isAuditPackOwnedByAgency(packId, agencyId)) {
+      throw new Error('Audit pack not found');
+    }
+
     const zipPath = path.join(UPLOADS_DIR, `${packId}.zip`);
 
     if (!fs.existsSync(zipPath)) {
@@ -620,5 +627,6 @@ module.exports = {
   generateSnapshot,
   bulkExport,
   downloadAuditPack,
+  isAuditPackOwnedByAgency,
   cleanupExpiredPacks
 };

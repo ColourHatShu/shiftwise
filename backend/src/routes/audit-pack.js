@@ -165,7 +165,7 @@ router.get('/download/:packId', async (req, res) => {
   try {
     const { packId } = req.params;
 
-    const pack = await downloadAuditPack(packId);
+    const pack = await downloadAuditPack(packId, req.agencyId);
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${pack.fileName}"`);
