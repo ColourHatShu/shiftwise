@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 const pdfService = require('../services/pdfService');
 
@@ -62,7 +63,7 @@ router.get('/compliance', requireAgency, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Compliance report error:', error);
+        (req.log || logger).error({ err: error }, 'Compliance report error');
         res.status(500).json({ error: 'Failed to generate compliance report' });
     }
 });
@@ -114,7 +115,7 @@ router.get('/expiring', requireAgency, async (req, res) => {
         res.json({ data: expiringDocs });
 
     } catch (error) {
-        console.error('Expiring report error:', error);
+        (req.log || logger).error({ err: error }, 'Expiring report error');
         res.status(500).json({ error: 'Failed to generate expiring report' });
     }
 });
@@ -160,7 +161,7 @@ router.get('/non-compliant', requireAgency, async (req, res) => {
         res.json({ data: nonCompliantWorkers });
 
     } catch (error) {
-        console.error('Non-compliant report error:', error);
+        (req.log || logger).error({ err: error }, 'Non-compliant report error');
         res.status(500).json({ error: 'Failed to generate non-compliant report' });
     }
 });
@@ -181,7 +182,7 @@ router.post('/generate-pdf', requireAgency, async (req, res) => {
         pdfService.generateReportPDF(reportType, reportData, agencyName || 'ShiftWise Agency', res);
 
     } catch (error) {
-        console.error('PDF Generation error:', error);
+        (req.log || logger).error({ err: error }, 'PDF generation error');
         res.status(500).json({ error: 'Failed to generate PDF document' });
     }
 });

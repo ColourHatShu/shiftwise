@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (8) — console.* → pino, batch 6 (6 more route files)
+- **Item:** Migrate remaining `console.*` to the logger — batch 6
+- **Outcome:** shipped
+- **Changes:** 6 route files — `reports` (4), `document-types` (4), `alerts` (4: 2 manual-trigger logs → `info` with user/agency, 2 `console.error(err)` → `error({err})`), `worker-documents` (4), `worker-availability` (3), `shift-requirements` (4) — 23 calls → `(req.log||logger)` in pino `(obj,msg)` form; logger imported in each.
+- **Verify:** no `console.` left in the 6; `node --check` all OK; `npm run test:ci` = **22 suites / 192 tests, 0 failing** (worker-dashboard + document-types suites still green, exercising the `(req.log||logger)` fallback).
+- **Commit:** see git — 🛡️ refactor(routes): migrate 6 more route files' console.* to logger
+- **Notes / decisions:** **15 files / ~122 calls migrated now** — roughly one more large batch (small routes + libs) finishes item 78. Noted `worker-auth.js` has a module-scope boot warning that should stay `console` (like server.js boot logs). Still flagging: this is marginal pre-deploy polish; the meaningful next steps remain founder-gated (Supabase password rotation, CSP report-only, auto-poster, £ earnings, worker-e2e test DB).
+
 ## 2026-07-01 (7) — console.* → pino, batch 5 (workers/shift-assignments/shifts/audit-pack)
 - **Item:** Migrate remaining `console.*` to the logger — batch 5 (large batch per the reprioritization)
 - **Outcome:** shipped

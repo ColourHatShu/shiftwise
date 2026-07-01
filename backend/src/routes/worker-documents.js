@@ -9,6 +9,7 @@
  */
 
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { workerAuthMiddleware } = require('./worker-auth');
 const { uploadToR2, downloadFromR2 } = require('../lib/r2');
 const { encryptFileGCM, decryptFileAuto } = require('../lib/encryption');
@@ -84,7 +85,7 @@ async function getWorkerDocuments(req, res) {
         Sentry.captureException(error, {
             tags: { workerId: req.worker?.id, context: 'worker.get-documents' },
         });
-        console.error('Get documents error:', error);
+        (req.log || logger).error({ err: error }, 'Get worker documents error');
         res.status(500).json({ error: 'Failed to fetch documents' });
     }
 }
@@ -215,7 +216,7 @@ async function uploadWorkerDocument(req, res) {
                     tags: { agencyId, workerId, context: 'worker.upload-notification' },
                     extra: { coordinatorEmail: agency.email },
                 });
-                console.error('Failed to send coordinator notification:', emailError.message);
+                (req.log || logger).error({ err: emailError }, 'Failed to send coordinator notification');
             }
         }
 
@@ -233,7 +234,7 @@ async function uploadWorkerDocument(req, res) {
         Sentry.captureException(error, {
             tags: { workerId: req.worker?.id, context: 'worker.upload-document' },
         });
-        console.error('Upload document error:', error);
+        (req.log || logger).error({ err: error }, 'Upload document error');
         res.status(500).json({ error: 'Upload failed' });
     }
 }
@@ -271,7 +272,7 @@ async function getDocumentTypes(req, res) {
         Sentry.captureException(error, {
             tags: { agencyId: req.worker?.agencyId, context: 'worker.get-document-types' },
         });
-        console.error('Get document types error:', error);
+        (req.log || logger).error({ err: error }, 'Get document types error');
         res.status(500).json({ error: 'Failed to fetch document types' });
     }
 }

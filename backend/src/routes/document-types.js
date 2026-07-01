@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 
 const router = express.Router();
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
         });
         res.json({ data: docTypes });
     } catch (error) {
-        console.error('Error fetching document types:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching document types');
         res.status(500).json({ error: 'Failed to fetch document types' });
     }
 });
@@ -49,7 +50,7 @@ router.post('/', async (req, res) => {
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'A document type with this name already exists' });
         }
-        console.error('Error creating document type:', error);
+        (req.log || logger).error({ err: error }, 'Error creating document type');
         res.status(500).json({ error: 'Failed to create document type' });
     }
 });
@@ -84,7 +85,7 @@ router.patch('/:id', async (req, res) => {
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'A document type with this name already exists' });
         }
-        console.error('Error updating document type:', error);
+        (req.log || logger).error({ err: error }, 'Error updating document type');
         res.status(500).json({ error: 'Failed to update document type' });
     }
 });
@@ -106,7 +107,7 @@ router.delete('/:id', async (req, res) => {
         await prisma.documentType.delete({ where: { id } });
         res.json({ message: 'Document type deleted successfully' });
     } catch (error) {
-        console.error('Error deleting document type:', error);
+        (req.log || logger).error({ err: error }, 'Error deleting document type');
         res.status(500).json({ error: 'Failed to delete document type' });
     }
 });

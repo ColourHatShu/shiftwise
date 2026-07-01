@@ -1,5 +1,6 @@
 const express = require('express');
 const { checkExpiriesAndAlert } = require('../services/cronService');
+const logger = require('../lib/logger');
 const prisma = require('../lib/prisma');
 const { requireAgency, requireRole } = require('../lib/auth');
 
@@ -20,7 +21,7 @@ router.get('/test', async (req, res) => {
         return res.status(403).json({ error: 'Test endpoints are disabled in production.' });
     }
     try {
-        console.log(`Manual alerts check triggered by user=${req.userId} agency=${req.agencyId}`);
+        (req.log || logger).info({ userId: req.userId, agencyId: req.agencyId }, 'Manual alerts check triggered');
         const { alertsSent, triggeredDocuments } = await checkExpiriesAndAlert({ agencyId: req.agencyId });
 
         res.json({
@@ -29,7 +30,7 @@ router.get('/test', async (req, res) => {
             triggeredDocuments,
         });
     } catch (err) {
-        console.error(err);
+        (req.log || logger).error({ err }, 'Alerts operation failed');
         res.status(500).json({ error: 'Trigger failed internally.' });
     }
 });
@@ -41,7 +42,7 @@ router.delete('/reset-test', async (req, res) => {
         return res.status(403).json({ error: 'Test endpoints are disabled in production.' });
     }
     try {
-        console.log(`Manual alerts reset triggered by user=${req.userId} agency=${req.agencyId}`);
+        (req.log || logger).info({ userId: req.userId, agencyId: req.agencyId }, 'Manual alerts reset triggered');
         const todayStart = new Date();
         todayStart.setUTCHours(0, 0, 0, 0);
         const todayEnd = new Date();
@@ -70,7 +71,7 @@ router.delete('/reset-test', async (req, res) => {
             },
         });
     } catch (err) {
-        console.error(err);
+        (req.log || logger).error({ err }, 'Alerts operation failed');
         res.status(500).json({ error: 'Reset failed internally.' });
     }
 });

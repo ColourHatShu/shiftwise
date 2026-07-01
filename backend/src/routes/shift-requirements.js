@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency, requireRole } = require('../lib/auth');
 
 const router = express.Router();
@@ -63,7 +64,7 @@ router.post('/', async (req, res) => {
 
         res.status(201).json(template);
     } catch (error) {
-        console.error('Error creating shift requirement:', error);
+        (req.log || logger).error({ err: error }, 'Error creating shift requirement');
         res.status(500).json({ error: 'Failed to create requirement template' });
     }
 });
@@ -81,7 +82,7 @@ router.get('/', async (req, res) => {
 
         res.json(templates);
     } catch (error) {
-        console.error('Error fetching shift requirements:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching shift requirements');
         res.status(500).json({ error: 'Failed to fetch requirement templates' });
     }
 });
@@ -127,7 +128,7 @@ router.put('/:id', async (req, res) => {
 
         res.json(updated);
     } catch (error) {
-        console.error('Error updating shift requirement:', error);
+        (req.log || logger).error({ err: error }, 'Error updating shift requirement');
         res.status(500).json({ error: 'Failed to update requirement template' });
     }
 });
@@ -164,7 +165,7 @@ router.delete('/:id', async (req, res) => {
 
         res.status(204).send();
     } catch (error) {
-        console.error('Error deleting shift requirement:', error);
+        (req.log || logger).error({ err: error }, 'Error deleting shift requirement');
         res.status(500).json({ error: 'Failed to delete requirement template' });
     }
 });

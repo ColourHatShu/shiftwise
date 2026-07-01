@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { requireAgency } = require('../lib/auth');
 
 const router = express.Router({ mergeParams: true });
@@ -55,7 +56,7 @@ router.get('/', async (req, res) => {
 
         res.json({ data: availability });
     } catch (error) {
-        console.error('Error fetching worker availability:', error);
+        (req.log || logger).error({ err: error }, 'Error fetching worker availability');
         res.status(500).json({ error: 'Failed to fetch availability' });
     }
 });
@@ -124,7 +125,7 @@ router.post('/', async (req, res) => {
 
         res.status(201).json({ data: availability });
     } catch (error) {
-        console.error('Error setting worker availability:', error);
+        (req.log || logger).error({ err: error }, 'Error setting worker availability');
         res.status(500).json({ error: 'Failed to set availability' });
     }
 });
@@ -172,7 +173,7 @@ router.delete('/:date', async (req, res) => {
         if (error.code === 'P2025') {
             return res.status(404).json({ error: 'Availability entry not found' });
         }
-        console.error('Error deleting availability:', error);
+        (req.log || logger).error({ err: error }, 'Error deleting availability');
         res.status(500).json({ error: 'Failed to delete availability' });
     }
 });
