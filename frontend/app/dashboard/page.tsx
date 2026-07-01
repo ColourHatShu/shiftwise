@@ -68,7 +68,7 @@ export default function DashboardPage() {
             value: stats?.expiringSoon ?? 0,
             icon: Clock,
             color: "red" as const,
-            href: "/dashboard/documents",
+            href: "/dashboard/documents/expiring",
         },
         {
             label: "COMPLIANT",

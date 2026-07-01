@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (26) — Expiring-documents worklist view (core promise, feature complete)
+- **Item:** Expiring-documents worklist — frontend slice
+- **Outcome:** shipped (core-promise feature complete end-to-end)
+- **Changes:** new `frontend/app/dashboard/documents/expiring/page.tsx` — overdue-first table (worker→profile link, document type, expiry date + coloured urgency label "Expired Xd ago / Expires today / Xd left", status), a 7/30/60/90-day window selector (re-fetches), an "N overdue, M within Xd" summary, and red-tinted overdue rows. `useApi` + `Skeleton` + `EmptyState`. Re-pointed the dashboard **"EXPIRING SOON"** stat card from `/dashboard/documents` → `/dashboard/documents/expiring`.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully (new route 2.83 kB). Frontend-only; API tested in the backend slice.
+- **Commit:** see git — 🛡️ feat(documents): expiring/overdue worklist view + dashboard link
+- **Notes / decisions:** This closes the loop on the product's **core promise** — coordinators now have a one-click, urgency-sorted worklist of overdue + soon-expiring documents (from the dashboard card they already look at). Three feature threads shipped end-to-end this session: reliability, coverage, and now the expiring-docs worklist. Couldn't visually verify (no localhost); build/lint pass. Founder-gated items unchanged (AI shift-matcher, CSP report-only, auto-poster, £ earnings, worker-e2e test DB).
+
 ## 2026-07-01 (25) — Core promise: expiring-documents worklist (backend slice)
 - **Item:** Expiring-documents worklist — backend slice (serves the product's core promise)
 - **Outcome:** shipped
