@@ -93,4 +93,4 @@
 
 ## P10 — Reliability on the worker profile
 - [x] **Per-worker scorecard — backend slice:** `GET /api/worker-scorecards/:workerId` (agency-scoped, 404 if not in agency) returns a single worker's reliability (total/confirmed/declined/pending + `confirmationRate`) via `groupBy(['workerConfirmation'])`. +3 tests (`test:ci` 205).
-- [ ] **Per-worker scorecard — profile surfacing:** on the worker detail page (`/dashboard/workers/[id]`), show a small "Reliability" panel (confirmation rate + confirmed/declined/pending counts) via `useApi` → `/api/worker-scorecards/:id`. Design-system styled; hide/"no history" state when null.
+- [x] **Per-worker scorecard — profile surfacing:** the worker detail page (`/dashboard/workers/[id]`) now fetches `/api/worker-scorecards/:id` (added to its parallel load) and shows a **"Reliability" panel** — big colour-coded confirmation-rate % (green ≥80 / amber ≥50 / red, or "No history yet") + assigned/confirmed/declined/pending breakdown. **Feature complete end-to-end.**

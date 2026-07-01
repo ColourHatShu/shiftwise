@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import {
     ArrowLeft, Mail, Phone, Calendar, Briefcase,
     Upload, Eye, CheckCircle2, Clock, AlertCircle, XCircle,
-    FileText, X, Edit, UserX, Trash2, UserCheck
+    FileText, X, Edit, UserX, Trash2, UserCheck, TrendingUp
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -386,13 +386,15 @@ export default function WorkerProfilePage() {
     const [analysisTarget, setAnalysisTarget] = useState<ComplianceDocument | null>(null);
     const [editTarget, setEditTarget] = useState<boolean>(false);
     const [pendingConfirm, setPendingConfirm] = useState<null | { kind: 'deactivate' | 'delete'; busy: boolean }>(null);
+    const [reliability, setReliability] = useState<null | { totalAssignments: number; confirmed: number; declined: number; pending: number; confirmationRate: number | null }>(null);
 
     const fetchAll = async () => {
         if (!isLoaded || !isSignedIn || !workerId) return;
         try {
-            const [workerRes, docsRes] = await Promise.all([
+            const [workerRes, docsRes, scorecardRes] = await Promise.all([
                 apiFetch(`/api/workers/${workerId}`),
                 apiFetch(`/api/documents/worker/${workerId}`),
+                apiFetch(`/api/worker-scorecards/${workerId}`),
             ]);
             if (!workerRes.ok) throw new Error(workerRes.status === 404 ? "Worker not found" : "Failed to load");
             const { data: w } = await workerRes.json();
@@ -400,6 +402,10 @@ export default function WorkerProfilePage() {
             if (docsRes.ok) {
                 const { data: slots } = await docsRes.json();
                 setDocSlots(slots);
+            }
+            if (scorecardRes.ok) {
+                const { data: sc } = await scorecardRes.json();
+                setReliability(sc);
             }
         } catch (err: any) {
             setError(err.message);
@@ -587,6 +593,36 @@ export default function WorkerProfilePage() {
                     )}
                 </div>
             </div>
+
+            {/* Reliability */}
+            {reliability && (
+                <div className="bg-white border border-[#DDE3EE] rounded-2xl px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-lg font-semibold text-[#0A1628] flex items-center gap-2">
+                                <TrendingUp size={18} className="text-blue-700" /> Reliability
+                            </h2>
+                            <p className="text-xs text-[#5B6E8C] mt-0.5">Based on shift-assignment responses</p>
+                        </div>
+                        <div className="text-right">
+                            {reliability.confirmationRate === null ? (
+                                <span className="text-sm text-[#5B6E8C]">No history yet</span>
+                            ) : (
+                                <span className={`text-2xl font-medium ${reliability.confirmationRate >= 80 ? "text-[#166534]" : reliability.confirmationRate >= 50 ? "text-[#92400E]" : "text-[#991B1B]"}`}>
+                                    {reliability.confirmationRate}%
+                                </span>
+                            )}
+                            <p className="text-xs text-[#5B6E8C]">confirmation rate</p>
+                        </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                        <span className="text-[#0A1628]">{reliability.totalAssignments} assigned</span>
+                        <span className="text-[#166534]">{reliability.confirmed} confirmed</span>
+                        <span className="text-[#991B1B]">{reliability.declined} declined</span>
+                        <span className="text-[#5B6E8C]">{reliability.pending} pending</span>
+                    </div>
+                </div>
+            )}
 
             {/* Compliance Documents */}
             <div className="bg-white border border-[#DDE3EE] rounded-2xl overflow-hidden backdrop-blur-sm">

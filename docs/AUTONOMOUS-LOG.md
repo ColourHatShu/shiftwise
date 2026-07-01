@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (22) — Reliability panel on the worker profile (feature complete)
+- **Item:** Per-worker scorecard — profile surfacing
+- **Outcome:** shipped (feature complete end-to-end)
+- **Changes:** `frontend/app/dashboard/workers/[id]/page.tsx` — added `/api/worker-scorecards/:id` to the profile's parallel fetch and a **Reliability panel** (between the header and Compliance Documents): a big colour-coded confirmation-rate % (green ≥80 / amber ≥50 / red, or "No history yet" when null) plus an assigned/confirmed/declined/pending breakdown. `TrendingUp` icon added to imports.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully. (Frontend-only; API tested in the backend slice.)
+- **Commit:** see git — 🛡️ feat(workers): reliability panel on the worker profile
+- **Notes / decisions:** Reliability is now surfaced in all the natural places — dedicated scorecards page, the assignment picker (badge + suggested), and now the individual profile. Coordinators viewing a worker immediately see how reliably they confirm shifts. Couldn't visually verify (no localhost); build/lint pass. Founder-gated items unchanged (AI shift-matcher needs ranking weights; CSP report-only; auto-poster; £ earnings; worker-e2e test DB).
+
 ## 2026-07-01 (21) — Per-worker scorecard endpoint (for the profile)
 - **Item:** Per-worker scorecard — backend slice
 - **Outcome:** shipped
