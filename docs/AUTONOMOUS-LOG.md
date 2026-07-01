@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (36) — A11y: table-header scope sweep across the older core pages
+- **Item:** A11y sweep of the older core pages (table headers)
+- **Outcome:** shipped (header sweep; icon-button aria + contrast deferred)
+- **Changes:** added `scope="col"` to every remaining dashboard table header — audit-log, audit-packs, compliance, compliance-settings, documents, reports, workers. Verified zero `<th>` without `scope` remain anywhere under `app/dashboard` (10 files now covered, including last firing's coverage/scorecards/expiring).
+- **Verify:** `npm run lint` 0 errors; frontend `npm run test:ci` = **11 files / 85 tests** (behaviour-preserving); `npm run build` ✓.
+- **Commit:** see git — 🛡️ a11y(dashboard): scope=col on all remaining table headers
+- **Notes / decisions:** Continued the P14 accessibility thread with a uniform, correct, zero-risk sweep (screen-reader header association is now consistent app-wide) — the last clearly-scoped non-gated quality item. Remaining a11y work (icon-only button `aria-label`s + status-badge contrast audit) is per-button/design and deferred (P14 follow-up). **Non-gated backlog is now effectively empty** — next substantive value needs a founder decision (tune matcher weights / CSP report-only / auto-poster / £ earnings / a model-backed module) or a cron pause.
+
 ## 2026-07-01 (35) — Accessibility pass on the new feature surfaces
 - **Item:** A11y hardening of the newest views (relevant for a healthcare/CQC product)
 - **Outcome:** shipped

@@ -234,10 +234,10 @@ export default function DocumentsPage() {
                                             <table className="w-full text-left">
                                                 <thead>
                                                     <tr className="border-b border-[#DDE3EE]">
-                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Document</th>
-                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Status</th>
-                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Expiry</th>
-                                                        <th className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px] text-right">Actions</th>
+                                                        <th scope="col" className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Document</th>
+                                                        <th scope="col" className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Status</th>
+                                                        <th scope="col" className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Expiry</th>
+                                                        <th scope="col" className="pb-3 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px] text-right">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#DDE3EE]">

@@ -346,11 +346,11 @@ export default function WorkersPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Worker</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Role</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Status</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Compliance</th>
-                                <th className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px] text-right">Actions</th>
+                                <th scope="col" className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Worker</th>
+                                <th scope="col" className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Role</th>
+                                <th scope="col" className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Status</th>
+                                <th scope="col" className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px]">Compliance</th>
+                                <th scope="col" className="px-6 py-4 text-[11px] font-medium text-[#5B6E8C] uppercase tracking-[0.5px] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#DDE3EE]">

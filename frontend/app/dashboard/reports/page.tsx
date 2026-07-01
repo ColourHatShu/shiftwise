@@ -279,9 +279,9 @@ export default function ReportsPage() {
                                             <table className="w-full text-left text-sm">
                                                 <thead className="bg-[#F5F7FA] text-[11px] uppercase text-[#5B6E8C] font-medium h-12">
                                                     <tr>
-                                                        <th className="px-6 py-3">Worker Name</th>
-                                                        <th className="px-6 py-3">Status</th>
-                                                        <th className="px-6 py-3 text-right">Metrics</th>
+                                                        <th scope="col" className="px-6 py-3">Worker Name</th>
+                                                        <th scope="col" className="px-6 py-3">Status</th>
+                                                        <th scope="col" className="px-6 py-3 text-right">Metrics</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-[#DDE3EE]">
@@ -310,10 +310,10 @@ export default function ReportsPage() {
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-[#F5F7FA] text-[11px] uppercase text-[#5B6E8C] font-medium h-12">
                                                 <tr>
-                                                    <th className="px-6 py-3">Urgency</th>
-                                                    <th className="px-6 py-3">Worker / Role</th>
-                                                    <th className="px-6 py-3">Document</th>
-                                                    <th className="px-6 py-3">Expires In</th>
+                                                    <th scope="col" className="px-6 py-3">Urgency</th>
+                                                    <th scope="col" className="px-6 py-3">Worker / Role</th>
+                                                    <th scope="col" className="px-6 py-3">Document</th>
+                                                    <th scope="col" className="px-6 py-3">Expires In</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-[#DDE3EE]">
@@ -343,9 +343,9 @@ export default function ReportsPage() {
                                         <table className="w-full text-left text-sm">
                                             <thead className="bg-[#F5F7FA] text-[11px] uppercase text-[#5B6E8C] font-medium h-12">
                                                 <tr>
-                                                    <th className="px-6 py-3">Worker Name</th>
-                                                    <th className="px-6 py-3">Missing Files</th>
-                                                    <th className="px-6 py-3">Rejected / Expired Files</th>
+                                                    <th scope="col" className="px-6 py-3">Worker Name</th>
+                                                    <th scope="col" className="px-6 py-3">Missing Files</th>
+                                                    <th scope="col" className="px-6 py-3">Rejected / Expired Files</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-[#DDE3EE]">

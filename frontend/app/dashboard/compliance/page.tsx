@@ -503,13 +503,13 @@ export default function ComplianceDashboard() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-[#DDE3EE] bg-[#F5F7FA]">
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Email</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Job Title</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Compliance Score</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Required Docs</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Actions</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Name</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Email</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Job Title</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Compliance Score</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Required Docs</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Status</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-[#5B6E8C] uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#DDE3EE]">
