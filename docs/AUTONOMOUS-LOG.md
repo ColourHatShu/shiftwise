@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (19) — Shift coverage: coordinator gaps view (feature complete)
+- **Item:** Shift coverage — frontend slice
+- **Outcome:** shipped (feature complete end-to-end)
+- **Changes:** new `frontend/app/dashboard/shifts/coverage/page.tsx` — upcoming-shifts table (date / facility / role / confirmed÷required / shortfall / colour-coded status badge), a "N of M need attention" summary line, and a "show only needing attention" checkbox filter. `useApi` → `/api/shift-coverage`, `Skeleton` loading, `EmptyState` (separate messages for "no upcoming shifts" vs "all covered"). Added a "Coverage" link (CalendarClock) to the Shifts page header.
+- **Verify:** `npm run lint` 0 errors; `npm run build` ✓ Compiled successfully (new route `/dashboard/shifts/coverage` 2.96 kB). Frontend-only; API tested in the backend slice.
+- **Commit:** see git — 🛡️ feat(shifts): coverage/gaps coordinator view
+- **Notes / decisions:** Completes the coverage feature — coordinators now have a one-glance "which upcoming shifts still need workers" view, complementing reliability (who to pick). Two feature threads now shipped end-to-end this session (reliability + coverage), both read-only/no-migration. Couldn't visually verify (no localhost); build/lint pass. Founder-gated items unchanged (AI shift-matcher needs ranking weights; CSP report-only; auto-poster; £ earnings; worker-e2e test DB).
+
 ## 2026-07-01 (18) — New feature: shift coverage / staffing gaps (backend slice)
 - **Item:** Shift coverage — backend slice (new feature line; keep shipping real value)
 - **Outcome:** shipped

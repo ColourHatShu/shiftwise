@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, Check, X, Edit, Trash2, BarChart3, Upload, LayoutTemplate } from 'lucide-react';
+import { AlertCircle, Check, X, Edit, Trash2, BarChart3, Upload, LayoutTemplate, CalendarClock } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from 'react-hot-toast';
 import ShiftCalendar from './components/ShiftCalendar';
@@ -114,6 +114,12 @@ export default function ShiftsPage() {
           <p className="text-gray-600 mt-1">Create and manage shifts, view assignments and compliance gaps</p>
         </div>
         <div className="flex gap-3">
+          <Link
+            href="/dashboard/shifts/coverage"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200"
+          >
+            <CalendarClock className="w-5 h-5" /> Coverage
+          </Link>
           <Link
             href="/dashboard/shifts/templates"
             className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
