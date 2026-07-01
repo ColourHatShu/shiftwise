@@ -107,6 +107,11 @@ describe('Worker Authentication Flow', () => {
             expect(res.status).toBe(400);
         });
 
+        it('400s (not 500) when email is not a string', async () => {
+            const res = await request(app).post('/worker/verify-code').send({ email: 123, otp: '123456' });
+            expect(res.status).toBe(400);
+        });
+
         it('401s for an unknown worker', async () => {
             prisma.worker.findFirst.mockResolvedValue(null);
             const res = await request(app).post('/worker/verify-code').send({ email: 'x@example.com', otp: '123456' });

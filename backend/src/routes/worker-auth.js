@@ -112,7 +112,7 @@ async function handleVerifyCode(req, res) {
     try {
         const { email, otp } = req.body;
 
-        if (!email || !otp) {
+        if (!email || typeof email !== 'string' || !otp) {
             return res.status(400).json({ error: 'Email and OTP are required' });
         }
 

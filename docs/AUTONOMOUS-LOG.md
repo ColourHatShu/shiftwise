@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (48) — Bug-class sweep: unsafe .trim() on null/non-string input
+- **Item:** Systematic sweep of the recurring `.trim()`-on-bad-input crash class
+- **Outcome:** shipped (sweep complete; one more instance fixed)
+- **Sweep:** grepped every `.trim()` in `src/routes`, `src/services`, `src/lib`. The `X !== undefined` + `X.trim()` null-crash pattern (which bit `workers` + `agencies` PATCH) has **no remaining unguarded instances** — only the already-fixed lines match. All other `.trim()` calls are safe (truthy guards, `String()` coercion, template literals, `x ? x.trim() : null`).
+- **One more found + fixed:** `worker-auth` `handleVerifyCode` guarded `!email || !otp` but not `typeof email === 'string'` (whereas `handleWorkerSignin` does), so a non-string `email` (e.g. `123`) → `(123).toLowerCase()` → `TypeError` → **500 instead of 400**. Aligned the guard with signin; added a regression test.
+- **Verify:** `node --check` OK; worker-auth suite **14/14**; `npm run test:ci` = **31 suites / 254 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(worker-auth): reject non-string email in verify-code (+ sweep)
+- **Notes / decisions:** Eighth defect from the self-review thread and closure on the `.trim()` crash class (a shared input-sanitize helper or an ESLint rule would prevent recurrence — noted as a future idea). Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the `reactivate` role check) or a **"pause"**.
+
 ## 2026-07-01 (47) — Bug + tests: agency settings PATCH null-field crash
 - **Item:** Self-review of the untested `agencies.js` (settings + thresholds)
 - **Outcome:** shipped (bug fix + coverage)
