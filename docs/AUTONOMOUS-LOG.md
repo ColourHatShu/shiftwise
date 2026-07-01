@@ -3,6 +3,17 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (51) — Bug + tests: dashboard "expiring soon" dropped today
+- **Item:** Self-review of the untested `dashboard.js` (date-filter hypothesis from the reports fix)
+- **Outcome:** shipped (correctness fix + coverage)
+- **Bug:** `GET /api/dashboard/stats` counted `expiringSoon` with `expiryDate: { gte: now, lte: in30Days }` where `now = new Date()` (current time). `expiryDate` is `@db.Date` (UTC midnight), so a document expiring **today** is `< now` → excluded from the headline dashboard count. Same class as the reports/expiring bug (firing 46) — the most urgent renewals under-counted on the main dashboard.
+- **Fix:** count from `startOfToday` (UTC midnight): `expiryDate: { gte: startOfToday, lte: in30Days }` — includes today + the next 30 days.
+- **Coverage:** new `dashboard.test.js` (3 tests) — stats shape + agency-scoping, expiring-soon `gte` at UTC midnight (locks the fix), graceful 500. `dashboard.js` was previously untested.
+- **TS-transform assessment:** to test `documents.js` (biggest untested/security file) I checked enabling a jest TS transform — but the backend has **no** babel/ts/ts-jest deps installed and runs via plain `node`, so adding one is a dependency + config change that could destabilize the 34 green suites. Left as a founder-gated infra task (would also help un-exclude `security-pipeline`).
+- **Verify:** `node --check` OK; new suite **3/3**; `npm run test:ci` = **34 suites / 266 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(dashboard): count documents expiring today in "expiring soon"
+- **Notes / decisions:** Eleventh defect from the self-review thread; the "expiry compared against current-time not start-of-day" class has now been fixed in three surfaces (worklist, report, dashboard). Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the `reactivate` + `hasExpired` findings / greenlight the jest TS-transform) or a **"pause"**.
+
 ## 2026-07-01 (50) — IDOR sweep (clean) + fix empty-agency false "CQC ready"
 - **Item:** Continue the IDOR/authz self-review; review the CQC readiness endpoint
 - **Outcome:** shipped (one edge-case fix + coverage; IDOR sweep came back clean)

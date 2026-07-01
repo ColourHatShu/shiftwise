@@ -12,6 +12,10 @@ router.get('/stats', requireAgency, async (req, res) => {
 
         const now = new Date();
         const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        // Start of today (UTC) so documents expiring *today* are counted as
+        // "expiring soon" (their midnight timestamp is < the current time).
+        const startOfToday = new Date(now);
+        startOfToday.setUTCHours(0, 0, 0, 0);
 
         const [
             totalWorkers,
@@ -34,7 +38,7 @@ router.get('/stats', requireAgency, async (req, res) => {
                 where: {
                     agencyId,
                     status: { not: 'EXPIRED' },
-                    expiryDate: { gte: now, lte: in30Days }
+                    expiryDate: { gte: startOfToday, lte: in30Days }
                 }
             }),
 
