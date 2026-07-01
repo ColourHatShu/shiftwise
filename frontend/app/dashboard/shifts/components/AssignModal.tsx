@@ -199,6 +199,8 @@ export default function AssignModal({
                     key={s.id}
                     type="button"
                     onClick={() => toggleWorker(s.id)}
+                    aria-pressed={selected}
+                    aria-label={`${selected ? 'Deselect' : 'Select'} ${s.firstName} ${s.lastName} — compliance ${s.complianceScore}%, reliability ${s.confirmationRate === null ? 'no history' : s.confirmationRate + '%'}`}
                     title={`Compliance ${s.complianceScore}% · Reliability ${s.confirmationRate === null ? 'no history' : s.confirmationRate + '%'}`}
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors ${
                       selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-300 bg-white text-blue-800 hover:bg-blue-100'

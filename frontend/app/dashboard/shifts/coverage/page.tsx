@@ -112,12 +112,12 @@ export default function ShiftCoveragePage() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-[#F5F7FA] text-left text-xs font-medium uppercase tracking-wide text-[#5B6E8C]">
-                                    <th className="px-4 py-3">Date</th>
-                                    <th className="px-4 py-3">Facility</th>
-                                    <th className="px-4 py-3">Role</th>
-                                    <th className="px-4 py-3 text-center">Confirmed / Required</th>
-                                    <th className="px-4 py-3 text-center">Short</th>
-                                    <th className="px-4 py-3 text-center">Status</th>
+                                    <th scope="col" className="px-4 py-3">Date</th>
+                                    <th scope="col" className="px-4 py-3">Facility</th>
+                                    <th scope="col" className="px-4 py-3">Role</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Confirmed / Required</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Short</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Status</th>
                                 </tr>
                             </thead>
                             <tbody>

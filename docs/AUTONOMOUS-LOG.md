@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (35) — Accessibility pass on the new feature surfaces
+- **Item:** A11y hardening of the newest views (relevant for a healthcare/CQC product)
+- **Outcome:** shipped
+- **Changes:** added `scope="col"` to all 16 table headers in `shifts/coverage`, `workers/scorecards`, and `documents/expiring` (screen-reader header association); added `aria-pressed` + descriptive `aria-label` to the expiring-worklist window toggles (7/30/60/90d) and to the shift-matcher "⭐ Top picks" chips in `AssignModal` (they're toggle buttons — now announce selected state + a full label).
+- **Verify:** frontend `npm run test:ci` = **11 files / 85 tests** (behaviour-preserving); `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ a11y(views): header scope + toggle aria on new surfaces
+- **Notes / decisions:** With clean feature/test work exhausted and remaining features needing founder decisions, picked genuine low-risk value that fits a healthcare/public-sector product's accessibility obligations, scoped to the surfaces this session created. Correct, standard WCAG patterns — not speculative, no product decision, no migration. A broader a11y sweep of the older core pages is queued (P14, lower urgency). **Still recommend a steer** (tune matcher weights / CSP report-only / auto-poster / £ earnings / a model-backed feature) **or pausing the cron** — new *modules* now require a product decision.
+
 ## 2026-07-01 (34) — Extract shift-matcher ranking to a pure, tested function
 - **Item:** De-risk the pending weight-tuning by extracting the matcher's ranking
 - **Outcome:** shipped

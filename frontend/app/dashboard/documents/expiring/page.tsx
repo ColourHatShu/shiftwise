@@ -87,6 +87,8 @@ export default function ExpiringDocumentsPage() {
                     <button
                         key={w}
                         onClick={() => setDays(w)}
+                        aria-pressed={days === w}
+                        aria-label={`Show documents expiring within ${w} days`}
                         className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
                             days === w ? "bg-[#003087] text-white" : "border border-[#DDE3EE] text-[#003087] hover:bg-[#F5F7FA]"
                         }`}
@@ -116,10 +118,10 @@ export default function ExpiringDocumentsPage() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-[#F5F7FA] text-left text-xs font-medium uppercase tracking-wide text-[#5B6E8C]">
-                                    <th className="px-4 py-3">Worker</th>
-                                    <th className="px-4 py-3">Document</th>
-                                    <th className="px-4 py-3">Expiry</th>
-                                    <th className="px-4 py-3">Status</th>
+                                    <th scope="col" className="px-4 py-3">Worker</th>
+                                    <th scope="col" className="px-4 py-3">Document</th>
+                                    <th scope="col" className="px-4 py-3">Expiry</th>
+                                    <th scope="col" className="px-4 py-3">Status</th>
                                 </tr>
                             </thead>
                             <tbody>

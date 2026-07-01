@@ -97,12 +97,12 @@ export default function WorkerScorecardsPage() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-[#F5F7FA] text-left text-xs font-medium uppercase tracking-wide text-[#5B6E8C]">
-                                    <th className="px-4 py-3">Worker</th>
-                                    <th className="px-4 py-3 text-center">Assigned</th>
-                                    <th className="px-4 py-3 text-center">Confirmed</th>
-                                    <th className="px-4 py-3 text-center">Declined</th>
-                                    <th className="px-4 py-3 text-center">Pending</th>
-                                    <th className="px-4 py-3 text-center">Confirmation rate</th>
+                                    <th scope="col" className="px-4 py-3">Worker</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Assigned</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Confirmed</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Declined</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Pending</th>
+                                    <th scope="col" className="px-4 py-3 text-center">Confirmation rate</th>
                                 </tr>
                             </thead>
                             <tbody>{rows}</tbody>
