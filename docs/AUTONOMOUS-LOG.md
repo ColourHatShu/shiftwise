@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (32) — Page tests for scorecards + expiring views
+- **Item:** Extend page tests to the other new views
+- **Outcome:** shipped (scorecards + expiring; dashboard-alert deferred)
+- **Changes:** `app/dashboard/workers/scorecards/page.test.tsx` (asserts a worker row + "80%" confirmation rate, and the "No reliability data yet" empty state) and `app/dashboard/documents/expiring/page.test.tsx` (asserts an overdue row with worker/doc-type + "Expired 3d ago" urgency label, and the "Nothing expiring in this window" empty state). Both mock `@/lib/use-api`.
+- **Verify:** the two new files **4/4**; frontend `npm run test:ci` = **10 files / 83 tests**; `npm run lint` 0 errors; `npm run build` ✓.
+- **Commit:** see git — 🛡️ test(frontend): page tests for scorecards + expiring views
+- **Notes / decisions:** Mechanical follow-up on the page-testing seam — the three feature threads' dedicated views now have page-level regression tests. Deferred the dashboard coverage-alert test only because the dashboard page also pulls Clerk `useAuth` (needs an extra mock) — small follow-up, lower value than the dedicated pages. Founder-gated items unchanged.
+
 ## 2026-07-01 (31) — Establish frontend page-level tests (coverage page)
 - **Item:** Page/component test coverage for app routes
 - **Outcome:** shipped
