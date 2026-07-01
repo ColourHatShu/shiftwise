@@ -75,6 +75,10 @@ router.get('/expiring', requireAgency, async (req, res) => {
         const days = parseInt(req.query.days) || 30;
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() + days);
+        // Start of today (UTC) so a document expiring *today* is still included
+        // (its midnight timestamp is < the current time; `gte: new Date()` dropped it).
+        const startOfToday = new Date();
+        startOfToday.setUTCHours(0, 0, 0, 0);
 
         const workers = await prisma.worker.findMany({
             where: { agencyId: req.agencyId, status: 'ACTIVE' },
@@ -85,7 +89,7 @@ router.get('/expiring', requireAgency, async (req, res) => {
                         expiryDate: {
                             not: null,
                             lte: cutoffDate,
-                            gte: new Date() // Only future expiries, not already expired
+                            gte: startOfToday // today + future; excludes already-lapsed
                         }
                     },
                     orderBy: { expiryDate: 'asc' }

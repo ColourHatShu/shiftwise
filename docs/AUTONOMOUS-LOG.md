@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (46) — Bug + tests: expiring report dropped today's expiries
+- **Item:** Self-review of the untested `reports.js` (targeted date-filter hypothesis)
+- **Outcome:** shipped (correctness fix + coverage)
+- **Bug:** `GET /api/reports/expiring` used `where: { expiryDate: { not: null, lte: cutoff, gte: new Date() } }`. `expiryDate` is `@db.Date` (UTC midnight), so a doc expiring **today** (midnight) is `< now` (current time) → excluded from the report entirely — and it's not "already expired" either, so it fell through a gap. The single most urgent renewals were invisible in the expiring report.
+- **Fix:** compare from `startOfToday` (UTC midnight) instead of `new Date()` — includes today + future, still excludes already-lapsed docs. Mirrors the earlier worklist off-by-one fix, on a different surface.
+- **Coverage:** new `src/tests/routes/reports.test.js` (3 tests) — asserts the `gte` is start-of-day (UTC hours/min/sec = 0), flatten+sort+urgency mapping, and graceful 500. `reports.js` was previously untested.
+- **Verify:** `node --check` OK; new suite **3/3**; `npm run test:ci` = **30 suites / 247 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(reports): include documents expiring today in the expiring report
+- **Notes / decisions:** Sixth real defect from the self-review thread — a trust/coverage bug on the core "expiring soon" report for a CQC-audit product. Still recommend a steer (matcher weights / no-show module / CSP / auto-poster / £ earnings / confirm the `reactivate` role check) or a **"pause"**.
+
 ## 2026-07-01 (45) — Test coverage for compliance approve/reject/deactivate
 - **Item:** Self-review of the untested, compliance-critical state-changers in `compliance.js`
 - **Outcome:** shipped (coverage; endpoints reviewed clean)
