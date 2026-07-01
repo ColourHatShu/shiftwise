@@ -3,6 +3,14 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-01 (2) — console.* → pino migration, batch 1 (cronService)
+- **Item:** Migrate remaining `console.*` to the logger — batch 1
+- **Outcome:** shipped
+- **Changes:** `services/cronService.js` — all **28** `console.log/error/warn` calls migrated to a module child logger `logger.child({ service: 'cron' })`, each converted to pino's `(obj, msg)` form (e.g. `console.error('…', err)` → `log.error({ err, … }, '…')`), with the `[Cron Service]` prefixes dropped (now the `service:cron` binding). All Sentry captures + business logic left exactly as-is.
+- **Verify:** no `console.` left in the file; `node --check` OK + `require()` loads; `npm run test:ci` = **22 suites / 192 tests, 0 failing** (unchanged — cronService isn't in a passing suite, but loads clean).
+- **Commit:** see git — 🛡️ refactor(cron): migrate console.* to structured pino logger
+- **Notes / decisions:** Picked cronService as batch 1 (most console.* by far, and background jobs benefit most from structured logs). Did it as a careful per-call conversion (rewrote the file) rather than a blind find/replace, since pino's signature differs from console's. Remaining files queued in the plan for future batches. This is the last non-gated backlog item; after the console.* batches, everything left is founder-gated (£ earnings, CSP report-only, auto-poster) or large/infra (security-pipeline features, worker-e2e test DB).
+
 ## 2026-07-01 — Structured logger (pino) core + request correlation
 - **Item:** Structured logger (pino)
 - **Outcome:** shipped (bounded slice: logger + server.js request/error wiring; broad console.* migration split into a follow-up)

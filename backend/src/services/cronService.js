@@ -3,6 +3,8 @@ const Sentry = require('@sentry/node');
 const prisma = require('../lib/prisma');
 const { sendExpiryAlert, sendWorkerExpiryAlert } = require('./emailService');
 
+const log = require('../lib/logger').child({ service: 'cron' });
+
 const TARGET_DAYS_UNTIL_EXPIRY = [90, 60, 30, 14, 7, 3, 1, 0];
 const MAX_RETRY_ATTEMPTS = 3;
 
@@ -25,7 +27,7 @@ const getDaysDiff = (targetDateString) => {
  * Retry failed alerts from the dead letter queue
  */
 const retryFailedAlerts = async () => {
-    console.log('[Cron Service] Starting failed alert retry process...');
+    log.info('Starting failed alert retry process');
 
     try {
         const failedAlerts = await prisma.failedAlert.findMany({
@@ -40,7 +42,7 @@ const retryFailedAlerts = async () => {
             }
         });
 
-        console.log(`[Cron Service] Found ${failedAlerts.length} failed alerts to retry.`);
+        log.info({ count: failedAlerts.length }, 'Found failed alerts to retry');
 
         let retriedCount = 0;
         let resolvedCount = 0;
@@ -48,11 +50,11 @@ const retryFailedAlerts = async () => {
         for (const failedAlert of failedAlerts) {
             try {
                 const fullWorkerName = `${failedAlert.worker.firstName} ${failedAlert.worker.lastName}`;
-                
+
                 // Update status to RETRYING
                 await prisma.failedAlert.update({
                     where: { id: failedAlert.id },
-                    data: { 
+                    data: {
                         status: 'RETRYING',
                         retryCount: { increment: 1 },
                         lastRetryAt: new Date()
@@ -97,17 +99,17 @@ const retryFailedAlerts = async () => {
                 } catch (alertErr) {
                     // P2002: alert already exists (benign - don't retry)
                     if (alertErr.code === 'P2002') {
-                        console.log(`[Cron Service] alert already exists for doc ${failedAlert.complianceDocumentId}, marking failed alert as resolved`);
+                        log.info({ documentId: failedAlert.complianceDocumentId }, 'Alert already exists; marking failed alert resolved');
                     } else {
                         // Re-throw non-dedup errors
                         throw alertErr;
                     }
                 }
 
-                console.log(`[Cron Service] SUCCESS: Resolved failed alert ${failedAlert.id} for ${fullWorkerName}`);
+                log.info({ failedAlertId: failedAlert.id, worker: fullWorkerName }, 'Resolved failed alert');
                 resolvedCount++;
             } catch (err) {
-                console.error(`[Cron Service] FAILED: Retry attempt ${failedAlert.retryCount + 1} failed for alert ${failedAlert.id}:`, err.message);
+                log.error({ err, failedAlertId: failedAlert.id, attempt: failedAlert.retryCount + 1 }, 'Retry attempt failed');
 
                 // Log to Sentry
                 Sentry.captureException(err, {
@@ -132,7 +134,7 @@ const retryFailedAlerts = async () => {
                             errorDetails: err.stack
                         }
                     });
-                    console.error(`[Cron Service] ALERT: Alert ${failedAlert.id} has failed permanently after ${MAX_RETRY_ATTEMPTS} attempts.`);
+                    log.error({ failedAlertId: failedAlert.id, maxRetries: MAX_RETRY_ATTEMPTS }, 'Alert failed permanently');
                 } else {
                     await prisma.failedAlert.update({
                         where: { id: failedAlert.id },
@@ -146,10 +148,10 @@ const retryFailedAlerts = async () => {
             retriedCount++;
         }
 
-        console.log(`[Cron Service] Retry process complete. Retried: ${retriedCount}, Resolved: ${resolvedCount}`);
+        log.info({ retriedCount, resolvedCount }, 'Retry process complete');
         return { retriedCount, resolvedCount };
     } catch (err) {
-        console.error('[Cron Service] Error during failed alert retry process:', err);
+        log.error({ err }, 'Error during failed alert retry process');
         // Log to Sentry
         Sentry.captureException(err, {
             tags: {
@@ -164,7 +166,7 @@ const retryFailedAlerts = async () => {
  * Executes a manual sweep of all ComplianceDocuments, triggering alerts.
  */
 const checkExpiriesAndAlert = async () => {
-    console.log('[Cron Service] Starting daily document expiry check...');
+    log.info('Starting daily document expiry check');
 
     try {
         // Find all documents that have an expiry date setup, regardless of verification status
@@ -179,7 +181,7 @@ const checkExpiriesAndAlert = async () => {
             }
         });
 
-        console.log(`[Cron Service] Found ${activeDocuments.length} total documents with expiry dates.`);
+        log.info({ count: activeDocuments.length }, 'Found documents with expiry dates');
 
         // Loop through everything to find warning milestones natively
         let alertsSent = 0;
@@ -218,7 +220,7 @@ const checkExpiriesAndAlert = async () => {
                         daysRemaining
                     );
                 } catch (workerEmailErr) {
-                    console.warn(`[Cron Service] Failed to send worker alert for ${fullWorkerName}:`, workerEmailErr.message);
+                    log.warn({ err: workerEmailErr, worker: fullWorkerName }, 'Failed to send worker alert');
                     Sentry.captureException(workerEmailErr, {
                         tags: { documentId: doc.id, context: 'worker-expiry-alert' }
                     });
@@ -243,7 +245,7 @@ const checkExpiriesAndAlert = async () => {
                     // P2002: unique constraint violation (alert already exists for today)
                     // This is benign when running concurrently - just log and skip.
                     if (err.code === 'P2002') {
-                        console.log(`[Cron Service] alert already exists for doc ${doc.id}, daysUntilExpiry ${daysRemaining}, day ${alertDateToday.toISOString().split('T')[0]} — skipping`);
+                        log.info({ documentId: doc.id, daysUntilExpiry: daysRemaining, day: alertDateToday.toISOString().split('T')[0] }, 'Alert already exists for today; skipping');
                         continue;
                     }
                     // Any other database error is re-thrown for the outer catch block
@@ -284,7 +286,7 @@ const checkExpiriesAndAlert = async () => {
                     }
                 });
 
-                console.log(`[Cron Service] SUCCESS: Sent ${daysRemaining}-day expiry warning for ${fullWorkerName}'s ${doc.documentType.name}. Expiry date: ${doc.expiryDate}`);
+                log.info({ daysRemaining, worker: fullWorkerName, documentType: doc.documentType.name, expiryDate: doc.expiryDate }, 'Sent expiry warning');
                 alertsSent++;
                 triggeredDocuments.push({
                     documentId: doc.id,
@@ -294,7 +296,7 @@ const checkExpiriesAndAlert = async () => {
                     status: "Sent"
                 });
             } catch (err) {
-                console.error(`[Cron Service] FAILED: Could not process alert step for doc ${doc.id} (${fullWorkerName}'s ${doc.documentType.name}). Expiry date: ${doc.expiryDate}:`, err);
+                log.error({ err, documentId: doc.id, worker: fullWorkerName, documentType: doc.documentType.name }, 'Could not process alert step');
 
                 // Log to Sentry
                 Sentry.captureException(err, {
@@ -325,9 +327,9 @@ const checkExpiriesAndAlert = async () => {
                             status: 'PENDING'
                         }
                     });
-                    console.log(`[Cron Service] Added failed alert to dead letter queue for doc ${doc.id}`);
+                    log.info({ documentId: doc.id }, 'Added failed alert to dead letter queue');
                 } catch (dlqErr) {
-                    console.error(`[Cron Service] CRITICAL: Failed to add to dead letter queue:`, dlqErr);
+                    log.error({ err: dlqErr, documentId: doc.id }, 'CRITICAL: failed to add to dead letter queue');
                     // Log DLQ failure to Sentry too
                     Sentry.captureException(dlqErr, {
                         tags: {
@@ -348,10 +350,10 @@ const checkExpiriesAndAlert = async () => {
             }
         }
 
-        console.log(`[Cron Service] Completed expiry check. Triggered ${triggeredDocuments.length} items. Sent ${alertsSent} new emails.`);
+        log.info({ triggered: triggeredDocuments.length, alertsSent }, 'Completed expiry check');
         return { alertsSent, triggeredDocuments };
     } catch (err) {
-        console.error('[Cron Service] Global error executing expiry check sweep:', err);
+        log.error({ err }, 'Global error executing expiry check sweep');
         // Log to Sentry
         Sentry.captureException(err, {
             tags: {
@@ -367,14 +369,14 @@ const checkExpiriesAndAlert = async () => {
  * Creates immutable point-in-time snapshot of compliance state
  */
 const generateComplianceSnapshots = async () => {
-    console.log('[Cron Service] Starting daily compliance snapshot generation...');
+    log.info('Starting daily compliance snapshot generation');
 
     try {
         const agencies = await prisma.agency.findMany({
             where: { isActive: true }
         });
 
-        console.log(`[Cron Service] Found ${agencies.length} active agencies to snapshot.`);
+        log.info({ count: agencies.length }, 'Found active agencies to snapshot');
 
         let snapshotCount = 0;
 
@@ -451,7 +453,7 @@ const generateComplianceSnapshots = async () => {
                             data: snapshotData
                         }
                     });
-                    console.log(`[Cron Service] Snapshot created for agency ${agency.name}`);
+                    log.info({ agency: agency.name }, 'Snapshot created');
                     snapshotCount++;
                 } catch (err) {
                     // If snapshot for today already exists, update it
@@ -465,14 +467,14 @@ const generateComplianceSnapshots = async () => {
                             },
                             data: { data: snapshotData }
                         });
-                        console.log(`[Cron Service] Updated existing snapshot for agency ${agency.name}`);
+                        log.info({ agency: agency.name }, 'Updated existing snapshot');
                         snapshotCount++;
                     } else {
                         throw err;
                     }
                 }
             } catch (err) {
-                console.error(`[Cron Service] Failed to snapshot agency ${agency.id}:`, err.message);
+                log.error({ err, agencyId: agency.id }, 'Failed to snapshot agency');
                 Sentry.captureException(err, {
                     tags: {
                         agencyId: agency.id,
@@ -482,10 +484,10 @@ const generateComplianceSnapshots = async () => {
             }
         }
 
-        console.log(`[Cron Service] Snapshot generation complete. Created/updated ${snapshotCount} snapshots.`);
+        log.info({ snapshotCount }, 'Snapshot generation complete');
         return { snapshotCount };
     } catch (err) {
-        console.error('[Cron Service] Global error during snapshot generation:', err);
+        log.error({ err }, 'Global error during snapshot generation');
         Sentry.captureException(err, {
             tags: {
                 context: 'cron-snapshot-global-error'
@@ -501,15 +503,15 @@ const generateComplianceSnapshots = async () => {
 const initCronJobs = () => {
     // 0 8 * * * = "At 08:00 every day"
     cron.schedule('0 8 * * *', checkExpiriesAndAlert);
-    console.log('[Cron Service] Initialized daily background expiry sweep (08:00 AM)');
+    log.info('Initialized daily background expiry sweep (08:00 AM)');
 
     // Retry failed alerts every hour
     cron.schedule('0 * * * *', retryFailedAlerts);
-    console.log('[Cron Service] Initialized hourly failed alert retry process');
+    log.info('Initialized hourly failed alert retry process');
 
     // Generate compliance snapshots at 9:00 AM daily (after expiry check)
     cron.schedule('0 9 * * *', generateComplianceSnapshots);
-    console.log('[Cron Service] Initialized daily compliance snapshot generation (09:00 AM)');
+    log.info('Initialized daily compliance snapshot generation (09:00 AM)');
 };
 
 module.exports = {
