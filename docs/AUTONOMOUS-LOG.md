@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-02 (60) — Bug: compliance snapshots also counted expired docs as compliant
+- **Item:** Self-review of `generateComplianceSnapshots` (last unreviewed cronService fn)
+- **Outcome:** shipped (correctness fix — closes the false-green class across ALL score computations)
+- **Bug:** `generateComplianceSnapshots` computed per-worker `complianceScore` (line ~423) and `summary.compliantWorkers` (line ~450) from `requiredDocs.filter(d => d.status === 'APPROVED')` with **no expiry check** — same class as the live compliance-score bug, but here it persists **false-green history** into the daily `complianceSnapshot` used for trends.
+- **Fix:** added a shared `isValidApproved(d)` helper (`APPROVED` && (`expiryDate` null || `>= startOfToday`)) at the top of the function and used it in both counts. +1 functional test (expired worker → score 0 / not in compliantWorkers; valid → 100).
+- **Verify:** `node --check` OK; new suite **1/1**; `npm run test:ci` = **42 suites / 293 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(cron): exclude expired docs from compliance snapshots
+- **Notes / decisions:** Seventeenth defect. The expiry-aware fix now covers **every** compliance-score computation (live score, worker list, dashboard tile, dashboard compliant-count, snapshots) + the nightly `markExpiredDocuments` job maintains the status. cronService is now fully reviewed + tested. Genuinely at the end of the high-yield self-review — remaining is founder-gated (matcher weights / no-show / CSP / auto-poster / £ earnings / reactivate role / hasExpired / TS-transform) or a **"pause"**.
+
 ## 2026-07-01 (59) — Test coverage for the expiry-alert dead-letter retry (clean)
 - **Item:** Self-review of `retryFailedAlerts` (the retry path my emailService fix now feeds)
 - **Outcome:** shipped (coverage; reviewed clean)

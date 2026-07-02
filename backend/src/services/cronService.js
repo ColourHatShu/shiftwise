@@ -378,6 +378,13 @@ const generateComplianceSnapshots = async () => {
     log.info('Starting daily compliance snapshot generation');
 
     try {
+        // An APPROVED doc past its expiry is NOT compliant (nothing flips status to
+        // EXPIRED synchronously), so snapshots must date-check like the live score —
+        // otherwise historical compliance is recorded falsely green.
+        const startOfToday = new Date();
+        startOfToday.setUTCHours(0, 0, 0, 0);
+        const isValidApproved = (d) => d.status === 'APPROVED' && (!d.expiryDate || new Date(d.expiryDate) >= startOfToday);
+
         const agencies = await prisma.agency.findMany({
             where: { isActive: true }
         });
@@ -413,7 +420,7 @@ const generateComplianceSnapshots = async () => {
                     workers: workers.map(w => {
                         const requiredIds = requiredDocTypes.map(dt => dt.id);
                         const requiredDocs = w.complianceDocuments.filter(d => requiredIds.includes(d.documentTypeId));
-                        const approvedCount = requiredDocs.filter(d => d.status === 'APPROVED').length;
+                        const approvedCount = requiredDocs.filter(isValidApproved).length;
                         const complianceScore = requiredDocTypes.length > 0
                             ? Math.round((approvedCount / requiredDocTypes.length) * 100)
                             : 100;
@@ -440,7 +447,7 @@ const generateComplianceSnapshots = async () => {
                         compliantWorkers: workers.filter(w => {
                             const requiredIds = requiredDocTypes.map(dt => dt.id);
                             const requiredDocs = w.complianceDocuments.filter(d => requiredIds.includes(d.documentTypeId));
-                            const approvedCount = requiredDocs.filter(d => d.status === 'APPROVED').length;
+                            const approvedCount = requiredDocs.filter(isValidApproved).length;
                             const score = requiredDocTypes.length > 0 ? Math.round((approvedCount / requiredDocTypes.length) * 100) : 100;
                             return score >= 80;
                         }).length
