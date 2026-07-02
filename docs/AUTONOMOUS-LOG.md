@@ -3,6 +3,15 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-02 (64) — encryption reviewed clean; self-review complete (status/ideation pass)
+- **Item:** Review `encryption.js` (last unreviewed core module); assess remaining work
+- **Outcome:** ideation/status pass — **0 actionable non-gated items remain** (no code change; docs only)
+- **Encryption review:** AES-256-GCM `encryptFileGCM`/`decryptFileGCM` are correct — `getAuthTag()` after `final()`, `setAuthTag()` before `update()`, `IV(12)|authTag(16)|ciphertext` layout consistent between encrypt/decrypt, `GCM_AUTH_FAIL` tagged for the documents.js handler. **Comprehensively tested** already (unit + integration: roundtrip, random-IV, tampered-ciphertext, tampered-authTag, wrong-key). No bug, no gap.
+- **Milestone:** with encryption clean, the systematic self-review is **complete** — every backend route + every core service (cronService, compliance-service, emailService, pdfService, encryption) + the key frontend logic has been reviewed, and where a defect or coverage gap existed it was fixed/covered. **Arc total: 20 real defects fixed** (incl. a cross-tenant IDOR, cross-tenant alert trigger, end-to-end false-green compliance, silent alert non-delivery, 3 expiry off-by-ones), **tests ~60 → ~390**, CI green throughout on `main`.
+- **Decision:** per the playbook (<3 actionable → ideate, don't manufacture work), this is an honest status pass rather than a fabricated code change. Updated the plan's top section to "self-review complete / awaiting direction" and **recommended pausing the 10-min cron**. Did NOT unilaterally delete the founder's cron (it's their explicit, repeated setup) — the recommendation to pause is theirs to action.
+- **Commit:** see git — 🛡️ docs(knight): self-review complete — recommend pause / await direction
+- **Founder-gated (any one unblocks real work):** tune matcher weights · CSP report-only · auto-poster (+spec) · £ earnings (+rates) · a model-backed module (no-show / notifications / rolodex / handoff notes) · test-DB + jest TS-transform · reactivate role · `/readiness` hasExpired semantics. Or **"pause"**.
+
 ## 2026-07-02 (63) — Bug: CQC audit PDF coloured expired docs green
 - **Item:** Self-review — the CQC-facing PDF report (highest-stakes surface) + frontend compliance page
 - **Outcome:** shipped (correctness fix on the inspector-facing report)

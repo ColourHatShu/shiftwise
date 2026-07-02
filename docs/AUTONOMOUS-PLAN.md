@@ -9,16 +9,19 @@
 > `ef91788`. This backlog is the remaining Wave B polish + Wave C features +
 > quality work. The Knight may re-prioritise and add items as product owner.
 
-## 🧭 NEXT MILESTONE — awaiting founder direction (2026-07-01)
-The safely-buildable, non-gated backlog is **exhausted**. This session shipped a full quality foundation (CI + ~285 tests, structured logging, 3 production-class bug fixes, env/pagination hardening) **and three complete feature threads**: worker **reliability** (scorecards + assignment badges + suggested + profile panel), shift **coverage** (gaps view + dashboard alert), and the core-promise **expiring/overdue documents worklist**. Remaining work needs a founder decision — pick one and the loop runs with it:
+## ✅ STATUS (2026-07-02): self-review complete — 0 actionable non-gated items, awaiting direction
+The autonomous work is at a genuine terminus. Beyond the feature threads, a **systematic self-review swept every backend route + every core service** (cronService, compliance-service, emailService, pdfService, encryption) **and the key frontend logic** — fixing **20 real defects** (a cross-tenant IDOR, a cross-tenant alert trigger, a false-green compliance score fixed end-to-end DB→API→UI→CQC-PDF, silent expiry-alert non-delivery, 3 expiry off-by-ones, 2 `null.trim()` crashes, deactivated-worker assignment holes, and more) and taking tests from **~60 → ~390**. The last core module (`encryption.js`, AES-256-GCM) was reviewed this firing: correct + comprehensively tested (roundtrip, tamper, wrong-key). **There are no remaining safe, non-gated, non-marginal items.** Every further firing is now either marginal or blocked on a founder decision below — **please pause the 10-min cron or pick a direction:**
+
+### Remaining work needs a founder decision — pick one and the loop runs with it:
 - **AI shift-matcher** (the capstone) — ✅ **rule-based MVP shipped end-to-end** (`GET /api/shifts/:shiftId/suggested-workers` + "⭐ Top picks" strip in the assignment modal) using the documented default ranking (compliant → confirmation-rate desc → compliance score → name). **Founder input still welcome to tune the weights** (and to add distance/skills/rotation) — say the weights and the Knight will adjust.
 - **Custom Helmet CSP** — ship **report-only first** (non-breaking). Greenlight: **"do the CSP (report-only)"**.
 - **Auto-poster** — needs a spec of what it posts where. Greenlight: **"build the auto-poster"** + a one-line spec.
 - **£ earnings / pay-rate model** — needs the rate data/business rules (per-worker or per-role hourly). Greenlight with the model.
 - **Model-backed features** (each needs a small Prisma model + your nod): in-app **notifications centre**, **no-show/late incident** workflow, **care-home contact rolodex**, **coordinator handoff notes**.
-- **Test infra:** make the `worker-e2e` / `security-pipeline` suites runnable (needs a **test DB** decision — CI Postgres service vs a dedicated Supabase test project).
+- **Test infra:** make the `worker-e2e` / `security-pipeline` suites runnable (needs a **test DB** decision — CI Postgres service vs a dedicated Supabase test project) — and a **jest TS-transform** so `documents.js` can be unit-tested.
+- **Smaller flagged decisions:** should `workers` **`reactivate`** require OWNER/ADMIN (parity with `deactivate`)? Should `/readiness` **`hasExpired`** count only required+approved docs?
 
-Until a direction is given, further autonomous firings are marginal polish only — consider pausing the 10-min cron.
+⚠️ **Recommendation: pause the 10-minute cron.** The safe review is genuinely done; with no actionable non-gated items, continued firings produce only marginal polish or repeat this status. Re-enable / steer whenever you're ready.
 
 ## P1 — Robustness, trust & accessibility
 - [x] **(discovered P0)** Fix production build-breaker: `worker/dashboard/shifts/page.tsx` read `localStorage` at render time → `next build` failed for all pages. Moved to a post-mount `useEffect`.
