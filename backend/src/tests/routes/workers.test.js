@@ -8,14 +8,20 @@ const request = require('supertest');
 const express = require('express');
 const workersRouter = require('../../routes/workers');
 
+// Mutable so a test can exercise role-gating; defaults to OWNER (passes role checks).
+let mockCurrentRole = 'OWNER';
 jest.mock('../../lib/prisma');
 jest.mock('../../lib/auth', () => ({
     requireAgency: (req, res, next) => {
         req.agencyId = 'agency-1';
-        req.user = { id: 'user-1', role: 'OWNER' };
+        req.user = { id: 'user-1', role: mockCurrentRole };
         next();
     },
-    requireRole: () => (req, res, next) => next(),
+    // Enforcing mock so requireRole-guarded routes are genuinely tested.
+    requireRole: (roles) => (req, res, next) =>
+        roles && req.user && !roles.includes(req.user.role)
+            ? res.status(403).json({ error: 'Forbidden: insufficient role' })
+            : next(),
 }));
 
 const prisma = require('../../lib/prisma');
@@ -25,6 +31,7 @@ describe('workers routes', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockCurrentRole = 'OWNER';
         app = express();
         app.use(express.json());
         prisma.worker = {
@@ -107,6 +114,30 @@ describe('workers routes', () => {
             prisma.worker.delete.mockResolvedValue({});
             const res = await request(app).delete('/api/workers/w1');
             expect(res.status).toBe(200);
+        });
+
+        it('403s for a non-admin role (delete is role-gated)', async () => {
+            mockCurrentRole = 'MEMBER';
+            const res = await request(app).delete('/api/workers/w1');
+            expect(res.status).toBe(403);
+            expect(prisma.worker.findFirst).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('PATCH /api/workers/:id/reactivate', () => {
+        it('reactivates an in-agency worker for an OWNER/ADMIN (status ACTIVE)', async () => {
+            prisma.worker.findFirst.mockResolvedValue({ id: 'w1', agencyId: 'agency-1', status: 'INACTIVE' });
+            prisma.worker.update.mockResolvedValue({ id: 'w1', status: 'ACTIVE' });
+            const res = await request(app).patch('/api/workers/w1/reactivate');
+            expect(res.status).toBe(200);
+            expect(prisma.worker.update.mock.calls[0][0].data).toMatchObject({ status: 'ACTIVE' });
+        });
+
+        it('403s for a non-admin role (parity with deactivate)', async () => {
+            mockCurrentRole = 'MEMBER';
+            const res = await request(app).patch('/api/workers/w1/reactivate');
+            expect(res.status).toBe(403);
+            expect(prisma.worker.update).not.toHaveBeenCalled();
         });
     });
 });

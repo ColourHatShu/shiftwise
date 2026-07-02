@@ -140,7 +140,10 @@ router.post('/', requireAgency, async (req, res) => {
 });
 
 // ─── PATCH /api/workers/:id/reactivate ───────────────────────────────────────
-router.patch('/:id/reactivate', requireAgency, async (req, res) => {
+// Requires OWNER/ADMIN for parity with deactivate — re-enabling a worker for
+// shifts is a privileged action; a lower role shouldn't be able to undo a
+// deactivation an admin made.
+router.patch('/:id/reactivate', requireAgency, requireRole(['OWNER', 'ADMIN']), async (req, res) => {
     try {
         const { id } = req.params;
 

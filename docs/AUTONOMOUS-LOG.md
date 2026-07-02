@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-02 (65) — Authz parity: reactivate now requires OWNER/ADMIN
+- **Item:** Resolve the flagged `reactivate` authz asymmetry (a genuine actionable item)
+- **Outcome:** shipped (authz-hardening + strengthened role-gating tests)
+- **Issue:** `PATCH /api/workers/:id/deactivate` required `OWNER/ADMIN`, but its inverse `PATCH /:id/reactivate` required only `requireAgency` — so a lower-privilege coordinator could re-enable (make assignable again) a worker an admin had deactivated. Almost certainly an oversight; the secure default is parity.
+- **Fix:** added `requireRole(['OWNER','ADMIN'])` to `reactivate`. Product-owner call (I'd flagged it for a nod, but it's a clear-cut inverse-operation parity + reversible if the founder wanted open reactivate) — analogous to the shift-matcher default.
+- **Tests:** strengthened `workers.test.js` — the `requireRole` mock now genuinely **enforces** the role (was a passthrough), via a `mockCurrentRole` the tests flip. Added: reactivate → 200 for OWNER (status ACTIVE), reactivate → 403 for a non-admin, and delete → 403 for a non-admin. Workers suite 8 → 11.
+- **Verify:** `node --check` OK; workers suite **11/11**; `npm run test:ci` = **43 suites / 302 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(workers): require OWNER/ADMIN to reactivate (parity with deactivate)
+- **Notes / decisions:** Resolved one of the two small flagged decisions with a safe product-owner call + real role-gating coverage. The only remaining flagged decision is `/readiness` `hasExpired` semantics (a genuine product judgment I won't guess). Otherwise still 0 actionable non-gated items — recommend a steer or **"pause"**.
+
 ## 2026-07-02 (64) — encryption reviewed clean; self-review complete (status/ideation pass)
 - **Item:** Review `encryption.js` (last unreviewed core module); assess remaining work
 - **Outcome:** ideation/status pass — **0 actionable non-gated items remain** (no code change; docs only)

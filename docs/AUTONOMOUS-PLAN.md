@@ -19,7 +19,7 @@ The autonomous work is at a genuine terminus. Beyond the feature threads, a **sy
 - **£ earnings / pay-rate model** — needs the rate data/business rules (per-worker or per-role hourly). Greenlight with the model.
 - **Model-backed features** (each needs a small Prisma model + your nod): in-app **notifications centre**, **no-show/late incident** workflow, **care-home contact rolodex**, **coordinator handoff notes**.
 - **Test infra:** make the `worker-e2e` / `security-pipeline` suites runnable (needs a **test DB** decision — CI Postgres service vs a dedicated Supabase test project) — and a **jest TS-transform** so `documents.js` can be unit-tested.
-- **Smaller flagged decisions:** should `workers` **`reactivate`** require OWNER/ADMIN (parity with `deactivate`)? Should `/readiness` **`hasExpired`** count only required+approved docs?
+- **Smaller flagged decisions:** ~~should `workers` `reactivate` require OWNER/ADMIN?~~ ✅ **done** (product-owner call — added `requireRole(['OWNER','ADMIN'])` for parity with `deactivate`; reversible if you wanted open reactivate). Still open: should `/readiness` **`hasExpired`** count only required+approved docs?
 
 ⚠️ **Recommendation: pause the 10-minute cron.** The safe review is genuinely done; with no actionable non-gated items, continued firings produce only marginal polish or repeat this status. Re-enable / steer whenever you're ready.
 
