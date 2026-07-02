@@ -5,6 +5,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const Sentry = require('@sentry/node');
 const { requireAgency, requireRole } = require('../lib/auth');
+const { computeDocumentDisplayStatus } = require('../lib/document-status');
 const { pdf } = require('pdf-to-img');
 const prisma = require('../lib/prisma');
 const { seedDocumentTypes } = require('../lib/seedDocumentTypes');
@@ -348,19 +349,9 @@ router.get('/worker/:workerId', async (req, res) => {
         const uploadedMap = {};
         for (const d of uploaded) uploadedMap[d.documentTypeId] = d;
 
-        const now = new Date();
-        const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
         const merged = documentTypes.map(dt => {
             const doc = uploadedMap[dt.id] || null;
-            let computedStatus = 'NOT_UPLOADED';
-            if (doc) {
-                if (doc.status === 'EXPIRED') computedStatus = 'EXPIRED';
-                else if (doc.expiryDate && new Date(doc.expiryDate) <= in30Days && doc.status === 'APPROVED')
-                    computedStatus = 'EXPIRING_SOON';
-                else computedStatus = doc.status; // will fall back to PENDING, APPROVED, REJECTED
-            }
-            return { documentType: dt, document: doc, computedStatus };
+            return { documentType: dt, document: doc, computedStatus: computeDocumentDisplayStatus(doc) };
         });
 
         res.json({ data: merged });

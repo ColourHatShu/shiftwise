@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-02 (62) — Bug: worker-profile badge showed expired docs as "expiring soon"
+- **Item:** Self-review follow-through — the worker-profile document badge (backend `computedStatus`)
+- **Outcome:** shipped (correctness fix + a testable, dep-free backend helper)
+- **Bug:** the worker-profile page's status badge uses `slot.computedStatus` from `GET /documents/worker/:workerId`, which computed `expiryDate <= in30 && status === 'APPROVED' → EXPIRING_SOON` — true for already-lapsed docs. So the badge said amber "Expiring Soon" while the expiry text directly beneath it said red "Expired X days ago" — self-contradictory on the same card. (Same class as the documents-page fix in firing 61, different surface/source.)
+- **Fix:** extracted `computeDocumentDisplayStatus(doc)` into a **dep-free** `backend/src/lib/document-status.js` (expired-first: `exp < startOfToday` → EXPIRED), mirroring the frontend `lib/document-status.ts`, and used it in `documents.js` (which also removes previously-untestable inline logic — `documents.js` can't be required under jest due to `ocrService.ts`).
+- **Coverage:** new `src/tests/lib/document-status.test.js` (6 tests) — not-uploaded, explicit EXPIRED, lapsed-APPROVED→EXPIRED, within-30→EXPIRING_SOON, valid/no-expiry→APPROVED, PENDING/REJECTED passthrough.
+- **Verify:** `node --check` (documents.js + new lib) OK; helper suite **6/6**; `npm run test:ci` = **43 suites / 299 tests, 0 failing**.
+- **Commit:** see git — 🛡️ fix(documents): worker-profile badge treats lapsed docs as EXPIRED
+- **Notes / decisions:** Nineteenth defect — completes the expired-vs-expiring-soon fix across both surfaces (documents page + worker profile) and both sides (frontend + backend), each now backed by a tested helper. Genuinely at the end of the high-yield self-review. Still recommend a steer (matcher weights / no-show / CSP / auto-poster / £ earnings / reactivate role / hasExpired / TS-transform) or a **"pause"**.
+
 ## 2026-07-02 (61) — Bug: frontend showed expired docs as "expiring soon"
 - **Item:** Self-review of the frontend document-status display (client-side false-green class)
 - **Outcome:** shipped (user-facing correctness fix + shared tested helper)
