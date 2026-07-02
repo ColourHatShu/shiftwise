@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-02 (61) — Bug: frontend showed expired docs as "expiring soon"
+- **Item:** Self-review of the frontend document-status display (client-side false-green class)
+- **Outcome:** shipped (user-facing correctness fix + shared tested helper)
+- **Bug:** `documents/page.tsx` `getComputedStatus` did `if (exp <= in30 && status === 'APPROVED') return 'EXPIRING_SOON'`. Since an already-lapsed doc's expiry is also `<= in30`, an **expired** document displayed as amber "Expiring Soon" instead of red "Expired". The backend now flips status→EXPIRED nightly, but in the up-to-24h window between lapse and the job (or on any APPROVED+past-expiry row) the UI mislabels it — misleading in a compliance product.
+- **Fix:** extracted the logic to `frontend/lib/document-status.ts` (`computeDocumentStatus`) with an **expired-first** guard (`exp < startOfToday` → EXPIRED before the EXPIRING_SOON check); wired the page to it.
+- **Coverage:** new `lib/document-status.test.ts` (6 tests) — not-uploaded, explicit EXPIRED, lapsed-APPROVED→EXPIRED, within-30→EXPIRING_SOON, valid/no-expiry→APPROVED, PENDING/REJECTED passthrough.
+- **Verify:** new test **6/6**; frontend `npm run test:ci` = **12 files / 91 tests**; `npm run lint` 0; `npm run build` ✓.
+- **Commit:** see git — 🛡️ fix(documents-ui): show lapsed docs as EXPIRED not "expiring soon"
+- **Notes / decisions:** Eighteenth defect — the client-side counterpart to the backend false-green fixes; the expiry-truth is now consistent from DB → API → score → UI. Genuinely at the end of the high-yield self-review. Still recommend a steer (matcher weights / no-show / CSP / auto-poster / £ earnings / reactivate role / hasExpired / TS-transform) or a **"pause"**.
+
 ## 2026-07-02 (60) — Bug: compliance snapshots also counted expired docs as compliant
 - **Item:** Self-review of `generateComplianceSnapshots` (last unreviewed cronService fn)
 - **Outcome:** shipped (correctness fix — closes the false-green class across ALL score computations)

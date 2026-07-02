@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FileText, CheckCircle2, Clock, AlertCircle, Upload, XCircle, Search } from "lucide-react";
 import { downloadDocument } from "@/lib/api/documents";
 import { useApi } from "@/lib/use-api";
+import { computeDocumentStatus } from "@/lib/document-status";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -89,16 +90,8 @@ export default function DocumentsPage() {
         );
     }
 
-    const getComputedStatus = (doc: ComplianceDocument | null): string => {
-        if (!doc) return "NOT_UPLOADED";
-        if (doc.status === "EXPIRED") return "EXPIRED";
-        if (doc.expiryDate) {
-            const exp = new Date(doc.expiryDate);
-            const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-            if (exp <= in30 && doc.status === "APPROVED") return "EXPIRING_SOON";
-        }
-        return doc.status ?? "NOT_UPLOADED";
-    };
+    // Shared, tested helper — treats already-lapsed docs as EXPIRED (not EXPIRING_SOON).
+    const getComputedStatus = computeDocumentStatus;
 
     const getComplianceScore = (docs: ComplianceDocument[]) => {
         if (!docs.length) return null;
