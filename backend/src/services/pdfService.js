@@ -1,4 +1,5 @@
 const PDFDocument = require('pdfkit');
+const { computeDocumentDisplayStatus } = require('../lib/document-status');
 
 function addHeader(doc, agencyName) {
     // Top Left Header
@@ -93,13 +94,17 @@ module.exports = {
                        doc.fillColor('#0f172a').font('Helvetica').fontSize(10);
                        doc.text(docItem.typeName || 'Unknown Document', 60, currentY + 6, { width: 230, lineBreak: false });
                        
-                       // Status Color Badge logic
-                       if (docItem.status === 'APPROVED') doc.fillColor('#16a34a');
+                       // Status Color Badge logic. An APPROVED doc past its expiry is
+                       // effectively EXPIRED (red), not green — critical on the CQC report.
+                       const effectiveStatus = computeDocumentDisplayStatus(docItem);
+                       if (effectiveStatus === 'EXPIRED') doc.fillColor('#dc2626');
+                       else if (docItem.status === 'APPROVED') doc.fillColor('#16a34a');
                        else if (docItem.status === 'PENDING') doc.fillColor('#ea580c');
-                       else if (docItem.status === 'EXPIRED' || docItem.status === 'REJECTED') doc.fillColor('#dc2626');
+                       else if (docItem.status === 'REJECTED') doc.fillColor('#dc2626');
                        else doc.fillColor('#64748b');
-                       
-                       doc.text(docItem.status || 'N/A', 300, currentY + 6);
+
+                       const displayStatus = effectiveStatus === 'EXPIRED' ? 'EXPIRED' : (docItem.status || 'N/A');
+                       doc.text(displayStatus, 300, currentY + 6);
                        
                        doc.fillColor('#0f172a');
                        const expDate = docItem.expiryDate ? new Date(docItem.expiryDate).toLocaleDateString('en-GB') : 'N/A';

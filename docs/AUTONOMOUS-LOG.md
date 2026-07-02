@@ -3,6 +3,16 @@
 > Newest entries on top. The Knight prepends one entry per firing. This is the
 > file the human reads to see what shipped while they were away.
 
+## 2026-07-02 (63) — Bug: CQC audit PDF coloured expired docs green
+- **Item:** Self-review — the CQC-facing PDF report (highest-stakes surface) + frontend compliance page
+- **Outcome:** shipped (correctness fix on the inspector-facing report)
+- **Reviewed clean:** the frontend compliance page (`compliance/page.tsx`) renders the backend `complianceScore` (already expiry-fixed) with RAG thresholds matching the backend (80/50) — no client-side false-green.
+- **Bug:** `pdfService` set each document row's badge colour + text from the **raw** `status` (`status === 'APPROVED' → green`). An approved-but-past-expiry doc therefore rendered **green "APPROVED"** on the CQC compliance report handed to an inspector — false-green on the most consequential output (the nightly `markExpiredDocuments` flips status but there's a window; and any stale/edge row hits it).
+- **Fix:** colour + label via the tested `computeDocumentDisplayStatus` — an effectively-expired doc shows red "EXPIRED". Minimal (only expired docs change; APPROVED/PENDING/REJECTED for non-expired unchanged).
+- **Verify:** `node --check` + `require()` of pdfService OK; `npm run test:ci` = **43 suites / 299 tests, 0 failing** (pdfService isn't unit-testable under jest — pdfkit — but the colour logic is the already-tested `computeDocumentDisplayStatus`).
+- **Commit:** see git — 🛡️ fix(pdf): show expired documents as EXPIRED (not green) on the CQC report
+- **Notes / decisions:** Twentieth defect — the expiry-truth is now consistent on **every** surface: DB (nightly job) → API → compliance score/snapshots → dashboard → documents page → worker profile → **CQC PDF**. This closes the compliance-expiry arc completely. Genuinely at the end of high-yield safe review. Still recommend a steer (matcher weights / no-show / CSP / auto-poster / £ earnings / reactivate role / hasExpired / TS-transform) or a **"pause"**.
+
 ## 2026-07-02 (62) — Bug: worker-profile badge showed expired docs as "expiring soon"
 - **Item:** Self-review follow-through — the worker-profile document badge (backend `computedStatus`)
 - **Outcome:** shipped (correctness fix + a testable, dep-free backend helper)
